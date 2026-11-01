@@ -3,6 +3,7 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import type { ReactNode } from "react";
 import { SnackbarHost } from "@/components/ui/Snackbar";
 import { UpdatePrompt } from "./UpdatePrompt";
+import { AppEffects } from "@/features/app-effects/AppEffects";
 
 export function Providers({ children }: { children: ReactNode }) {
   const disableSw = process.env.NODE_ENV === "development";
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: ReactNode }) {
       reloadOnOnline={false}
       cacheOnNavigation
     >
+      <AppEffects />
       {children}
       <SnackbarHost />
       <UpdatePrompt />
