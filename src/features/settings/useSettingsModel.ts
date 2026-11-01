@@ -4,7 +4,7 @@
  * changes are applied (SET-011 structural confirm + re-create, live SET_OPTION, app patches,
  * SET-012 save/restore preset defaults).
  */
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSnackbar } from "@/components/ui";
 import type { Game, Preset } from "@/engine";
 import { configFromGame, loadLastConfig, seatsFromGame } from "@/features/setup/gameConfig";
@@ -92,6 +92,8 @@ export function useSettingsModel(): SettingsModel {
   const [picked, setPicked] = useState<Preset | null>(null);
   const [nextDraft, setNextDraft] = useState<GameDraft | null>(null);
   const [pending, setPending] = useState<GameDraft | null>(null);
+  /** The next-game draft was edited (the initial load must not overwrite it). */
+  const editedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -99,7 +101,8 @@ export function useSettingsModel(): SettingsModel {
       const last = await loadLastConfig().catch(() => null);
       const preset = last?.preset ?? getBuiltInPreset(DEFAULT_PRESET_ID)!;
       const defaults = await getPresetDefaults(preset.id).catch(() => undefined);
-      if (!alive) return;
+      // An edit made while this was loading wins (it already saved its own draft).
+      if (!alive || editedRef.current) return;
       setNextPreset(preset);
       setNextDraft(draftFromDefaults(preset, defaults));
     })().catch(() => {});
@@ -126,6 +129,7 @@ export function useSettingsModel(): SettingsModel {
   };
 
   const persistNext = useCallback((d: GameDraft) => {
+    editedRef.current = true;
     setNextDraft(d);
     savePresetDefaults(d.presetId, presetDefaultsFromDraft(d)).catch((e: unknown) =>
       console.warn("[settings] save defaults failed", e),
@@ -196,6 +200,7 @@ export function useSettingsModel(): SettingsModel {
       );
       setPicked(p);
       if (!game) {
+        editedRef.current = true;
         setNextPreset(p);
         setNextDraft(draftFromDefaults(p, defaults));
         return;
