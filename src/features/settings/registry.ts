@@ -275,6 +275,8 @@ export const AVAILABLE_ROUTES: readonly string[] = [
   "/builder",
   "/account",
   "/feedback",
+  "/images",
+  "/about",
 ];
 
 function linkRow(id: string, section: SectionId, href: string): SettingDef {
@@ -783,6 +785,7 @@ const BASE_ROWS: SettingDef[] = [
   linkRow("feedback", "H", "/feedback"),
   linkRow("diagnostics", "H", "/feedback"),
   actionRow("whatsNew", "H", "whatsNew"),
+  linkRow("aboutCredits", "H", "/about"),
   {
     id: "about",
     scope: "app",

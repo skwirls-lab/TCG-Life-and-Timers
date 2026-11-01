@@ -179,7 +179,12 @@ describe("settings registry", () => {
     expect(ids(ctx)).not.toContain("install");
     expect(getSetting("planechase")!.disabledIf!(ctx)).toBe("shell.settings.badge.p2");
     expect(getSetting("profiles")!.disabledIf!(ctx)).toBeNull();
-    expect(getSetting("myImages")!.disabledIf!(ctx)).toBe("shell.settings.badge.soon");
+    // @req ART-023 @req ART-005 My images (G) and About & credits (H) link to their pages
+    expect(getSetting("myImages")!.disabledIf!(ctx)).toBeNull();
+    expect(getSetting("myImages")!.control).toEqual({ kind: "link", href: "/images" });
+    expect(getSetting("aboutCredits")!.section).toBe("H");
+    expect(getSetting("aboutCredits")!.control).toEqual({ kind: "link", href: "/about" });
+    expect(getSetting("aboutCredits")!.disabledIf!(ctx)).toBeNull();
     // @req CUS-001 G-row entry points to the builder, account and feedback pages
     expect(getSetting("myPresets")!.disabledIf!(ctx)).toBeNull();
     expect(getSetting("myPresets")!.control).toEqual({ kind: "link", href: "/builder" });
