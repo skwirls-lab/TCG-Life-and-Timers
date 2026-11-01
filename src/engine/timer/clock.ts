@@ -121,9 +121,12 @@ export function turnTimeUsed(game: Pick<Game, "timer">, seatId: SeatId, now: num
  * perTurnReserve, the grace countdown in overtime, otherwise the bank (negative when flagged).
  */
 export function displayMs(game: Pick<Game, "timer">, seatId: SeatId, now: number): number {
-  const cfg = game.timer.config;
   const c = clockAt(game, seatId, now);
-  if (!c) return 0;
+  return c ? clockDisplayMs(c, game.timer.config) : 0;
+}
+
+/** `displayMs` for an already settled clock. */
+export function clockDisplayMs(c: SeatClock, cfg: TimerConfig): number {
   if (cfg.mode === "off") return 0;
   if (cfg.mode === "countup") return c.usedMs;
   const turnLeft = turnLeftMs(c, cfg);

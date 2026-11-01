@@ -98,6 +98,8 @@ export {
   timeUsed,
   turnTimeUsed,
   displayMs,
+  clockDisplayMs,
+  clockRemaining,
   clockAt,
   clockState,
   holder,
