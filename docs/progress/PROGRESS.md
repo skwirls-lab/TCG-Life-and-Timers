@@ -21,14 +21,14 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T1.6 | Layout engine | W2 | BOARD | IN_PROGRESS | LAY-001..004, LAY-006, LAY-009, LAY-010. |  |
 | T1.7 | Seat tile | W2 | BOARD | IN_PROGRESS | LIFE-001..006, INP-001..004, INP-006, INP-008, INP-009, LAY-007, LAY-008, SET-00 |  |
 | T1.8 | Center toolbar | W2 | BOARD | IN_PROGRESS | §7.2, LAY-010, LAY-011, SET-031. |  |
-| T1.9 | Seat menu (rotated sheet) | W2 | BOARD | IN_PROGRESS | SEAT-001, SEAT-002, SEAT-004, SEAT-005, §8.2. |  |
+| T1.9 | Seat menu (rotated sheet) | W2 | BOARD | DONE | SEAT-001, SEAT-002, SEAT-004, SEAT-005, §8.2. | lane e2e 54/54, full 66/66 ✅ |
 | T1.10 | Commander damage | W2 | BOARD | IN_PROGRESS | CMD-002..006, CMD-010. |  |
 | T1.11 | Tokens and global counters UI | W2 | BOARD | IN_PROGRESS | TOK-001, TOK-003, TOK-004. |  |
 | T1.12 | Launcher and setup flow | W2 | SHELL | IN_PROGRESS | GAME-001, GAME-016, LAY-005, PRE-003 (basic picker for MTG presets only; the ful |  |
 | T1.13 | Reset, first player, game over | W2 | SHELL | IN_PROGRESS | GAME-010..015, LIFE-005, SET-012 (Dice & randomizer animations toggle). |  |
 | T1.14 | Settings screen | W2 | SHELL | IN_PROGRESS | SET-001, SET-010..015, §13.1 sections A, B, D, E, F (G and H get placeholders; F |  |
-| T1.15 | Profiles and decks (local) | W2 | SHELL | IN_PROGRESS | PROF-001, PROF-002, PROF-010, PROF-011. |  |
-| T1.16 | Backgrounds (non-art) | W2 | SHELL | IN_PROGRESS | SET-002 (gradients/colors/default), SET-003. |  |
+| T1.15 | Profiles and decks (local) | W2 | SHELL | DONE | PROF-001, PROF-002, PROF-010, PROF-011. | lane e2e 54/54, full 66/66 ✅ |
+| T1.16 | Backgrounds (non-art) | W2 | SHELL | DONE | SET-002 (gradients/colors/default), SET-003. | lane e2e 54/54, full 66/66 ✅ |
 | T1.20 | One-player mode and camera mode | W2 | SHELL | IN_PROGRESS | SET-032, SET-033. |  |
 | T1.17 | Tools page and quick access | W2 | TOOLS-HIST | IN_PROGRESS | TOOL-001..003, TOOL-007..011, TOOL-013. |  |
 | T1.18 | Current-game history | W2 | TOOLS-HIST | IN_PROGRESS | HIST-001, HIST-002, HIST-010..013. |  |

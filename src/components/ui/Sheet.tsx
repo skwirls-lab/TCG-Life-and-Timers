@@ -57,7 +57,7 @@ export function Sheet({ open, onClose, title, rotation = 0, children, testId, cl
             maxHeight: sideways ? "92vw" : "92dvh",
           }}
           className={cn(
-            "pointer-events-auto flex flex-col overflow-hidden rounded-[2rem] bg-surface text-fg shadow-2xl outline-none",
+            "pointer-events-auto flex shrink-0 flex-col overflow-hidden rounded-[2rem] bg-surface text-fg shadow-2xl outline-none",
             className,
           )}
         >
