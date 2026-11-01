@@ -20,7 +20,7 @@ export interface SnackAnchor {
   seatId?: string;
   rect?: AnchorRect;
   /** Where on a registered seat tile: toward the player's edge (default 'seat') or centred. */
-  region?: "seat" | "center";
+  region?: "seat" | "center" | "above";
 }
 
 export interface SnackItem {
@@ -35,6 +35,9 @@ export interface SnackItem {
 
 interface SnackStore {
   items: SnackItem[];
+  /** A-8: full-screen overlays (PAUSED) hide snackbars while they are up (a count). */
+  suppressed: number;
+  suppress: () => () => void;
   show: (item: Omit<SnackItem, "id" | "durationMs"> & { durationMs?: number }) => number;
   dismiss: (id: number) => void;
 }
@@ -42,6 +45,16 @@ interface SnackStore {
 let nextId = 1;
 export const useSnackbar = create<SnackStore>((set) => ({
   items: [],
+  suppressed: 0,
+  suppress: () => {
+    set((s) => ({ suppressed: s.suppressed + 1 }));
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      set((s) => ({ suppressed: Math.max(0, s.suppressed - 1) }));
+    };
+  },
   show: (item) => {
     const id = nextId++;
     set((s) => ({ items: [...s.items.slice(-2), { durationMs: 3000, ...item, id }] }));
@@ -69,7 +82,8 @@ function anchoredStyle(item: SnackItem): CSSProperties | null {
   const rect = seatRect ?? a.rect;
   if (!rect) return null;
   const rotation = a.rotation ?? item.rotation ?? 0;
-  const p = anchorPlacement(rect, rotation, seatRect ? (a.region ?? "seat") : "above", {
+  const region = seatRect ? (a.region ?? "seat") : (a.region ?? "above");
+  const p = anchorPlacement(rect, rotation, region, {
     width: window.innerWidth,
     height: window.innerHeight,
   });
@@ -118,8 +132,13 @@ function SnackView({ item }: { item: SnackItem }) {
 
 export function SnackbarHost() {
   const items = useSnackbar((s) => s.items);
+  const hidden = useSnackbar((s) => s.suppressed > 0);
   return (
-    <div className="pointer-events-none fixed inset-0 z-[60] flex flex-col items-center justify-center gap-2 p-4">
+    <div
+      className="pointer-events-none fixed inset-0 z-[60] flex flex-col items-center justify-center gap-2 p-4"
+      style={hidden ? { display: "none" } : undefined}
+      data-suppressed={hidden || undefined}
+    >
       {items.map((i) => (
         <SnackView key={i.id} item={i} />
       ))}

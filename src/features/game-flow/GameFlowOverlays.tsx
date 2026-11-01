@@ -11,6 +11,8 @@
  */
 import { useEffect } from "react";
 import { Button, useSnackbar } from "@/components/ui";
+import type { SnackAnchor } from "@/components/ui/Snackbar";
+import type { Rotation } from "@/lib/ui/rotation";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 import {
@@ -35,6 +37,37 @@ const GameOverOverlay = lazyComponent(() =>
 
 export const UNDO_SNACK_MS = 5000;
 
+const rectOf = (el: Element) => {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, top: r.top, width: r.width, height: r.height };
+};
+
+/**
+ * A-8: the elimination Undo sits on the eliminated seat's tile, facing that player, instead of
+ * over the toolbar (null without a board: the centred stack).
+ */
+function seatTileAnchor(index: number): SnackAnchor | null {
+  if (index < 0 || typeof document === "undefined") return null;
+  const el = document.querySelector<HTMLElement>(
+    `[data-testid="board"] [data-testid="seat-${index}"][data-rotation]`,
+  );
+  if (!el) return null;
+  return { rect: rectOf(el), rotation: Number(el.dataset.rotation) as Rotation, region: "seat" };
+}
+
+/**
+ * A-1 / A-8: the reset Undo sits just beside the toolbar strip (above a horizontal strip, to the
+ * side of a vertical one) — not over the toolbar nor over the first-player announcement, which
+ * is centred in each tile.
+ */
+function toolbarAnchor(): SnackAnchor | null {
+  if (typeof document === "undefined") return null;
+  const el = document.querySelector('[data-testid="board"] [data-testid="toolbar"]');
+  if (!el || el.getBoundingClientRect().width === 0) return null;
+  const vertical = el.getAttribute("aria-orientation") === "vertical";
+  return { rect: rectOf(el), rotation: vertical ? 90 : 0, region: "above" };
+}
+
 /** Show an Undo snackbar after destructive changes (GAME-015). */
 function useUndoSnackbar() {
   useEffect(() => {
@@ -57,10 +90,15 @@ function useUndoSnackbar() {
           : t("shell.undo.eliminated", {
               names: change.seatIds.map((id) => seatName(next.game, id)).join(", "),
             });
+      const anchor =
+        change.kind === "reset"
+          ? toolbarAnchor()
+          : seatTileAnchor(next.game.seats.findIndex((s) => s.id === change.seatIds[0]));
       const id = useSnackbar.getState().show({
         message,
         actionLabel: t("common.undo"),
         durationMs: UNDO_SNACK_MS,
+        ...(anchor ? { anchor } : {}),
         onAction: () => useGameStore.getState().dispatch({ type: "UNDO" }),
       });
       shown.push(id);
