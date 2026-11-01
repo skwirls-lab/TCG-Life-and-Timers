@@ -64,6 +64,7 @@ let fake: FakeFirestore;
 let n = 0;
 const reload = vi.fn(async () => {});
 const artStart = vi.fn(async () => {});
+const payStart = vi.fn(async () => {});
 
 beforeEach(async () => {
   vi.stubEnv("NEXT_PUBLIC_USE_EMULATORS", "1");
@@ -71,6 +72,7 @@ beforeEach(async () => {
   await db.open();
   fake = new FakeFirestore();
   artStart.mockClear();
+  payStart.mockClear();
   resetCloudForTests();
   resetAuthForTests({
     cloudConfigured: () => true,
@@ -94,6 +96,7 @@ function start() {
     historySync: () => false,
     reloadSettings: reload,
     startArtCloud: artStart,
+    startPayments: payStart,
   });
 }
 
@@ -144,6 +147,7 @@ describe("startCloud", () => {
     expect(fake.docs.get("users/u1")).toMatchObject({ displayName: "Alice" });
     // @req ART-022 cloud art starts once the account's sync engine runs
     expect(artStart).toHaveBeenCalledTimes(1);
+    expect(payStart).toHaveBeenCalledTimes(1); // entitlement sync starts with account sync
 
     // AUTH-004: sign out and remove data; the active game stays.
     await signOut({ removeLocalData: true });
