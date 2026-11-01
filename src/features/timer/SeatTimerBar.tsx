@@ -351,14 +351,23 @@ function ResponseBanner({
     <div
       data-testid={`seat-${index}-banner`}
       role="status"
-      className="flex min-w-0 shrink items-center gap-1.5 overflow-hidden rounded-2xl bg-black/75 px-3 py-1 font-semibold ring-2 ring-respond"
+      className={cn(
+        "flex min-w-0 shrink items-center overflow-hidden rounded-2xl bg-black/75 py-1 font-semibold ring-2 ring-respond",
+        compact ? "gap-1 px-2" : "gap-1.5 px-3",
+      )}
       title={view.isTurn ? t("timer.resolveFirst") : undefined}
     >
-      <Zap aria-hidden size={16} className="shrink-0 text-respond" />
+      {/* Short tiles: the ⚡×N badge doubles as the icon. */}
+      {!(compact && view.depth > 1) && (
+        <Zap aria-hidden size={16} className="shrink-0 text-respond" />
+      )}
       <span className={cn("min-w-0 truncate text-sm", compact && "sr-only")}>
         {t("timer.bannerName", { name: view.responderName })}
       </span>
-      <span className="shrink-0 font-bold tabular" style={{ fontSize: Math.max(14, px) }}>
+      <span
+        className="shrink-0 font-bold tabular"
+        style={{ fontSize: compact ? 15 : Math.max(14, px) }}
+      >
         {formatClock(elapsed, { showTenths: false })}
       </span>
       {view.depth > 1 && (
