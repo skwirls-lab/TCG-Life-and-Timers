@@ -1,0 +1,22 @@
+{
+  "presets.calc.title": "{name}: {counter}",
+  "presets.calc.hint": "Type an amount: − subtracts, + adds, = sets, ½ halves (rounds up).",
+  "presets.calc.current": "Current {counter}",
+  "presets.calc.apply": "Apply",
+  "presets.calc.tape": "Tape",
+  "presets.calc.tapeEmpty": "No changes yet.",
+  "presets.picker.label": "Game preset",
+  "presets.picker.search": "Search games and formats",
+  "presets.picker.favorites": "Favorites",
+  "presets.picker.recent": "Recent",
+  "presets.picker.noResults": "No presets match “{query}”.",
+  "presets.picker.verify": "Some rule values still need checking",
+  "presets.picker.rules": "Official rules",
+  "presets.picker.rulesFor": "Official rules for {name} (opens a new tab)",
+  "presets.picker.favorite": "Add {name} to favorites",
+  "presets.picker.unfavorite": "Remove {name} from favorites",
+  "presets.picker.selected": "Selected",
+  "presets.picker.players": "{min}–{max} players",
+  "presets.picker.playersFixed": "{min} players",
+  "presets.disclaimer": "Game names are trademarks of their owners. Not affiliated with or endorsed by any publisher."
+}

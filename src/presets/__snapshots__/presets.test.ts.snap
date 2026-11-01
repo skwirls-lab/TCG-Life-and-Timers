@@ -1,5 +1,155 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`built-in presets > digimon.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [],
+  "enabled": [
+    "digimon.security",
+    "digimon.memory",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "digimon.security",
+  "quickStart": null,
+  "start": 5,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [
+    "digimon.security",
+  ],
+}
+`;
+
+exports[`built-in presets > fab.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "perSeatStart",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "fab.life",
+    "fab.ap",
+    "fab.resources",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    4,
+  ],
+  "primary": "fab.life",
+  "quickStart": [
+    20,
+    40,
+  ],
+  "start": 40,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [
+    "fab.life",
+    "fab.ap",
+  ],
+}
+`;
+
+exports[`built-in presets > fftcg.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "fftcg.damage",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "fftcg.damage",
+  "quickStart": null,
+  "start": 0,
+  "threshold": {
+    "comparator": ">=",
+    "outcome": "lose",
+    "value": 7,
+  },
+  "timer": "bank",
+  "verify": [
+    "fftcg.damage",
+  ],
+}
+`;
+
+exports[`built-in presets > generic.life enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [],
+  "enabled": [
+    "generic.life",
+  ],
+  "match": null,
+  "players": [
+    1,
+    2,
+    8,
+  ],
+  "primary": "generic.life",
+  "quickStart": [
+    10,
+    20,
+    30,
+    40,
+  ],
+  "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [],
+}
+`;
+
+exports[`built-in presets > lorcana.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [],
+  "enabled": [
+    "lorcana.lore",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    4,
+  ],
+  "primary": "lorcana.lore",
+  "quickStart": null,
+  "start": 0,
+  "threshold": {
+    "comparator": ">=",
+    "outcome": "win",
+    "value": 20,
+  },
+  "timer": "off",
+  "verify": [
+    "lorcana.lore",
+  ],
+}
+`;
+
 exports[`built-in presets > mtg.2hg enabled-by-default counters (snapshot) 1`] = `
 {
   "capabilities": [
@@ -10,14 +160,28 @@ exports[`built-in presets > mtg.2hg enabled-by-default counters (snapshot) 1`] =
     "mtg.life",
     "mtg.poison",
   ],
+  "match": null,
   "players": [
     4,
     4,
     4,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 30,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [],
 }
 `;
 
@@ -31,14 +195,31 @@ exports[`built-in presets > mtg.archenemy enabled-by-default counters (snapshot)
     "mtg.life",
     "mtg.poison",
   ],
+  "match": null,
   "players": [
     3,
     4,
     5,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.speed",
+    "mtg.ring",
+  ],
 }
 `;
 
@@ -56,14 +237,32 @@ exports[`built-in presets > mtg.brawl enabled-by-default counters (snapshot) 1`]
     "mtg.life",
     "mtg.tax",
   ],
+  "match": null,
   "players": [
     2,
     2,
     6,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 25,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.life",
+    "mtg.speed",
+    "mtg.ring",
+  ],
 }
 `;
 
@@ -86,14 +285,31 @@ exports[`built-in presets > mtg.commander enabled-by-default counters (snapshot)
     "mtg.monarch",
     "mtg.initiative",
   ],
+  "match": null,
   "players": [
     2,
     4,
     8,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 40,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.speed",
+    "mtg.ring",
+  ],
 }
 `;
 
@@ -109,14 +325,31 @@ exports[`built-in presets > mtg.constructed enabled-by-default counters (snapsho
     "mtg.life",
     "mtg.poison",
   ],
+  "match": null,
   "players": [
     1,
     2,
     4,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.speed",
+    "mtg.ring",
+  ],
 }
 `;
 
@@ -132,14 +365,31 @@ exports[`built-in presets > mtg.limited enabled-by-default counters (snapshot) 1
     "mtg.life",
     "mtg.poison",
   ],
+  "match": null,
   "players": [
     2,
     2,
     2,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.speed",
+    "mtg.ring",
+  ],
 }
 `;
 
@@ -158,13 +408,294 @@ exports[`built-in presets > mtg.oathbreaker enabled-by-default counters (snapsho
     "mtg.taxOathbreaker",
     "mtg.taxSignature",
   ],
+  "match": null,
   "players": [
     2,
     4,
     6,
   ],
   "primary": "mtg.life",
+  "quickStart": [
+    20,
+    25,
+    30,
+    40,
+    60,
+  ],
   "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
   "timer": "off",
+  "verify": [
+    "mtg.speed",
+    "mtg.ring",
+  ],
+}
+`;
+
+exports[`built-in presets > onepiece.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "perSeatStart",
+  ],
+  "enabled": [
+    "op.life",
+    "op.don",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "op.life",
+  "quickStart": [
+    4,
+    5,
+  ],
+  "start": 5,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [
+    "op.life",
+  ],
+}
+`;
+
+exports[`built-in presets > pokemon.pocket enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "coinFlipProminent",
+  ],
+  "enabled": [
+    "pkm.points",
+    "pkm.activeDamage",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "pkm.points",
+  "quickStart": null,
+  "start": 0,
+  "threshold": {
+    "comparator": ">=",
+    "outcome": "win",
+    "value": 3,
+  },
+  "timer": "off",
+  "verify": [],
+}
+`;
+
+exports[`built-in presets > pokemon.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "coinFlipProminent",
+    "perTurnFlags",
+    "firstTurnReminder",
+  ],
+  "enabled": [
+    "pkm.prizes",
+    "pkm.activeDamage",
+    "pkm.asleep",
+    "pkm.confused",
+    "pkm.paralyzed",
+    "pkm.burned",
+    "pkm.poisoned",
+    "pkm.vstar",
+    "pkm.supporter",
+    "pkm.energy",
+    "pkm.retreated",
+    "pkm.stadium",
+  ],
+  "match": {
+    "extraTurns": 3,
+    "totalMs": 3000000,
+  },
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "pkm.prizes",
+  "quickStart": [
+    4,
+    6,
+  ],
+  "start": 6,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "win",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [],
+}
+`;
+
+exports[`built-in presets > sorcery.standard enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [],
+  "enabled": [
+    "sorcery.life",
+    "sorcery.deathsDoor",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    4,
+  ],
+  "primary": "sorcery.life",
+  "quickStart": [
+    20,
+  ],
+  "start": 20,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": -1,
+  },
+  "timer": "off",
+  "verify": [
+    "sorcery.life",
+    "sorcery.deathsDoor",
+  ],
+}
+`;
+
+exports[`built-in presets > swu.premier enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "initiative",
+  ],
+  "enabled": [
+    "swu.baseDamage",
+    "swu.initiative",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    4,
+  ],
+  "primary": "swu.baseDamage",
+  "quickStart": null,
+  "start": 0,
+  "threshold": {
+    "comparator": ">=",
+    "outcome": "lose",
+    "perSeatOverride": true,
+    "value": 30,
+  },
+  "timer": "off",
+  "verify": [
+    "swu.baseDamage",
+  ],
+}
+`;
+
+exports[`built-in presets > ygo.advanced enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "calculator",
+  ],
+  "enabled": [
+    "ygo.lp",
+  ],
+  "match": {
+    "extraTurns": 2,
+    "totalMs": 2400000,
+  },
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "ygo.lp",
+  "quickStart": [
+    4000,
+    8000,
+  ],
+  "start": 8000,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [],
+}
+`;
+
+exports[`built-in presets > ygo.rush enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "calculator",
+  ],
+  "enabled": [
+    "ygo.lp",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "ygo.lp",
+  "quickStart": [
+    4000,
+    8000,
+  ],
+  "start": 8000,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [],
+}
+`;
+
+exports[`built-in presets > ygo.speed enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "calculator",
+  ],
+  "enabled": [
+    "ygo.lp",
+  ],
+  "match": null,
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "ygo.lp",
+  "quickStart": [
+    4000,
+    8000,
+  ],
+  "start": 4000,
+  "threshold": {
+    "comparator": "<=",
+    "outcome": "lose",
+    "value": 0,
+  },
+  "timer": "off",
+  "verify": [
+    "ygo.lp",
+  ],
 }
 `;
