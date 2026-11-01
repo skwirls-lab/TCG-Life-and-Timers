@@ -26,6 +26,8 @@ import {
 } from "@/lib/profiles/repo";
 import type { Deck, PlayerProfile } from "@/lib/profiles/types";
 import { cn } from "@/lib/ui/cn";
+// PAY (T7.1): free plan = 4 profiles, 3 decks each (§17.2); over-limit creation opens the paywall.
+import { canCreateDeck, canCreateProfile } from "@/lib/entitlements/quota";
 import { getBuiltInPreset, listBuiltInPresets } from "@/presets";
 
 type View =
@@ -60,7 +62,7 @@ export function ProfilesScreen() {
           <IconButton
             label={t("seat.profiles.new")}
             data-testid="profile-new"
-            onClick={() => setView({ mode: "profile" })}
+            onClick={() => void canCreateProfile().then((ok) => ok && setView({ mode: "profile" }))}
           >
             <Plus size={28} />
           </IconButton>
@@ -74,7 +76,11 @@ export function ProfilesScreen() {
           id={view.id}
           onSaved={(id) => setView({ mode: "profile", id })}
           onDeleted={() => setView({ mode: "list" })}
-          onOpenDeck={(profileId, id) => setView({ mode: "deck", profileId, id })}
+          onOpenDeck={(profileId, id) =>
+            void (id ? Promise.resolve(true) : canCreateDeck(profileId)).then(
+              (ok) => ok && setView({ mode: "deck", profileId, id }),
+            )
+          }
         />
       )}
       {view.mode === "deck" && (
@@ -181,6 +187,7 @@ function ProfileEditor({
       setError(true);
       return;
     }
+    if (!id && !(await canCreateProfile())) return;
     const p = await saveProfile({
       ...(loaded ?? {}),
       ...(id ? { id } : {}),
@@ -325,6 +332,7 @@ function DeckEditor({
       setError(true);
       return;
     }
+    if (!id && !(await canCreateDeck(profileId))) return;
     const { presetId: _old, ...rest } = loaded ?? ({} as Partial<Deck>);
     await saveDeck({
       ...rest,

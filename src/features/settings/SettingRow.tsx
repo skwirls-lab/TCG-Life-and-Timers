@@ -8,12 +8,15 @@ import { primaryCounter } from "@/engine";
 import { StartValuePicker } from "@/features/setup/StartValuePicker";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
+// PAY lane (T7.1): a tap on a Pro-locked option opens the paywall instead of applying it.
+import { openPaywall } from "@/lib/entitlements/paywall";
 import { Select } from "./Select";
 import { CardLayoutPreview, ThumbnailPicker, layoutThumbOptions } from "./Thumbnails";
 import {
   settingSubtitle,
   settingTitle,
   type ActionId,
+  type ChoiceOption,
   type SettingChange,
   type SettingDef,
   type SettingsContext,
@@ -54,6 +57,13 @@ export function SettingRow({
   const controlId = `${testId}-control`;
   const anyLocked =
     (c.kind === "chips" || c.kind === "select") && c.options(ctx).some((o) => o.locked);
+  /** PAY (T7.1): locked options stay tappable and open the paywall instead of applying. */
+  const choose = (opts: ChoiceOption[], v: SettingValue) => {
+    const opt = opts.find((o) => String(o.value) === String(v));
+    if (!opt) return;
+    if (opt.locked) openPaywall(opt.lockFeature ?? null);
+    else set(opt.value);
+  };
 
   let inline: ReactNode = null;
   let block: ReactNode = null;
@@ -80,12 +90,9 @@ export function SettingRow({
           options={c.options(ctx).map((o) => ({
             value: String(o.value),
             label: o.label,
-            disabled: o.disabled,
+            disabled: o.disabled && !o.locked,
           }))}
-          onChange={(v) => {
-            const opt = c.options(ctx).find((o) => String(o.value) === v);
-            if (opt) set(opt.value);
-          }}
+          onChange={(v) => choose(c.options(ctx), v)}
           disabled={disabled}
           testId={controlId}
         />
@@ -107,9 +114,9 @@ export function SettingRow({
             value: o.value,
             label: o.label,
             locked: o.locked,
-            disabled: disabled || o.disabled,
+            disabled: disabled || (o.disabled && !o.locked),
           }))}
-          onChange={(v) => set(v)}
+          onChange={(v) => choose(c.options(ctx), v)}
           testId={controlId}
         />
       );

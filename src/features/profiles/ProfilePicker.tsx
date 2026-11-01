@@ -11,6 +11,8 @@ import { t } from "@/lib/i18n";
 import { listDecks, listRecent, markUsed, saveDeck } from "@/lib/profiles/repo";
 import type { Deck, PlayerProfile, ProfileSelection } from "@/lib/profiles/types";
 import type { Rotation } from "@/lib/ui/rotation";
+// PAY (T7.1): free plan = 3 decks per profile (§17.2); over-limit creation opens the paywall.
+import { canCreateDeck } from "@/lib/entitlements/quota";
 
 export interface ProfilePickerProps {
   open: boolean;
@@ -160,7 +162,7 @@ function PickerBody({
             type="button"
             className={row}
             data-testid="deck-option-new"
-            onClick={() => setNewDeck("")}
+            onClick={() => void canCreateDeck(chosen.id).then((ok) => ok && setNewDeck(""))}
           >
             <Plus aria-hidden size={20} />
             {t("seat.picker.newDeck")}
@@ -174,11 +176,15 @@ function PickerBody({
           onSubmit={(e) => {
             e.preventDefault();
             if (!newDeck.trim()) return;
-            void saveDeck({
-              profileId: chosen.id,
-              name: newDeck,
-              ...(presetId ? { presetId } : {}),
-            }).then((d) => pick(chosen, d));
+            void (async () => {
+              if (!(await canCreateDeck(chosen.id))) return;
+              const d = await saveDeck({
+                profileId: chosen.id,
+                name: newDeck,
+                ...(presetId ? { presetId } : {}),
+              });
+              await pick(chosen, d);
+            })();
           }}
         >
           <label htmlFor={inputId} className="text-sm text-fg-muted">
