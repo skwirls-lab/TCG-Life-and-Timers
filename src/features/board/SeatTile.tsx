@@ -16,7 +16,10 @@ import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import type { Rotation } from "@/lib/ui/rotation";
-import { useDispatch, useSeat } from "@/state/gameStore";
+import { useDispatch, useGameValue, useSeat } from "@/state/gameStore";
+// TIMER-UI (W3): per-seat timer bar (turn chip, clock chip, PASS TURN / Respond / Pass back).
+import { SeatTimerBar } from "@/features/timer/SeatTimerBar";
+import { timerBarActive, timerTileMetrics } from "@/features/timer/model";
 import { useSetting } from "@/state/settingsStore";
 import { Badges } from "./Badges";
 import { HOLD_REPEAT_MS, artStyle, formatDelta, formatValue, tileMetrics } from "./boardHelpers";
@@ -78,6 +81,7 @@ export const SeatTile = memo(function SeatTile({
   const holdDelay = useSetting("holdDelayMs");
   const holdRepeat = useSetting("holdRepeat");
   const bubbleMs = useSetting("bubbleMs");
+  const timerOn = useGameValue(timerBarActive) ?? false;
 
   // INP-006 pending-change bubble (the engine batches the history entry itself).
   const [bubble, setBubble] = useState(0);
@@ -125,10 +129,18 @@ export const SeatTile = memo(function SeatTile({
   const big = cardLayout === "bigFont";
   const halves = tapZones === "halves";
   const showDetails = cardLayout === "default";
-  const m = tileMetrics(
-    { w: frameW, h: frameH },
-    { wide, details: showDetails, big, chars: valueText.length, gridRows: grid.rows },
-  );
+  const metricOpts = {
+    wide,
+    // TIMER-UI: the timer bar needs the bottom row even in the name-only / big-font layouts.
+    details: showDetails || timerOn,
+    big,
+    chars: valueText.length,
+    gridRows: grid.rows,
+  };
+  const timerM = timerOn
+    ? timerTileMetrics({ w: frameW, h: frameH }, (f) => tileMetrics(f, metricOpts))
+    : null;
+  const m = timerM ? timerM.tile : tileMetrics({ w: frameW, h: frameH }, metricOpts);
   const openSeat = () => openMenu({ seatId, tab: "player", rotation });
   const zoneLabel = (kind: "plus" | "minus") =>
     t(kind === "plus" ? "board.seat.increase" : "board.seat.decrease", {
@@ -336,6 +348,9 @@ export const SeatTile = memo(function SeatTile({
                     }
                   />
                 </div>
+              )}
+              {timerM && (
+                <SeatTimerBar index={index} seatId={seatId} rotation={rotation} metrics={timerM} />
               )}
             </div>
           </>

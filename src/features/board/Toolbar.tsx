@@ -3,7 +3,7 @@
  * Center toolbar (T1.8) — PRD §7.2, LAY-010/011, SET-031, TOK-003, CMD-006 exit.
  * Positioned by the layout engine; icon-only with accessible names (labels via title/aria).
  */
-import { Dices, History, RotateCcw, Settings, Timer, Users, X } from "lucide-react";
+import { Dices, History, RotateCcw, Settings, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { GameIcon } from "@/components/icons/GameIcon";
 import type { Rect, ToolbarOrientation } from "@/engine/layout";
 import { enumLabel, globalValue } from "@/engine";
 import { QuickToolsMenu } from "@/features/tools/QuickToolsMenu";
+import { ClockToolbar } from "@/features/timer/ClockToolbar";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
@@ -156,9 +157,8 @@ export function Toolbar({ rect, orientation }: Props) {
         >
           <History size={24} />
         </ToolButton>
-        <ToolButton label={t("board.toolbar.clockSoon")} testId="toolbar-clock" disabled>
-          <Timer size={24} />
-        </ToolButton>
+        {/* TIMER-UI: START / Pause / Resume + match clock (T2.5, T2.7) */}
+        <ClockToolbar vertical={vertical} />
         <button
           type="button"
           aria-label={t("board.toolbar.tools")}

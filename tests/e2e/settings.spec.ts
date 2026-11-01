@@ -186,9 +186,8 @@ test("rows are shown or hidden per preset", async ({ page }) => {
   await expect(page.getByTestId("setting-commanderDamageLifeLoss")).toBeVisible();
   await expect(page.getByTestId("setting-partnersAllowed")).toBeVisible();
   await expect(page.getByTestId("setting-planechase")).toHaveAttribute("data-disabled", "1");
-  await expect(page.getByTestId("setting-timer.mode")).toContainText(
-    "Clocks arrive in the next update",
-  );
+  // TIMER-UI (W3): the real section-C mode row replaced the placeholder.
+  await expect(page.getByTestId("setting-timer.mode")).toContainText("Timer mode");
 
   await openWithGame(page, "/settings?quick=mtg.constructed&players=2&names=A,B");
   await expect(page.getByTestId("setting-autoKO")).toBeVisible();

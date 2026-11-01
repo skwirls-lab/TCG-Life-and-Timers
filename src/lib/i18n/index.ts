@@ -11,6 +11,7 @@ import history from "@/i18n/en/history.json";
 import presets from "@/i18n/en/presets.json";
 import seat from "@/i18n/en/seat.json";
 import shell from "@/i18n/en/shell.json";
+import timer from "@/i18n/en/timer.json";
 import tools from "@/i18n/en/tools.json";
 
 const dictionaries = [
@@ -23,6 +24,7 @@ const dictionaries = [
   presets,
   seat,
   shell,
+  timer,
   tools,
 ] as const;
 

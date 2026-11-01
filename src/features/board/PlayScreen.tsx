@@ -9,6 +9,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { GameFlowOverlays } from "@/features/game-flow/GameFlowOverlays";
 import { SeatMenu } from "@/features/seat/SeatMenu";
+// TIMER-UI (W3): scheduler, signals, auto-pause and the PAUSED overlay; test-only `t.*` params.
+import { TimerLayer } from "@/features/timer/TimerLayer";
+import { applyTimerTestParams } from "@/features/timer/testParams";
 import { browserAudio } from "@/lib/device/audio";
 import { enterFullscreen, isStandalone } from "@/lib/device/fullscreen";
 import { browserWakeLock } from "@/lib/device/wakeLock";
@@ -39,6 +42,7 @@ async function loadSession(search: URLSearchParams): Promise<boolean> {
     }
   }
   applyTestHooks(search);
+  applyTimerTestParams(search); // TIMER-UI: test builds only, after a quick start
   if (useGameStore.getState().session) return true;
   return useGameStore
     .getState()
@@ -121,6 +125,8 @@ export function PlayScreen() {
           <h1 className="sr-only">{t("board.label")}</h1>
           <Board />
           <GameFlowOverlays />
+          {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
+          <TimerLayer />
           <SeatMenu
             seatId={menu?.seatId ?? ""}
             open={menu !== null}
