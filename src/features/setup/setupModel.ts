@@ -9,6 +9,7 @@ import {
   type FirstPlayerRule,
   type NewGameConfig,
   type Preset,
+  type TimerConfig,
 } from "@/engine";
 import type { ProfileSelection } from "@/lib/profiles/types";
 import { applyPresetDefaults, type PresetDefaults } from "@/state/presetDefaults";
@@ -48,6 +49,8 @@ export interface SetupState {
   startValue: number | null;
   enabledCounters: string[];
   firstPlayerRule: FirstPlayerRule;
+  /** §13.1-C clock for the new game (preset default + stored default; D-058). */
+  timer: TimerConfig;
   /** Stored preset defaults (SET-012) for the chosen preset. */
   defaults?: PresetDefaults;
 }
@@ -117,6 +120,7 @@ export function stateForPreset(
       defaults?.options?.firstPlayerRule ??
       preset.defaults.options?.firstPlayerRule ??
       preset.defaults.firstPlayerRule,
+    timer: { ...preset.defaults.timer, ...defaults?.timer },
     ...(defaults ? { defaults } : {}),
   };
 }
@@ -255,12 +259,22 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
       if (commanders.length) seat.commanders = commanders;
       return seat;
     }),
-    options: { firstPlayerRule: state.firstPlayerRule },
+    options: {
+      firstPlayerRule: state.firstPlayerRule,
+      // Any clock mode tracks turns (as TIMER_SET_CONFIG does mid-game).
+      ...(state.timer.mode !== "off" ? { turnTracking: true } : {}),
+    },
+    timer: { ...state.timer },
     enabledCounters: [...state.enabledCounters],
     ...(state.startValue !== null ? { startOverrides: { [primary.id]: state.startValue } } : {}),
     ...perSeatMaps(state, preset),
   };
   return applyPresetDefaults(config, state.defaults);
+}
+
+/** §13.1-C: patch the setup clock (time keys are ms). */
+export function setTimer(state: SetupState, patch: Partial<TimerConfig>): SetupState {
+  return { ...state, timer: { ...state.timer, ...patch } };
 }
 
 /** Seats can name commanders when the preset has per-commander or commander-damage counters. */

@@ -25,6 +25,8 @@
   "shell.setup.step.seats": "Seats",
   "shell.setup.step.options": "Options",
   "shell.setup.next": "Next",
+  "shell.setup.clock.title": "Clock",
+  "shell.setup.clock.minutes": "minutes",
   "shell.setup.start": "Start game",
   "shell.setup.seat.name": "Seat {n} name",
   "shell.setup.seat.placeholder": "Player {n}",

@@ -9,6 +9,7 @@ import { useSnackbar } from "@/components/ui";
 import type { Game, Preset } from "@/engine";
 import { configFromGame, loadLastConfig, seatsFromGame } from "@/features/setup/gameConfig";
 import { startNewGame } from "@/features/setup/startGame";
+import { applyTimerPatch } from "@/features/timer/timerSettings";
 import { afterOverlayClose } from "./afterOverlayClose";
 import { fullscreenSupported, isStandalone } from "@/lib/device/fullscreen";
 import { useEntitlements } from "@/lib/entitlements/store";
@@ -29,6 +30,7 @@ import {
   draftForPreset,
   draftFromDefaults,
   draftFromGame,
+  draftWithTimer,
   isStructuralChange,
   presetDefaultsFromDraft,
   type GameDraft,
@@ -158,9 +160,14 @@ export function useSettingsModel(): SettingsModel {
           .getState()
           .update(change.patch)
           .catch((e: unknown) => console.warn("[settings] update failed", e));
+      } else if (change.kind === "timer") {
+        if (Object.keys(change.patch).length === 0) return;
+        // §13.1-C: the active game's clocks, or the next game's timer defaults (SET-012).
+        if (game) applyTimerPatch(change.patch);
+        else persistNext(draftWithTimer(draft, change.patch));
       } else applyDraft(change.draft);
     },
-    [applyDraft],
+    [applyDraft, game, draft, persistNext],
   );
 
   const confirmPending = useCallback(async () => {

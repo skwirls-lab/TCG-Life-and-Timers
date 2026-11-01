@@ -7,6 +7,7 @@
  * - Custom duration keypad (time per player h:mm / match timer minutes).
  */
 import { useEffect } from "react";
+import type { TimerConfig } from "@/engine";
 import { Button, Keypad, Sheet } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
@@ -15,7 +16,14 @@ import { parseMinutesInput } from "./model";
 import { applyTimerPatch } from "./timerSettings";
 import { useTimerSettingsUi } from "./timerSettingsUi";
 
-export function TimerSettingsHost() {
+interface Props {
+  /** Applies a timer patch (the settings model: active game or next game's defaults). */
+  onPatch?: (patch: Partial<TimerConfig>) => void;
+  /** The edited config (for the match timer's extra turns). */
+  config?: TimerConfig;
+}
+
+export function TimerSettingsHost({ onPatch = applyTimerPatch, config }: Props) {
   const restart = useTimerSettingsUi((s) => s.restart);
   const custom = useTimerSettingsUi((s) => s.custom);
   const close = useTimerSettingsUi((s) => s.close);
@@ -67,13 +75,11 @@ export function TimerSettingsHost() {
           onSubmit={(r) => {
             const ms = parseMinutesInput(String(r.value));
             if (ms === null || !custom) return;
-            const game = useGameStore.getState().session?.game;
+            const cfg = config ?? useGameStore.getState().session?.game.timer.config;
             if (custom === "match") {
-              applyTimerPatch({
-                match: { totalMs: ms, extraTurns: game?.timer.config.match?.extraTurns ?? 0 },
-              });
+              onPatch({ match: { totalMs: ms, extraTurns: cfg?.match?.extraTurns ?? 0 } });
             } else {
-              applyTimerPatch({ [custom]: ms });
+              onPatch({ [custom]: ms });
             }
             if (!useTimerSettingsUi.getState().restart) close();
           }}

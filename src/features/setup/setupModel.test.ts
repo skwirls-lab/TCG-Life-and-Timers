@@ -12,6 +12,7 @@ import {
   seatThreshold,
   setPerSeatValue,
   setPlayers,
+  setTimer,
   stateForPreset,
   toNewGameConfig,
   toggleCounter,
@@ -129,6 +130,26 @@ describe("setup wizard model", () => {
     expect(game.enabledCounters).toContain("mtg.energy");
     s = toggleCounter(s, "mtg.energy", false);
     expect(s.enabledCounters).not.toContain("mtg.energy");
+  });
+
+  // @req GAME-001 @req SET-012 @req TMR-001
+  it("sets the clock for the new game; stored preset defaults pre-fill it", () => {
+    let s = stateForPreset(commander, undefined);
+    expect(s.timer).toEqual(commander.defaults.timer);
+    s = setTimer(s, { mode: "bank", bankMs: 20 * 60_000 });
+    const game = createGame(toNewGameConfig(s, commander), seededRng(5), 1);
+    expect(game.timer.mode).toBe("bank");
+    expect(game.timer.clocks[game.seats[0]!.id]!.bankMs).toBe(20 * 60_000);
+    expect(game.options.turnTracking).toBe(true);
+    const saved = stateForPreset(commander, {
+      timer: { mode: "bankIncrement", incrementMs: 5000 },
+    });
+    expect(saved.timer).toMatchObject({ mode: "bankIncrement", incrementMs: 5000 });
+    expect(toNewGameConfig(saved, commander).timer).toMatchObject({ mode: "bankIncrement" });
+    // Clocks off: turn tracking follows the preset (not forced on).
+    expect(toNewGameConfig(stateForPreset(commander, undefined), commander).options).toEqual({
+      firstPlayerRule: "random",
+    });
   });
 
   it("shows commander inputs only for presets with commander counters", () => {

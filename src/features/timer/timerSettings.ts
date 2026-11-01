@@ -3,12 +3,12 @@
  * Settings section C — Timers (T2.8, PRD §13.1-C). Registered into the settings registry when
  * the settings page imports this module; replaces the W2 `timer.mode` placeholder row.
  *
- * Timer config lives in `game.timer.config`, not in the GameDraft, so each row's `set` applies
- * the patch itself (`applyTimerPatch`) and returns a no-op draft change. Structure keys (mode,
- * time per player, per-turn time, match timer) only apply to idle clocks: changing them after
- * START asks to restart the clocks (TimerSettingsHost). Rows other than the mode need an active
- * game (the mode row shows the preset default otherwise). Advanced modes / options are gated with
- * `timerAdvancedModes` (LockBadge when locked; all free under the current policy).
+ * Rows read `ctx.draft.timer` (the active game's config, or the next game's defaults) and return
+ * a `{ kind: "timer", patch }` change: the settings model applies it to the game
+ * (`applyTimerPatch`) or, with no active game, to the next game's timer defaults (SET-012).
+ * Structure keys (mode, time per player, per-turn time, match timer) only apply to idle clocks:
+ * changing them after START asks to restart the clocks (TimerSettingsHost). Advanced modes /
+ * options are gated with `timerAdvancedModes` (locked options open the paywall).
  */
 import {
   TIMER_MODES,
@@ -37,17 +37,15 @@ import {
   PER_TURN_MODES,
   PER_TURN_MS,
   STEP_SECONDS,
-  WARNING_PRESETS,
   isStructurePatch,
   shortDuration,
-  warningPresetId,
 } from "./model";
+import { warningsSummary } from "./warnings";
 import { useTimerSettingsUi } from "./timerSettingsUi";
 
 export const CUSTOM = "custom";
 
-const cfgOf = (ctx: SettingsContext): TimerConfig =>
-  ctx.game ? ctx.game.timer.config : ctx.preset.defaults.timer;
+const cfgOf = (ctx: SettingsContext): TimerConfig => ctx.draft.timer;
 
 /** Apply a config patch to the active game (confirming a clock restart when needed). */
 export function applyTimerPatch(patch: Partial<TimerConfig>): void {
@@ -60,20 +58,17 @@ export function applyTimerPatch(patch: Partial<TimerConfig>): void {
   useGameStore.getState().dispatch({ type: "TIMER_SET_CONFIG", config: patch });
 }
 
-const noop = (ctx: SettingsContext): SettingChange => ({ kind: "game", draft: ctx.draft });
-
 function patchSet(
   fn: (v: string | number | boolean, ctx: SettingsContext) => Partial<TimerConfig> | null,
 ) {
-  return (ctx: SettingsContext, v: string | number | boolean): SettingChange => {
-    const patch = fn(v, ctx);
-    if (patch) applyTimerPatch(patch);
-    return noop(ctx);
-  };
+  return (ctx: SettingsContext, v: string | number | boolean): SettingChange => ({
+    kind: "timer",
+    patch: fn(v, ctx) ?? {},
+  });
 }
 
 const locked = (ctx: SettingsContext) => !ctx.can("timerAdvancedModes");
-const on = (ctx: SettingsContext) => ctx.game !== null && cfgOf(ctx).mode !== "off";
+const on = (ctx: SettingsContext) => cfgOf(ctx).mode !== "off";
 const limitedMode = (ctx: SettingsContext) => on(ctx) && cfgOf(ctx).mode !== "countup";
 
 function row(id: string, control: SettingDef["control"], extra: Partial<SettingDef>): SettingDef {
@@ -119,7 +114,6 @@ export const TIMER_ROWS: SettingDef[] = [
       default: "off",
       helpKey: "timer.settings.mode.help",
       subtitleKey: "timer.settings.mode.subtitle",
-      disabledIf: (ctx) => (ctx.game ? null : "timer.settings.needsGame"),
       get: (ctx) => cfgOf(ctx).mode,
       set: patchSet((v) => ({ mode: v as TimerMode })),
     },
@@ -332,28 +326,14 @@ export const TIMER_ROWS: SettingDef[] = [
   ),
   row(
     "warnings",
+    // TMR-031: Row → sub-page (presets, add / remove, per-threshold sound / vibrate / flash).
+    { kind: "subpage", page: "warnings" },
     {
-      kind: "select",
-      options: (ctx) => {
-        const opts: ChoiceOption[] = Object.keys(WARNING_PRESETS).map((id) => ({
-          value: id,
-          label: t(`timer.warnings.${id}` as MessageKey),
-          locked: id === "more" && locked(ctx),
-          disabled: id === "more" && locked(ctx),
-          lockFeature: "timerAdvancedModes",
-        }));
-        if (warningPresetId(cfgOf(ctx).warningsMs) === "custom")
-          opts.push({ value: "custom", label: t("timer.warnings.custom"), disabled: true });
-        return opts;
-      },
-    },
-    {
-      visibleIf: (_p, _g, ctx) => limitedMode(ctx),
-      get: (ctx) => warningPresetId(cfgOf(ctx).warningsMs),
-      set: patchSet((v) => {
-        const w = WARNING_PRESETS[String(v)];
-        return w ? { warningsMs: [...w] } : null;
+      subtitleKey: "timer.settings.warnings.summary",
+      subtitleVars: (ctx) => ({
+        list: warningsSummary(cfgOf(ctx)) || t("timer.warnings.off"),
       }),
+      visibleIf: (_p, _g, ctx) => limitedMode(ctx),
     },
   ),
   row(

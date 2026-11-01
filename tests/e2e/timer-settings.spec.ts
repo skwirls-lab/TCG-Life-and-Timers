@@ -51,7 +51,11 @@ test("section C: rows follow the mode and change the game's timer config", async
 
   await page.getByTestId("setting-timer.responses-control").selectOption("freeze");
   await page.getByTestId("setting-timer.passMode-control").selectOption("hold");
-  await page.getByTestId("setting-timer.warnings-control").selectOption("late");
+  // Low-time warnings is a sub-page (TMR-031); its presets set the thresholds.
+  await page.getByTestId("setting-timer.warnings-control").click();
+  await page.getByTestId("timer-warnings-preset").selectOption("late");
+  await page.getByTestId("page-back").click();
+  await expect(page.getByTestId("setting-timer.warnings")).toContainText("1:00 · 0:10");
   await page.getByTestId("setting-timer.showTurnTime-control").click();
   await page.getByTestId("setting-timer.autoPauseMenus-control").click();
   const c = await config(page);

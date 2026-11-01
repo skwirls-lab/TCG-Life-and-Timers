@@ -13,7 +13,15 @@
  * placeholder `timer.mode` row can be swapped for the real one. Order = registration order within
  * a section; use `order` to position rows explicitly.
  */
-import type { GameOptions, Preset, Game, AutoKOMode, FirstPlayerRule, TurnOrder } from "@/engine";
+import type {
+  GameOptions,
+  Preset,
+  Game,
+  AutoKOMode,
+  FirstPlayerRule,
+  TurnOrder,
+  TimerConfig,
+} from "@/engine";
 import { FIRST_PLAYER_RULES, primaryCounter } from "@/engine";
 import type { ProFeature } from "@/lib/entitlements/features";
 import { t, type MessageKey } from "@/lib/i18n";
@@ -72,7 +80,7 @@ export type PreviewSpec =
   | { type: "layout"; players: number; id: string }
   | { type: "card"; kind: AppSettings["cardLayout"] };
 
-export type SubPageId = "seats" | "perSeatStart" | "thresholds" | "counters";
+export type SubPageId = "seats" | "perSeatStart" | "thresholds" | "counters" | "warnings";
 export type ActionId =
   | "saveDefaults"
   | "restoreDefaults"
@@ -106,8 +114,14 @@ export type SettingControl =
   | { kind: "info" }
   | { kind: "action"; action: ActionId };
 
+/**
+ * What a row's `set` asks for. 'timer' (§13.1-C, D-055): a timer config patch — applied to the
+ * active game (TIMER_SET_CONFIG, or the restart confirm), or to the next game's defaults.
+ */
 export type SettingChange =
-  { kind: "app"; patch: SettingsPatch } | { kind: "game"; draft: GameDraft };
+  | { kind: "app"; patch: SettingsPatch }
+  | { kind: "game"; draft: GameDraft }
+  | { kind: "timer"; patch: Partial<TimerConfig> };
 
 export interface SettingDef {
   id: string;

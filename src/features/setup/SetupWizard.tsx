@@ -31,6 +31,7 @@ import {
 } from "@/presets";
 import { getPresetDefaults } from "@/state/presetDefaults";
 import { PresetList } from "./PresetList";
+import { SetupClock } from "./SetupClock";
 import { StartValuePicker } from "./StartValuePicker";
 import {
   SETUP_STEPS,
@@ -42,6 +43,7 @@ import {
   seatStart,
   seatThreshold,
   setPlayers,
+  setTimer,
   stateForPreset,
   toNewGameConfig,
   toggleCounter,
@@ -397,6 +399,10 @@ export function SetupWizard() {
               onChange={(firstPlayerRule) => setState((s) => ({ ...s, firstPlayerRule }))}
             />
           </div>
+          <SetupClock
+            timer={state.timer}
+            onChange={(patch) => setState((s) => setTimer(s, patch))}
+          />
         </div>
       )}
 

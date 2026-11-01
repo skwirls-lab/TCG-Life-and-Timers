@@ -49,6 +49,7 @@ export function SettingsPage() {
         ctx={ctx}
         onClose={() => setSub(null)}
         applyDraft={model.applyDraft}
+        applyTimer={(patch) => model.apply({ kind: "timer", patch })}
       />
     );
   }
@@ -119,7 +120,10 @@ export function SettingsPage() {
           </Button>
         </div>
       </Sheet>
-      <TimerSettingsHost />
+      <TimerSettingsHost
+        config={ctx.draft.timer}
+        onPatch={(patch) => model.apply({ kind: "timer", patch })}
+      />
     </PageShell>
   );
 }

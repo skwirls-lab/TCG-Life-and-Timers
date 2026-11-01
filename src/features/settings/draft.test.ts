@@ -86,6 +86,30 @@ describe("settings draft", () => {
     expect(saved).toMatchObject({ players: 3, startOverrides: { "mtg.life": 30 } });
   });
 
+  // @req SET-012 @req TMR-001
+  it("carries the timer config: game → draft → preset defaults → next draft → new game", () => {
+    const g = createGame(
+      { preset: commander, timer: { mode: "bank", bankMs: 20 * 60_000 } },
+      seededRng(1),
+      1,
+    );
+    const d = draftFromGame(g);
+    expect(d.timer).toMatchObject({ mode: "bank", bankMs: 20 * 60_000 });
+    // Timer edits are not structural (they go through TIMER_SET_CONFIG / restart).
+    expect(isStructuralChange(d, { ...d, timer: { ...d.timer, bankMs: 5 * 60_000 } })).toBe(false);
+    const saved = presetDefaultsFromDraft(d);
+    expect(saved.timer).toMatchObject({ mode: "bank", bankMs: 20 * 60_000 });
+    const next = draftFromDefaults(commander, saved);
+    expect(next.timer).toEqual(d.timer);
+    expect(draftFromDefaults(commander, undefined).timer).toEqual(commander.defaults.timer);
+    const cfg = configFromDraft(next, commander, []);
+    expect(cfg.timer).toMatchObject({ mode: "bank", bankMs: 20 * 60_000 });
+    // An explicit timer (re-created game of the same preset) still wins.
+    expect(configFromDraft(next, commander, [], { mode: "countup" }).timer).toEqual({
+      mode: "countup",
+    });
+  });
+
   it("switches preset, keeping the player count when the new preset allows it", () => {
     expect(draftForPreset(constructed, undefined, 4).players).toBe(4);
     expect(draftForPreset(constructed, undefined, 6).players).toBe(4);
