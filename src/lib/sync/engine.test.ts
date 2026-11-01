@@ -185,6 +185,7 @@ describe("sync engine", () => {
   });
 
   // @req SYNC-004
+  // @req SYNC-001
   it("offline queue is persisted and flushed after a restart once online", async () => {
     const remote = new MemoryRemote();
     const kv = new MemoryKv();

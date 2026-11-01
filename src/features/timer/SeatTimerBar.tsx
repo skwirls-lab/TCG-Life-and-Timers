@@ -322,7 +322,10 @@ function ClockChip({
 function TurnTime({ seatId }: { seatId: SeatId }) {
   const ms = useTicking((g, now) => turnTimeUsed(g, seatId, now));
   return (
-    <span className="mt-0.5 text-[11px] font-semibold text-white/80 tabular">
+    <span
+      data-testid={`turn-time-${seatId}`}
+      className="mt-0.5 text-[11px] font-semibold text-white/80 tabular"
+    >
       {t("timer.turnTime", { time: formatClock(ms, { showTenths: false }) })}
     </span>
   );

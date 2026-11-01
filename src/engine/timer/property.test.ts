@@ -1,4 +1,5 @@
 // @vitest-environment node
+// @req ARCH-005
 /**
  * Timer property tests (T2.1 DoD) with an ideal scheduler: before each user action, every
  * timeout / grace end that falls due is dispatched at its exact moment (as timerScheduler does).

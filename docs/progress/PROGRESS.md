@@ -35,19 +35,19 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T1.19 | Device services | W2 | TOOLS-HIST | DONE | PWA-005, PWA-006, INP-008, SET (Device section). | device lib 12 unit ✅ (wiring in BOARD) |
 | T2.1 | Timer engine | W2 | TIMER-CORE | DONE | TMR-001..011, TMR-020..024, TMR-030..032, TMR-040, TMR-044, TMR-050, TURN-001, T | 71 unit ✅ Scen 3/4 |
 | T2.2 | Scheduler | W2 | TIMER-CORE | DONE | TMR-021, TMR-031, TMR-051. | 17 unit ✅ |
-| T2.3 | Turn tracking UI | W3 | TIMER-UI | TODO | TURN-001, LIFE-006, TMR-003, TMR-004, TMR-009. |  |
-| T2.4 | Clock chips and the response stack | W3 | TIMER-UI | TODO | TMR-005..008, TMR-010, TMR-011, TMR-041..043. |  |
-| T2.5 | Start, pause and overlays | W3 | TIMER-UI | TODO | TMR-001, TMR-002, TMR-020, TMR-021, SET-013. |  |
-| T2.6 | Timeout and warnings | W3 | TIMER-UI | TODO | TMR-030, TMR-031, §9.5. |  |
-| T2.7 | Match timer | W3 | TIMER-UI | TODO | TMR-032. |  |
-| T2.8 | Timer settings and the seat timer tab | W3 | TIMER-UI | TODO | §13.1-C, SEAT-003, TMR-022, TMR-060 (P2: data model only, UI hidden). |  |
-| T2.9 | Reload resilience | W3 | TIMER-UI | TODO | REL-001, TMR-044. |  |
+| T2.3 | Turn tracking UI | W3 | TIMER-UI | DONE | TURN-001, LIFE-006, TMR-003, TMR-004, TMR-009. | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.4 | Clock chips and the response stack | W3 | TIMER-UI | DONE | TMR-005..008, TMR-010, TMR-011, TMR-041..043. | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.5 | Start, pause and overlays | W3 | TIMER-UI | DONE | TMR-001, TMR-002, TMR-020, TMR-021, SET-013. | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.6 | Timeout and warnings | W3 | TIMER-UI | DONE | TMR-030, TMR-031, §9.5. | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.7 | Match timer | W3 | TIMER-UI | DONE | TMR-032. | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.8 | Timer settings and the seat timer tab | W3 | TIMER-UI | DONE | §13.1-C, SEAT-003, TMR-022, TMR-060 (P2: data model only, UI hidden). | timer e2e 78 ✅; integrated 489 ✅ |
+| T2.9 | Reload resilience | W3 | TIMER-UI | DONE | REL-001, TMR-044. | timer e2e 78 ✅; integrated 489 ✅ |
 | T3.1 | Pokémon | W3 | PRESETS | DONE | §10.3, CUS-008. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.2 | Yu-Gi-Oh! + calculator | W3 | PRESETS | DONE | §10.4, INP-007, TOOL-006. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.3 | FFTCG, Lorcana, One Piece, SWU, Digimon, Generic (+ FaB, Sorcery as P1) | W3 | PRESETS | DONE | §10.5, §10.6, PRE-010, PRE-011, TOOL-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
-| T3.4 | Per-seat overrides | W3 | PRESETS | IN_PROGRESS | PRE-013, GAME-013. |  |
+| T3.4 | Per-seat overrides | W3 | PRESETS | DONE | PRE-013, GAME-013. | integration-setup e2e ✅ |
 | T3.5 | Preset picker | W3 | PRESETS | DONE | PRE-003, PRE-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
-| T3.7 | Roll-off | W3 | PRESETS | IN_PROGRESS | TOOL-004, GAME-012. |  |
+| T3.7 | Roll-off | W3 | PRESETS | DONE | TOOL-004, GAME-012. | integration-setup e2e ✅ |
 | T3.6 | Custom preset builder | W3 | BUILDER | DONE | CUS-001..008, CUS-010. | builder e2e 21 ✅ Scenario 7 |
 | T4.1 | Auth | W3 | FIREBASE | DONE | AUTH-001, AUTH-002, AUTH-004. | unit+sync 5+emu e2e 15 ✅ |
 | T4.2 | Rules and rules tests | W3 | FIREBASE | DONE | SEC-001..006, LEG-005. | rules ✅ functions 21 ✅ client export+delete ✅ |

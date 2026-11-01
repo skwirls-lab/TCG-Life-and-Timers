@@ -108,22 +108,33 @@ export function configureSettingsStore(db?: () => TcgDb): void {
   dbFn = db ?? getDb;
 }
 
+/** Bumped on every local change, so a slower load() never overwrites newer edits (D-054). */
+let localVersion = 0;
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: defaultAppSettings(),
   hydrated: false,
   load: async () => {
+    const started = localVersion;
     const row = await dbFn().settings.get(APP_SETTINGS_KEY);
+    if (localVersion !== started) {
+      // The user changed something while we were reading: keep the newer in-memory settings.
+      set({ hydrated: true });
+      return get().settings;
+    }
     const settings = mergeSettings(row?.value);
     set({ settings, hydrated: true });
     return settings;
   },
   update: async (patch) => {
+    localVersion++;
     const cur = get().settings;
     const next = mergeSettings({ ...cur, ...patch, sounds: { ...cur.sounds, ...patch.sounds } });
     set({ settings: next });
     await setSetting(APP_SETTINGS_KEY, next, dbFn());
   },
   reset: async () => {
+    localVersion++;
     const next = defaultAppSettings();
     set({ settings: next });
     await setSetting(APP_SETTINGS_KEY, next, dbFn());

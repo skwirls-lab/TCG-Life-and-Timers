@@ -122,3 +122,16 @@ describe("preset defaults (SET-012)", () => {
     expect(await getPresetDefaults("bad", db)).toBeUndefined();
   });
 });
+
+describe("settings load race (D-054)", () => {
+  // @req SET-001
+  it("a change made while load() is reading is not overwritten by the stored value", async () => {
+    const { useSettingsStore } = await import("./settingsStore");
+    await useSettingsStore.getState().update({ theme: "dark" });
+    const pending = useSettingsStore.getState().load();
+    await useSettingsStore.getState().update({ theme: "light" });
+    await pending;
+    expect(useSettingsStore.getState().settings.theme).toBe("light");
+    expect(useSettingsStore.getState().hydrated).toBe(true);
+  });
+});

@@ -33,3 +33,11 @@
 | G-SYNC (`npm run test:sync`) | ✅ 5 |
 | G-E2E + G-A11Y | ✅ 381 passed, 0 flaky |
 | G-E2E-EMU | ✅ 15 passed (@emu account/sync/feedback specs) |
+
+## W3 complete (TIMER-UI + INTEGRATE-A + board calculator)
+| Gate | Result |
+|---|---|
+| G-STATIC | ✅ |
+| G-UNIT | ✅ 841 tests |
+| G-E2E + G-A11Y | ✅ 489 passed, 0 failed, 0 flaky (incl. Scenarios 3, 4, 5, 7, 9, 10 through the UI) |
+| G-E2E-EMU | ✅ 15 (W3 partial run; account/sync unchanged since) |
