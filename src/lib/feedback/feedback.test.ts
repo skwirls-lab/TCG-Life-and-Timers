@@ -18,7 +18,8 @@ import {
   submitFeedback,
   withTimeout,
 } from "./submit";
-import { appVersion } from "./version";
+import pkg from "../../../package.json";
+import { appVersion, PACKAGE_VERSION } from "./version";
 
 function game(): Game {
   const preset = getBuiltInPreset("mtg.commander")!;
@@ -110,7 +111,11 @@ describe("diagnostics", () => {
 
   it("appVersion prefers the env override", () => {
     expect(appVersion("9.9.9")).toBe("9.9.9");
-    expect(appVersion("")).toMatch(/^\d+\.\d+\.\d+/);
+    expect(appVersion("")).toBe(PACKAGE_VERSION);
+  });
+
+  it("PACKAGE_VERSION matches package.json", () => {
+    expect(PACKAGE_VERSION).toBe(pkg.version);
   });
 });
 

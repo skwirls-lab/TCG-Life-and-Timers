@@ -66,24 +66,20 @@ describe("Dexie local adapters", () => {
   });
 
   it("covers decks, presets, records and art tables", async () => {
-    await localAdapters
-      .decks(db)
-      .apply({
-        id: "d1",
-        parent: "p1",
-        updatedAt: 1,
-        deleted: false,
-        data: { name: "D", presetId: "_none", commanders: [], colorIdentity: [] },
-      });
+    await localAdapters.decks(db).apply({
+      id: "d1",
+      parent: "p1",
+      updatedAt: 1,
+      deleted: false,
+      data: { name: "D", presetId: "_none", commanders: [], colorIdentity: [] },
+    });
     expect(await db.decks.get("d1")).toMatchObject({ profileId: "p1", name: "D" });
-    await localAdapters
-      .presets(db)
-      .apply({
-        id: "c1",
-        updatedAt: 1,
-        deleted: false,
-        data: { name: "P", game: "G", payload: '{"name":"P"}', schemaVersion: 1 },
-      });
+    await localAdapters.presets(db).apply({
+      id: "c1",
+      updatedAt: 1,
+      deleted: false,
+      data: { name: "P", game: "G", payload: '{"name":"P"}', schemaVersion: 1 },
+    });
     expect((await db.presets.get("c1"))?.preset).toEqual({ name: "P" });
     expect(await localAdapters.records(db).list()).toEqual([]);
     expect(await localAdapters.art(db).list()).toEqual([]);

@@ -114,14 +114,12 @@ describe("collectionRemote", () => {
 
   it("covers presets, records and art collections", async () => {
     const { fake, ctx } = setup();
-    await remoteAdapters
-      .presets(ctx)
-      .write({
-        id: "c1",
-        updatedAt: 1,
-        deleted: false,
-        data: { name: "P", game: "G", payload: "{}", schemaVersion: 1 },
-      });
+    await remoteAdapters.presets(ctx).write({
+      id: "c1",
+      updatedAt: 1,
+      deleted: false,
+      data: { name: "P", game: "G", payload: "{}", schemaVersion: 1 },
+    });
     await remoteAdapters.records(ctx).write({
       id: "g1",
       updatedAt: 1,
