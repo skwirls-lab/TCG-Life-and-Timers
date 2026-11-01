@@ -13,6 +13,10 @@ import { Sheet } from "@/components/ui/Sheet";
 import { getLayout, layoutVariants, type BoardLayout } from "@/engine/layout";
 import { t, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
+// PAY (T7.1): 7–8 players are Pro (§17.2); a locked chip opens the paywall.
+import { openPaywall } from "@/lib/entitlements/paywall";
+import { useCan } from "@/lib/entitlements/store";
+import { FREE_MAX_PLAYERS } from "@/lib/entitlements/features";
 import { useGameValue } from "@/state/gameStore";
 import { useSetting } from "@/state/settingsStore";
 import { changePlayerCount, setLayoutVariant } from "./boardActions";
@@ -33,6 +37,7 @@ export function PlayersSheet({ open, onClose }: Props) {
     cmd: hasCommanderDamage(g),
   }));
   const confirmStyle = useSetting("confirmStyle");
+  const can78 = useCan("players7to8");
   const setCmdMode = useBoardUi((s) => s.setCmdMode);
   const [pending, setPending] = useState<number | null>(null);
   const [variant, setVariant] = useState<string | null>(null);
@@ -47,7 +52,8 @@ export function PlayersSheet({ open, onClose }: Props) {
   const count = pending ?? info.players;
   const changing = count !== info.players;
   const options: ChipOption<number>[] = [];
-  for (let n = Math.max(2, info.min); n <= Math.min(8, info.max); n++) options.push({ value: n });
+  for (let n = Math.max(2, info.min); n <= Math.min(8, info.max); n++)
+    options.push({ value: n, locked: n > FREE_MAX_PLAYERS && !can78 });
   const viewport =
     typeof window !== "undefined"
       ? { w: window.innerWidth, h: window.innerHeight }
@@ -71,6 +77,8 @@ export function PlayersSheet({ open, onClose }: Props) {
           options={options}
           value={count}
           onChange={(n) => {
+            if (n > FREE_MAX_PLAYERS && !can78 && n !== info.players)
+              return openPaywall("players7to8");
             setPending(n);
             setVariant(null);
           }}

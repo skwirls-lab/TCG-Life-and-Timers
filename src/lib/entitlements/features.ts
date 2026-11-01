@@ -34,3 +34,6 @@ export const FREE_LIMITS = {
 export const PRO_LIMITS = {
   cloudArtImages: 200,
 } as const;
+
+/** Largest free player count (7–8 players are Pro, §17.2); matches setup's FREE_MAX_PLAYERS. */
+export const FREE_MAX_PLAYERS = 6;

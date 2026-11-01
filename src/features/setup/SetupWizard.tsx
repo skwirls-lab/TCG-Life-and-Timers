@@ -20,6 +20,7 @@ import { ProfilePicker } from "@/features/profiles/ProfilePicker";
 import { Select } from "@/features/settings/Select";
 import { ThumbnailPicker, layoutThumbOptions } from "@/features/settings/Thumbnails";
 import { useCan } from "@/lib/entitlements/store";
+import { openPaywall } from "@/lib/entitlements/paywall";
 import { t } from "@/lib/i18n";
 import {
   DEFAULT_PRESET_ID,
@@ -169,9 +170,13 @@ export function SetupWizard() {
               options={playerChoices(preset).map((c) => ({
                 value: c.value,
                 locked: c.pro && !can78,
-                disabled: c.pro && !can78,
               }))}
-              onChange={(n) => setState((s) => setPlayers(s, preset, n))}
+              // PAY (T7.1): a locked 7/8 chip opens the paywall instead of applying.
+              onChange={(n) =>
+                playerChoices(preset).some((c) => c.value === n && c.pro && !can78)
+                  ? openPaywall("players7to8")
+                  : setState((s) => setPlayers(s, preset, n))
+              }
             />
             {playerChoices(preset).some((c) => c.pro) && !can78 && (
               <p className="flex items-center gap-2 text-sm text-fg-muted">

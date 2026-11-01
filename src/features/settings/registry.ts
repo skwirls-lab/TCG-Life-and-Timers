@@ -64,6 +64,8 @@ export interface ChoiceOption {
   disabled?: boolean;
   /** Pro-locked (shows a LockBadge). */
   locked?: boolean;
+  /** PAY (T7.1): the feature highlighted in the paywall when a locked option is tapped. */
+  lockFeature?: ProFeature;
 }
 
 export type PreviewSpec =
@@ -277,6 +279,7 @@ export const AVAILABLE_ROUTES: readonly string[] = [
   "/feedback",
   "/images",
   "/about",
+  "/pro", // PAY (T7.4)
 ];
 
 function linkRow(id: string, section: SectionId, href: string): SettingDef {
@@ -343,6 +346,7 @@ const BASE_ROWS: SettingDef[] = [
           label: String(c.value),
           locked: c.pro && !ctx.can("players7to8"),
           disabled: c.pro && !ctx.can("players7to8"),
+          lockFeature: "players7to8",
         })),
     },
     titleKey: "shell.settings.players.title",
@@ -585,6 +589,7 @@ const BASE_ROWS: SettingDef[] = [
           label: t("shell.theme.pro"),
           disabled: true,
           locked: !ctx.can("themesPro"),
+          lockFeature: "themesPro",
         },
       ],
     },
@@ -780,7 +785,7 @@ const BASE_ROWS: SettingDef[] = [
   linkRow("deleteAccount", "G", "/account"),
 
   // ---- H. Support and about ---------------------------------------------------------------
-  actionRow("support", "H", "support"),
+  linkRow("support", "H", "/pro"), // PAY (T7.4): "Upgrade to Pro / Support the app" (PAY-004)
   actionRow("share", "H", "share"),
   linkRow("feedback", "H", "/feedback"),
   linkRow("diagnostics", "H", "/feedback"),

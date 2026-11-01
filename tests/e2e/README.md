@@ -53,3 +53,6 @@ a new game). axe needs real timers: call `page.clock.resume()` before it.
 | PAUSED overlay | `timer-paused` (`data-reason`), `timer-resume` |
 | Settings section C | `setting-timer.{mode,bank,step,perTurn,match,extraTurns,timeoutAction,grace,responses,passMode,autoPauseBackground,autoPauseMenus,warnings,showTenths,showTurnTime}`, `timer-restart-confirm`, `timer-restart-continue`, `timer-restart-cancel`, `timer-custom-keypad` |
 | Seat Timer tab | `seat-timer-tab`, `seat-timer-remaining`, `seat-timer-used`, `seat-timer-stats`, `seat-timer-adjust-{deltaMs}`, `seat-timer-set`, `seat-timer-keypad`, `seat-timer-concede`, `seat-timer-off` |
+
+### Paywall (W5)
+`pw=1` → TIERED policy, free user; `pw=pro` → TIERED + Pro; `pw=0` → build default (persisted per tab in sessionStorage). `window.__tcgPay.state()` exposes the entitlement state in test builds.

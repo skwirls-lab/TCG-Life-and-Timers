@@ -16,6 +16,7 @@ import {
   shouldSuggestProfile,
 } from "@/lib/profiles/repo";
 import { nextRotation } from "@/lib/ui/rotation";
+import { canCreateProfile } from "@/lib/entitlements/quota";
 import { useDispatch } from "@/state/gameStore";
 import { ArtPickerSlot } from "./ArtPickerSlot";
 
@@ -98,6 +99,8 @@ export function PlayerTab({ game, seat, rotation }: Props) {
   };
 
   const saveAsProfile = async () => {
+    // PAY (T7.1): a NEW profile counts against the free plan's 4 profiles (§17.2).
+    if (!seat.profileId && !(await canCreateProfile())) return;
     const profile = await saveProfile({
       ...seatToProfileInput(seat),
       ...(seat.profileId ? { id: seat.profileId } : {}),

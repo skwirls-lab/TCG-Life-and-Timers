@@ -6,7 +6,7 @@
  */
 import { Copy, Download, FileUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
   Button,
@@ -36,6 +36,9 @@ import { groupPresets } from "@/features/setup/PresetList";
 import { inputCls } from "./fields";
 import { canCreateMore } from "./model";
 import { LimitNotice } from "./LimitNotice";
+// PAY (T7.1/T7.3): over-limit taps open the paywall; share links + "My share links".
+import { openPaywall } from "@/lib/entitlements/paywall";
+import { MyShares, ShareAction } from "@/features/paywall/ShareControls";
 
 function download(p: Preset): string {
   const file = presetFileName(p);
@@ -77,6 +80,9 @@ export function BuilderList() {
   const count = presets?.length ?? 0;
   const canCreate = presets !== null && canCreateMore(count, limit);
   const edit = (id: string) => router.push(`/builder/edit?id=${encodeURIComponent(id)}`);
+  /** PAY (T7.1): run `fn` when one more preset fits the plan, otherwise open the paywall. */
+  const gated = (fn: () => void) => () =>
+    canCreate ? fn() : presets !== null && openPaywall("customPresetsUnlimited");
 
   return (
     <PageShell title={t("builder.title")} backHref="/" testId="builder-list">
@@ -87,8 +93,8 @@ export function BuilderList() {
         <Button
           variant="primary"
           icon={<Plus size={20} aria-hidden />}
-          disabled={!canCreate}
-          onClick={() => router.push("/builder/edit")}
+          disabled={presets === null}
+          onClick={gated(() => router.push("/builder/edit"))}
           data-testid="builder-new"
         >
           {t("builder.new")}
@@ -96,16 +102,16 @@ export function BuilderList() {
         </Button>
         <Button
           icon={<Copy size={20} aria-hidden />}
-          disabled={!canCreate}
-          onClick={() => setDupOpen(true)}
+          disabled={presets === null}
+          onClick={gated(() => setDupOpen(true))}
           data-testid="builder-duplicate-open"
         >
           {t("builder.duplicateBuiltIn")}
         </Button>
         <Button
           icon={<FileUp size={20} aria-hidden />}
-          disabled={!canCreate}
-          onClick={() => setImportOpen(true)}
+          disabled={presets === null}
+          onClick={gated(() => setImportOpen(true))}
           data-testid="builder-import-open"
         >
           {t("builder.import")}
@@ -127,8 +133,10 @@ export function BuilderList() {
               preset={p}
               index={i}
               canCopy={canCreate}
+              share={<ShareAction preset={p} index={i} />}
               onEdit={() => edit(p.id)}
               onCopy={async () => {
+                if (!canCreate) return openPaywall("customPresetsUnlimited");
                 const copy = await duplicateCustomPreset(p.id);
                 show({ message: t("builder.duplicated", { name: copy.name }) });
                 await refresh();
@@ -139,6 +147,8 @@ export function BuilderList() {
           ))}
         </ul>
       )}
+
+      <MyShares />
 
       <Sheet
         open={dupOpen}
@@ -218,6 +228,7 @@ function PresetRow({
   preset: p,
   index,
   canCopy,
+  share,
   onEdit,
   onCopy,
   onExport,
@@ -226,6 +237,7 @@ function PresetRow({
   preset: Preset;
   index: number;
   canCopy: boolean;
+  share?: ReactNode;
   onEdit: () => void;
   onCopy: () => void;
   onExport: () => void;
@@ -270,12 +282,12 @@ function PresetRow({
         <IconButton
           label={t("builder.copy")}
           onClick={onCopy}
-          disabled={!canCopy}
-          className="disabled:opacity-30"
+          data-locked={canCopy ? undefined : "1"}
           data-testid={`builder-copy-${index}`}
         >
           <Copy size={20} />
         </IconButton>
+        {share}
         <IconButton
           label={t("builder.export")}
           onClick={onExport}

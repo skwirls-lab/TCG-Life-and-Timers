@@ -1,6 +1,7 @@
 "use client";
-/** Free-tier custom preset limit (§17.2): Pro lock badge + paywall placeholder (T7.1 wires it). */
-import { LockBadge } from "@/components/ui";
+/** Free-tier custom preset limit (§17.2): Pro lock badge + "See Pro" (opens the paywall, T7.1). */
+import { Button, LockBadge } from "@/components/ui";
+import { openPaywall } from "@/lib/entitlements/paywall";
 import { t } from "@/lib/i18n";
 
 export function LimitNotice({ limit }: { limit: number }) {
@@ -13,7 +14,16 @@ export function LimitNotice({ limit }: { limit: number }) {
         <LockBadge />
         {t("builder.limitTitle", { limit })}
       </p>
-      <p className="text-sm text-fg-muted">{t("builder.limitBody")}</p>
+      <p className="text-sm text-fg-muted">{t("pay.limit.body")}</p>
+      <Button
+        size="sm"
+        variant="primary"
+        className="mt-2 self-start"
+        onClick={() => openPaywall("customPresetsUnlimited")}
+        data-testid="builder-limit-cta"
+      >
+        {t("pay.limit.cta")}
+      </Button>
     </div>
   );
 }
