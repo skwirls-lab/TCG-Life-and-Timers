@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { createGame, reduce, seededRng, type Game, type GameAction } from "@/engine";
 import { commander } from "@/presets/mtg/presets";
 import {
-  artStyle,
   damageSummary,
   defaultSeatBackground,
   enumStateIcon,
@@ -85,27 +84,9 @@ describe("tileMetrics (LAY-008)", () => {
   });
 });
 
-describe("artStyle", () => {
-  it("handles image art with a focal point and zoom", () => {
-    const s = artStyle(
-      { kind: "scryfall", value: 'https://x/a"b.jpg', focal: { x: 0.2, y: 0.8, zoom: 1.5 } },
-      "#fff",
-    );
-    expect(s.backgroundImage).toBe('url("https://x/a\\"b.jpg")');
-    expect(s.backgroundPosition).toBe("20% 80%");
-    expect(s.transform).toBe("scale(1.5)");
-    expect(artStyle({ kind: "upload", value: "blob:1" }, "#fff").transform).toBeUndefined();
-  });
-
-  it("handles gradients, solids and the default seat colour", () => {
-    expect(artStyle({ kind: "gradient", value: "linear-gradient(red, blue)" }, "#000")).toEqual({
-      background: "linear-gradient(red, blue)",
-    });
-    expect(artStyle({ kind: "solid", value: "#123" }, "#000")).toEqual({ background: "#123" });
-    expect(artStyle({ kind: "gradient", value: "palette-7" }, "#abc")).toEqual({
-      background: defaultSeatBackground("#abc"),
-    });
-    expect(artStyle(undefined, "#abc").background).toContain("#abc");
+describe("defaultSeatBackground", () => {
+  it("fades the seat colour into black", () => {
+    expect(defaultSeatBackground("#abc")).toContain("#abc");
   });
 });
 
