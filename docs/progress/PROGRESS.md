@@ -57,18 +57,18 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T4.6 | App Check | W3 | FIREBASE | DONE | SEC-007. | unit+sync 5+emu e2e 15 ✅ |
 | T4.7 | Feedback and diagnostics | W3 | FIREBASE | DONE | SET-040..043, §13.1-H. | unit+sync 5+emu e2e 15 ✅ |
 | T5.1 | Scryfall client | W4 | ART | IN_PROGRESS | ART-001..003, ART-006. | library DONE (85 unit tests; UI in W4) |
-| T5.2 | Art picker and focal editor | W4 | ART | TODO | ART-001..005, ART-008, PROF-010. |  |
+| T5.2 | Art picker and focal editor | W4 | ART | IN_PROGRESS | ART-001..005, ART-008, PROF-010. |  |
 | T5.3 | Uploads | W4 | ART | IN_PROGRESS | ART-020..023, ART-025. | library DONE; Dexie storage + My images UI in W4 |
-| T5.4 | Cloud art sync | W4 | ART | TODO | ART-022, ART-024, SEC-004. |  |
-| T5.5 | Offline art caching | W4 | ART | TODO | ART-009, PWA-002. |  |
-| T5.6 | Attribution | W4 | ART | TODO | ART-005, LEG-003, TOOL-013. |  |
-| T6.1 | Game records | W4 | HISTORY | TODO | HIST-003, HIST-030, HIST-032. |  |
-| T6.2 | "Who won?" prompt | W4 | HISTORY | TODO | HIST-031. |  |
-| T6.3 | Past Games UI | W4 | HISTORY | TODO | HIST-020..024, HIST-007. |  |
-| T6.4 | Stats library | W4 | HISTORY | TODO | HIST-005, HIST-021..023. |  |
-| T6.5 | Identity, merge and edit | W4 | HISTORY | TODO | HIST-033..035, PROF-011. |  |
-| T6.6 | Export/import | W4 | HISTORY | TODO | HIST-006. |  |
-| T6.7 | Game history toggle and limits | W4 | HISTORY | TODO | HIST-008, HIST-007. |  |
+| T5.4 | Cloud art sync | W4 | ART | IN_PROGRESS | ART-022, ART-024, SEC-004. |  |
+| T5.5 | Offline art caching | W4 | ART | IN_PROGRESS | ART-009, PWA-002. |  |
+| T5.6 | Attribution | W4 | ART | IN_PROGRESS | ART-005, LEG-003, TOOL-013. |  |
+| T6.1 | Game records | W4 | HISTORY | IN_PROGRESS | HIST-003, HIST-030, HIST-032. |  |
+| T6.2 | "Who won?" prompt | W4 | HISTORY | IN_PROGRESS | HIST-031. |  |
+| T6.3 | Past Games UI | W4 | HISTORY | IN_PROGRESS | HIST-020..024, HIST-007. |  |
+| T6.4 | Stats library | W4 | HISTORY | IN_PROGRESS | HIST-005, HIST-021..023. |  |
+| T6.5 | Identity, merge and edit | W4 | HISTORY | IN_PROGRESS | HIST-033..035, PROF-011. |  |
+| T6.6 | Export/import | W4 | HISTORY | IN_PROGRESS | HIST-006. |  |
+| T6.7 | Game history toggle and limits | W4 | HISTORY | IN_PROGRESS | HIST-008, HIST-007. |  |
 | T7.1 | Gating UI | W5 | PAY | TODO | PAY-004, §17.2. |  |
 | T7.2 | Stripe checkout and entitlements | W5 | PAY | TODO | PAY-002, PAY-003. |  |
 | T7.3 | Share links | W5 | PAY | TODO | CUS-007, SEC-005. |  |
