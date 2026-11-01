@@ -2,7 +2,8 @@
 /**
  * Install UX (PWA-003): after the first completed game, offer "Install app" (Android/Chromium
  * `beforeinstallprompt`) or, on iOS Safari, an "Add to Home Screen" instruction sheet. Never on
- * first open, never over the board, never once installed; "Not now" is remembered.
+ * first open, only on the launcher (never over the board or another screen's controls), never
+ * once installed; "Not now" is remembered.
  * Mount once in Providers: `<InstallPromptHost />`.
  */
 import { usePathname } from "next/navigation";
@@ -44,6 +45,24 @@ function useInstallEvents(): { hasPrompt: boolean; installed: boolean } {
   );
   const installed = useSyncExternalStore(subscribeInstall, wasInstalled, () => false);
   return { hasPrompt, installed };
+}
+
+export const TEST_INSTALL_KEY = "tcg.test.install";
+
+/**
+ * Test builds only: the offer is opt-in per tab (`?install=1`), so it can't cover controls in
+ * unrelated specs that finish games on the iOS-emulated project. Production builds always allow.
+ */
+function installHookAllows(): boolean {
+  if (process.env.NEXT_PUBLIC_TEST_HOOKS !== "1") return true;
+  try {
+    if (new URLSearchParams(window.location.search).get("install") === "1") {
+      window.sessionStorage.setItem(TEST_INSTALL_KEY, "1");
+    }
+    return window.sessionStorage.getItem(TEST_INSTALL_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function InstallPromptHost() {
@@ -93,7 +112,8 @@ export function InstallPromptHost() {
     };
   }, [update]);
 
-  if (!mounted || !record || pathname === "/play") return null;
+  const allowed = installHookAllows(); // evaluated on every route so ?install=1 is remembered
+  if (!mounted || !record || pathname !== "/" || !allowed) return null;
   // Don't stack on top of the consent banner; the offer waits until consent is answered.
   if (consentPending && telemetryConfigured()) return null;
   const offer = installOffer({

@@ -20,7 +20,8 @@ async function fireInstallPrompt(page: Page, outcome: "accepted" | "dismissed" =
 }
 
 async function completeAGame(page: Page) {
-  await page.goto("/play?quick=mtg.commander&players=2&seed=7");
+  // Test builds: the install offer is opt-in per tab (?install=1).
+  await page.goto("/play?quick=mtg.commander&players=2&seed=7&install=1");
   await expect(page.getByTestId("board")).toBeVisible();
   await page.evaluate(() => {
     const s = window.__tcg!.getState().session!.game.seats;
@@ -42,13 +43,25 @@ const isIos = (page: Page) =>
   );
 
 test("never offered on first open, even when the browser allows installing", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?install=1");
   await expect(page.getByTestId("launcher")).toBeVisible();
   await fireInstallPrompt(page);
+  await expect(page.getByTestId("install-prompt")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("launcher")).toBeVisible();
+  await fireInstallPrompt(page);
+  await expect(page.getByTestId("install-prompt")).toHaveCount(0);
+});
+
+test("offered on the launcher only, not on other screens", async ({ page }) => {
+  await completeAGame(page);
   await page.goto("/settings");
   await expect(page.getByTestId("settings")).toBeVisible();
   await fireInstallPrompt(page);
   await expect(page.getByTestId("install-prompt")).toHaveCount(0);
+  await page.goto("/");
+  await fireInstallPrompt(page);
+  await expect(page.getByTestId("install-prompt")).toBeVisible();
 });
 
 test("offered after the first completed game, never over the board", async ({ page }) => {
