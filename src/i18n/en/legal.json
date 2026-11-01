@@ -1,0 +1,20 @@
+{
+  "legal.privacy.title": "Privacy policy",
+  "legal.terms.title": "Terms of use",
+  "legal.draft": "Draft — requires owner/legal review",
+  "legal.updated": "Last updated: {date}",
+  "legal.about": "Credits, licenses and trademark notice",
+  "legal.privacyLink": "Privacy policy",
+  "legal.termsLink": "Terms of use",
+  "legal.consent.title": "Analytics and crash reports",
+  "legal.consent.body": "May we collect anonymous usage analytics and crash reports to improve the app? Nothing is collected unless you allow it, and you can change this any time in the privacy policy.",
+  "legal.consent.allow": "Allow",
+  "legal.consent.deny": "No thanks",
+  "legal.consent.learnMore": "Privacy policy",
+  "legal.consent.status.granted": "You allowed anonymous analytics and crash reports.",
+  "legal.consent.status.denied": "Analytics and crash reports are off.",
+  "legal.consent.status.unset": "You have not chosen yet, so nothing is collected.",
+  "legal.consent.status.unconfigured": "This version of the app does not collect analytics or crash reports.",
+  "legal.consent.withdraw": "Turn off",
+  "legal.consent.grant": "Turn on"
+}
