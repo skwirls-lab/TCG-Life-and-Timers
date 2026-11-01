@@ -1,7 +1,9 @@
 "use client";
 /**
  * Game-flow overlays (T1.13), mounted once by the /play board:
- * - first-player announcement (GAME-011) and the "Choose manually" picker (GAME-012)
+ * - first-player announcement (GAME-011; roll-off and opening coin flip, T3.7 / PRD §10.3) and
+ *   the "Choose manually" picker (GAME-012)
+ * - the first-turn reminder (PRD §10.3)
  * - threshold prompts for autoKO 'prompt' (CTR-003)
  * - game-over overlay with Rematch / New setup / Close (GAME-014)
  * - 5 s "Undo" snackbar after a reset or an elimination (GAME-015)
@@ -13,6 +15,7 @@ import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 import { ChooseFirstPlayer, PromptDialog } from "./Dialogs";
 import { FirstPlayerOverlay } from "./FirstPlayerOverlay";
+import { FirstTurnHint } from "./FirstTurnHint";
 import { GameOverOverlay } from "./GameOverOverlay";
 import { detectUndoable, seatName } from "./flow";
 
@@ -79,6 +82,7 @@ export function GameFlowOverlays() {
         <>
           <ChooseFirstPlayer game={game} />
           <FirstPlayerOverlay game={game} />
+          <FirstTurnHint game={game} />
           <PromptDialog game={game} />
           <GameOverOverlay game={game} />
         </>
