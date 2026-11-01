@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore,storage,auth --project demo-tcg-life \"vitest run -c vitest.rules.config.ts\"",
     "test:functions": "firebase emulators:exec --only firestore,storage,auth --project demo-tcg-life \"vitest run -c vitest.functions.config.ts\"",
+    "test:sync": "firebase emulators:exec --only firestore,auth,storage --project demo-tcg-life \"vitest run -c vitest.sync.config.ts\"",
     "test:e2e": "npm run build:test && playwright test --grep-invert @emu",
     "test:e2e:emu": "npm run build:emu && E2E_SERVER=emu firebase emulators:exec --only firestore,storage,auth --project demo-tcg-life \"playwright test --grep @emu\"",
     "check:bundle": "size-limit",

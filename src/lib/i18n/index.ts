@@ -4,6 +4,7 @@
  */
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";
+import account from "@/i18n/en/account.json";
 import board from "@/i18n/en/board.json";
 import builder from "@/i18n/en/builder.json";
 import history from "@/i18n/en/history.json";
@@ -15,6 +16,7 @@ import tools from "@/i18n/en/tools.json";
 const dictionaries = [
   common,
   engine,
+  account,
   board,
   builder,
   history,
