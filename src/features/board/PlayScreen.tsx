@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { GameFlowOverlays } from "@/features/game-flow/GameFlowOverlays";
 import { SeatMenu } from "@/features/seat/SeatMenu";
+import { CalculatorSheet } from "@/features/calculator";
 // TIMER-UI (W3): scheduler, signals, auto-pause and the PAUSED overlay; test-only `t.*` params.
 import { TimerLayer } from "@/features/timer/TimerLayer";
 import { applyTimerTestParams } from "@/features/timer/testParams";
@@ -90,6 +91,8 @@ export function PlayScreen() {
   const hasSession = useGameStore((s) => s.session !== null);
   const menu = useBoardUi((s) => s.menu);
   const closeMenu = useBoardUi((s) => s.closeMenu);
+  const calc = useBoardUi((s) => s.calc);
+  const closeCalc = useBoardUi((s) => s.closeCalc);
 
   useEffect(() => {
     if (started.current) return;
@@ -106,7 +109,7 @@ export function PlayScreen() {
 
   useEffect(
     () => () => {
-      useBoardUi.setState({ menu: null, cmdMode: false });
+      useBoardUi.setState({ menu: null, cmdMode: false, calc: null });
     },
     [],
   );
@@ -135,6 +138,14 @@ export function PlayScreen() {
             {...(menu?.focusCounterId ? { focusCounterId: menu.focusCounterId } : {})}
             {...(menu?.rotation !== undefined ? { rotation: menu.rotation } : {})}
           />
+          {calc && (
+            <CalculatorSheet
+              seatId={calc.seatId}
+              open
+              onClose={closeCalc}
+              {...(calc.rotation !== undefined ? { rotation: calc.rotation } : {})}
+            />
+          )}
         </GameErrorBoundary>
       ) : (
         <p

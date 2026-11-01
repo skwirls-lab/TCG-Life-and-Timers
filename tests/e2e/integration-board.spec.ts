@@ -57,3 +57,24 @@ test.describe("board integration", () => {
     expect(notes).toBeGreaterThanOrEqual(1);
   });
 });
+
+// @req INP-007 @req TOOL-006
+test("Yu-Gi-Oh!: tapping the LP number on the board opens the calculator", async ({ page }) => {
+  await page.goto("/play?quick=ygo.advanced&players=2&seed=5&names=Yugi,Kaiba");
+  await expect(page.getByTestId("board")).toBeVisible();
+  await page.getByTestId("seat-1-calc").click();
+  await expect(page.getByTestId("calc-sheet")).toBeVisible();
+  const pad = page.getByTestId("calc-keypad");
+  for (const k of ["−", "1", "5", "0", "0"])
+    await pad.getByRole("button", { name: k, exact: true }).click();
+  await page.getByTestId("calc-keypad-submit").click();
+  await expect(page.getByTestId("calc-value")).toHaveText("6500");
+  await page.getByTestId("calc-sheet-close").click();
+  await expect(page.getByTestId("seat-1-value")).toHaveText("6500");
+});
+
+test("MTG presets do not turn the number into a calculator", async ({ page }) => {
+  await page.goto("/play?quick=mtg.commander&players=4&seed=7");
+  await expect(page.getByTestId("board")).toBeVisible();
+  await expect(page.getByTestId("seat-0-calc")).toHaveCount(0);
+});

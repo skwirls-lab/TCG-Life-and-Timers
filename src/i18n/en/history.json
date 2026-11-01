@@ -85,5 +85,14 @@
   "history.chart.colPlayer": "Player",
   "history.chart.colStep": "Point",
   "history.chart.colValues": "Values",
-  "history.chart.colFinal": "Final"
+  "history.chart.colFinal": "Final",
+  "history.ev.timer.adjust": "{name}'s clock adjusted {delta}",
+  "history.ev.timer.set": "{name}'s clock set to {value} (adjusted)",
+  "history.ev.timer.respond": "⚡ {name} responded",
+  "history.ev.timer.passBack": "↩ {name} passed back",
+  "history.ev.timer.returnToActive": "Clock returned to the active player",
+  "history.ev.timer.pause": "Clocks paused",
+  "history.ev.timer.resume": "Clocks resumed",
+  "history.ev.timer.timeout": "{name} ran out of time",
+  "history.ev.timer.matchEnd": "Round time is up"
 }

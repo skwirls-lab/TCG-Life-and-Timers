@@ -21,6 +21,7 @@ import { useDispatch, useGameValue, useSeat } from "@/state/gameStore";
 import { SeatTimerBar } from "@/features/timer/SeatTimerBar";
 import { timerBarActive, timerTileMetrics } from "@/features/timer/model";
 import { useSetting } from "@/state/settingsStore";
+import { shouldOpenCalculator } from "@/features/calculator/calc";
 import { Badges } from "./Badges";
 import { HOLD_REPEAT_MS, artStyle, formatDelta, formatValue, tileMetrics } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
@@ -82,6 +83,9 @@ export const SeatTile = memo(function SeatTile({
   const holdRepeat = useSetting("holdRepeat");
   const bubbleMs = useSetting("bubbleMs");
   const timerOn = useGameValue(timerBarActive) ?? false;
+  // INP-007: tapping the number opens the calculator for high-total presets (Yu-Gi-Oh! LP).
+  const calcOn = useGameValue((g) => shouldOpenCalculator(g.preset, g.options)) ?? false;
+  const openCalc = useBoardUi((s) => s.openCalc);
 
   // INP-006 pending-change bubble (the engine batches the history entry itself).
   const [bubble, setBubble] = useState(0);
@@ -307,6 +311,15 @@ export const SeatTile = memo(function SeatTile({
                   >
                     {valueText}
                   </span>
+                  {calcOn && (
+                    <button
+                      type="button"
+                      data-testid={`seat-${index}-calc`}
+                      aria-label={t("board.calc.open", { name: view.name })}
+                      className="pointer-events-auto absolute inset-0 rounded-xl focus-visible:outline-2 focus-visible:outline-accent"
+                      onClick={() => openCalc({ seatId, rotation })}
+                    />
+                  )}
                   {bubble !== 0 && (
                     <span
                       data-testid={`seat-${index}-bubble`}

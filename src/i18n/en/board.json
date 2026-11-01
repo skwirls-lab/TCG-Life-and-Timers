@@ -40,5 +40,6 @@
   "board.layout.sides": "Both sides",
   "board.layout.topBottom": "Top and bottom",
   "board.layout.sidesTop": "Sides + top",
-  "board.layout.sidesEnds": "Sides + ends"
+  "board.layout.sidesEnds": "Sides + ends",
+  "board.calc.open": "Open calculator for {name}"
 }

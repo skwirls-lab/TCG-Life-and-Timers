@@ -7,6 +7,7 @@ import {
   counterDef,
   describeCause,
   enumLabel,
+  formatClock as formatTimerClock,
   primaryCounter,
   seatById,
   startValue,
@@ -237,12 +238,39 @@ function eventLabel(event: GameEvent, game: Game): { label: string; icon: string
         icon: def?.icon ?? "crown",
       };
     }
-    case "timer":
+    case "timer": {
+      const action = str(m.action ?? m.type ?? m.transition);
+      const known: Record<string, MessageKey> = {
+        adjust: "history.ev.timer.adjust",
+        set: "history.ev.timer.set",
+        respond: "history.ev.timer.respond",
+        passBack: "history.ev.timer.passBack",
+        returnToActive: "history.ev.timer.returnToActive",
+        pause: "history.ev.timer.pause",
+        resume: "history.ev.timer.resume",
+        timeout: "history.ev.timer.timeout",
+        matchEnd: "history.ev.timer.matchEnd",
+      };
+      const key = known[action];
+      const delta =
+        typeof event.delta === "number"
+          ? `${event.delta >= 0 ? "+" : "−"}${formatTimerClock(Math.abs(event.delta), { showTenths: false })}`
+          : "";
       return {
-        label: t("history.ev.timer", { action: str(m.action ?? m.type ?? m.transition) || "—" }),
+        label: key
+          ? t(key, {
+              name,
+              delta,
+              value:
+                typeof event.to === "number"
+                  ? formatTimerClock(event.to, { showTenths: false })
+                  : "",
+            })
+          : t("history.ev.timer", { action: action || "—" }),
         icon: "clock",
         tone: "timer",
       };
+    }
     default:
       return { label: t("history.ev.unknown"), icon: "circle" };
   }

@@ -19,6 +19,10 @@ interface BoardUiState {
   openMenu: (target: SeatMenuTarget) => void;
   closeMenu: () => void;
   setCmdMode: (on: boolean) => void;
+  /** INP-007 calculator target (high-total presets). */
+  calc: { seatId: string; rotation?: Rotation } | null;
+  openCalc: (target: { seatId: string; rotation?: Rotation }) => void;
+  closeCalc: () => void;
 }
 
 export const useBoardUi = create<BoardUiState>((set) => ({
@@ -27,4 +31,7 @@ export const useBoardUi = create<BoardUiState>((set) => ({
   openMenu: (menu) => set({ menu }),
   closeMenu: () => set({ menu: null }),
   setCmdMode: (cmdMode) => set({ cmdMode }),
+  calc: null,
+  openCalc: (calc) => set({ calc }),
+  closeCalc: () => set({ calc: null }),
 }));

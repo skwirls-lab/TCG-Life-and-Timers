@@ -187,7 +187,7 @@ describe("formatEventRow", () => {
       { id: "x", at: T0, kind: "timer", meta: { action: "pause" } },
       s.game,
     );
-    expect(row).toMatchObject({ label: "Clock: pause", tone: "timer", variant: "event" });
+    expect(row).toMatchObject({ label: "Clocks paused", tone: "timer", variant: "event" });
     const seatEv = formatEventRow(
       { id: "y", at: T0, kind: "seatRemove", seatId: "ghost", meta: { name: "Zed" } },
       s.game,
