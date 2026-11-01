@@ -24,6 +24,11 @@ function triggeredAtStart(def: CounterDefinition): boolean {
   return t.comparator === "<=" ? def.start <= t.value : def.start >= t.value;
 }
 
+/** Largest pips display (FFTCG damage has 7 slots). */
+const MAX_PIPS = 20;
+
+const finite = (v: number | null | undefined): v is number => typeof v === "number";
+
 const within = (def: CounterDefinition, v: number) =>
   (def.min === undefined || def.min === null || v >= def.min) &&
   (def.max === undefined || def.max === null || v <= def.max);
@@ -108,6 +113,17 @@ export function semanticErrors(p: Preset): string[] {
     if (c.resetOnTurnPass && c.scope !== "player" && c.scope !== "global") {
       at(`${where}: resetOnTurnPass needs player or global scope`);
     }
+    if (c.threshold?.perSeatOverride && c.scope !== "player")
+      at(`${where}: perSeatOverride needs player scope`);
+    if (c.display === "pips") {
+      if (c.kind !== "number") at(`${where}: pips display needs a number counter`);
+      if (!finite(c.max) || c.max > MAX_PIPS) at(`${where}: pips display needs max ≤ ${MAX_PIPS}`);
+    }
+    if (c.display === "track") {
+      if (c.kind !== "number" || c.scope !== "global")
+        at(`${where}: track display needs a global number counter`);
+      if (!finite(c.min) || !finite(c.max)) at(`${where}: track display needs min and max`);
+    }
   }
 
   for (const [cap, test] of Object.entries(CAPABILITY_RULES) as [
@@ -125,6 +141,12 @@ export function semanticErrors(p: Preset): string[] {
   ) {
     at("capability partners needs commander damage or per-commander tax");
   }
+  // INP-007: the calculator capability and the preset's "tap number for calculator" default agree.
+  const tapCalc = p.defaults.options?.tapForCalculator === true;
+  if (p.capabilities.includes("calculator") !== tapCalc)
+    at("capability calculator and defaults.options.tapForCalculator must agree");
+  if (p.capabilities.includes("perSeatStart") && primary && primary.scope !== "player")
+    at("capability perSeatStart needs a player primary");
   if (new Set(p.capabilities).size !== p.capabilities.length) at("duplicate capabilities");
   return errs;
 }

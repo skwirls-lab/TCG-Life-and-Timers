@@ -30,8 +30,8 @@ describe("built-in presets", () => {
     expect(r.count).toBe(BUILT_IN_PRESETS.length);
   });
 
-  // @req PRE-010 @req PRE-012
-  it("registry lists the MTG formats; P2 stubs are hidden", () => {
+  // @req PRE-010 @req PRE-011 @req PRE-012
+  it("registry lists every v1 game; P2 stubs are hidden", () => {
     expect(getBuiltInPreset(DEFAULT_PRESET_ID)?.name).toBe("Commander");
     expect(getBuiltInPreset("nope")).toBeUndefined();
     expect(listBuiltInPresets().map((p) => p.id)).toEqual([
@@ -40,16 +40,39 @@ describe("built-in presets", () => {
       "mtg.limited",
       "mtg.brawl",
       "mtg.oathbreaker",
+      "pokemon.standard",
+      "ygo.advanced",
+      "ygo.speed",
+      "ygo.rush",
+      "fftcg.standard",
+      "lorcana.standard",
+      "onepiece.standard",
+      "swu.premier",
+      "digimon.standard",
+      "fab.standard",
+      "sorcery.standard",
+      "generic.life",
     ]);
     const hidden = listBuiltInPresets({ includeHidden: true }).filter((p) => p.hidden);
     expect(hidden.map((p) => [p.id, p.deferred])).toEqual([
       ["mtg.2hg", "P2"],
       ["mtg.archenemy", "P2"],
+      ["pokemon.pocket", "P2"],
     ]);
     for (const p of BUILT_IN_PRESETS) {
       expect(p.rulesSummary.length).toBeGreaterThan(10);
-      expect(p.rulesUrl).toMatch(/^https:\/\//);
-      expect(p.quickStartValues).toEqual([20, 25, 30, 40, 60]);
+      if (p.game !== "Generic") expect(p.rulesUrl).toMatch(/^https:\/\//);
+      if (p.game === "Magic: The Gathering")
+        expect(p.quickStartValues).toEqual([20, 25, 30, 40, 60]);
+    }
+  });
+
+  // PRD §10.7: plain-text names only (no trademark glyphs, no logo assets referenced).
+  it("names and summaries are plain text", () => {
+    for (const p of BUILT_IN_PRESETS) {
+      for (const s of [p.name, p.game, p.format ?? "", p.description, p.rulesSummary]) {
+        expect(s).not.toMatch(/[™®©]|<|\.(svg|png)/);
+      }
     }
   });
 
@@ -64,6 +87,10 @@ describe("built-in presets", () => {
         capabilities: p.capabilities,
         players: [p.minPlayers, p.defaultPlayers, p.maxPlayers],
         timer: p.defaults.timer.mode,
+        match: p.defaults.timer.match ?? null,
+        threshold: primaryCounter(p).threshold ?? null,
+        quickStart: p.quickStartValues ?? null,
+        verify: p.counters.filter((c) => c.verify).map((c) => c.id),
       }).toMatchSnapshot();
     },
   );
@@ -196,6 +223,44 @@ describe("semantic validation catches broken presets", () => {
       "duplicate capability",
       { ...p, capabilities: [...p.capabilities, "partners" as const] },
       "duplicate capabilities",
+    ],
+    [
+      "perSeatOverride on the matrix",
+      withCounter(p, "mtg.cmdDamage", {
+        threshold: {
+          comparator: ">=",
+          value: 21,
+          outcome: "lose",
+          perSource: true,
+          perSeatOverride: true,
+        },
+      }),
+      "perSeatOverride needs player scope",
+    ],
+    [
+      "pips without max",
+      withCounter(p, "mtg.poison", { display: "pips" }),
+      "pips display needs max",
+    ],
+    [
+      "pips on a boolean",
+      withCounter(p, "mtg.citysBlessing", { display: "pips" }),
+      "pips display needs a number",
+    ],
+    [
+      "track on a player",
+      withCounter(p, "mtg.energy", { display: "track" }),
+      "track display needs a global",
+    ],
+    [
+      "track unbounded",
+      withCounter(p, "mtg.storm", { display: "track" }),
+      "track display needs min and max",
+    ],
+    [
+      "calculator without the tap default",
+      { ...p, capabilities: [...p.capabilities, "calculator" as const] },
+      "capability calculator and defaults.options.tapForCalculator",
     ],
   ])("%s", (_name, preset, msg) => {
     const errs = semanticErrors(preset as Preset);
