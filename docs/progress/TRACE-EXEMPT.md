@@ -4,7 +4,6 @@
 - ARCH-007: design constraint (no real-time sync of active games), verified by review.
 
 ## Pending (temporary; must be empty for `check:trace -- --all`)
-- INP-005: PENDING(T8.8) swipe-to-change input (P1, off by default) — not built in W2
 
 ## Gate-enforced (verified by a gate rather than a tagged test)
 - PERF-001: G-LH (Lighthouse Performance 100 on /, /setup, /settings; prod build) + PERF-003 bundle gate; real-network LCP is a post-deploy check (DEPLOY.md)
