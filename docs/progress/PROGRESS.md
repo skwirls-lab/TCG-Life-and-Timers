@@ -56,9 +56,9 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T4.5 | Account data functions | W3 | FIREBASE | DONE | AUTH-005, AUTH-006. | rules 78 ✅ functions 21 ✅ (T4.5: server side; client export pending) |
 | T4.6 | App Check | W3 | FIREBASE | TODO | SEC-007. |  |
 | T4.7 | Feedback and diagnostics | W3 | FIREBASE | TODO | SET-040..043, §13.1-H. |  |
-| T5.1 | Scryfall client | W4 | ART | IN_PROGRESS | ART-001..003, ART-006. |  |
+| T5.1 | Scryfall client | W4 | ART | IN_PROGRESS | ART-001..003, ART-006. | library DONE (85 unit tests; UI in W4) |
 | T5.2 | Art picker and focal editor | W4 | ART | TODO | ART-001..005, ART-008, PROF-010. |  |
-| T5.3 | Uploads | W4 | ART | IN_PROGRESS | ART-020..023, ART-025. |  |
+| T5.3 | Uploads | W4 | ART | IN_PROGRESS | ART-020..023, ART-025. | library DONE; Dexie storage + My images UI in W4 |
 | T5.4 | Cloud art sync | W4 | ART | TODO | ART-022, ART-024, SEC-004. |  |
 | T5.5 | Offline art caching | W4 | ART | TODO | ART-009, PWA-002. |  |
 | T5.6 | Attribution | W4 | ART | TODO | ART-005, LEG-003, TOOL-013. |  |
