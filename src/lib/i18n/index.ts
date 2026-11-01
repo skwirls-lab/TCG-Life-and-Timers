@@ -8,6 +8,7 @@ import account from "@/i18n/en/account.json";
 import board from "@/i18n/en/board.json";
 import builder from "@/i18n/en/builder.json";
 import history from "@/i18n/en/history.json";
+import historyPast from "@/i18n/en/historyPast.json";
 import presets from "@/i18n/en/presets.json";
 import seat from "@/i18n/en/seat.json";
 import shell from "@/i18n/en/shell.json";
@@ -20,6 +21,7 @@ const dictionaries = [
   board,
   builder,
   history,
+  historyPast,
   presets,
   seat,
   shell,
