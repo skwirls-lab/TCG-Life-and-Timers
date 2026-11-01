@@ -24,6 +24,10 @@ export type TimerMode = (typeof TIMER_MODES)[number];
 export const TIMEOUT_ACTIONS = ["lose", "grace", "flag", "addOnce"] as const;
 export type TimeoutAction = (typeof TIMEOUT_ACTIONS)[number];
 
+/** What happens after grace / the one-time extension runs out (§9.5 "final action"). */
+export const FINAL_ACTIONS = ["lose", "flag"] as const;
+export type FinalAction = (typeof FINAL_ACTIONS)[number];
+
 /** TMR-005 / TMR-010 response time accounting. */
 export const RESPONSE_MODES = ["charge", "freeze", "disabled"] as const;
 export type ResponseMode = (typeof RESPONSE_MODES)[number];
@@ -57,6 +61,8 @@ export interface TimerConfig {
   timeoutAction: TimeoutAction;
   /** One-time extension when timeoutAction = 'addOnce'. */
   addOnceMs: number;
+  /** Applied when grace or the one-time extension runs out (default 'lose'). */
+  finalAction?: FinalAction;
   /** Low-time warning thresholds, descending (default 5:00, 1:00, 0:10). */
   warningsMs: number[];
   responses: ResponseMode;
@@ -73,11 +79,13 @@ export const CLOCK_STATES = ["normal", "overtime", "flagged", "timedOut"] as con
 export type ClockState = (typeof CLOCK_STATES)[number];
 
 export interface SeatClock {
-  /** Remaining as of `runningSince` (may go negative in flag mode). */
+  /** Remaining as of `runningSince` (may go negative in flag mode). perTurn: this turn's time; perTurnReserve: the reserve. */
   bankMs: number;
+  /** Grace left (undefined = the full config.graceMs); not reset between turns. */
   graceMs?: number;
-  /** Total time charged (stats). */
+  /** Total time held (wall time while holding a running, non-frozen clock; stats). */
   usedMs: number;
+  /** Time held during the current turn (reset on every turn change; perTurnReserve per-turn part). */
   turnUsedMs: number;
   state: ClockState;
   /** 'addOnce' extension already consumed. */
@@ -96,7 +104,11 @@ export interface MatchTimerState {
   extraTurnsRemaining?: number;
 }
 
-/** §9.8. remaining(seat) = clocks[seat].bankMs − (holder === seat && running ? now − runningSince : 0) */
+/**
+ * §9.8. remaining(seat) = clocks[seat].bankMs − (holder === seat && running ? now − runningSince : 0)
+ * (see `./clock.ts` for the exact per-mode projection). `holder` is the priority holder while the
+ * timer is running or paused (null when idle/ended); `runningSince` is non-null only while running.
+ */
 export interface TimerState {
   mode: TimerMode;
   config: TimerConfig;
@@ -110,6 +122,10 @@ export interface TimerState {
   responseStack: SeatIdLike[];
   pausedReason?: PauseReason;
   match?: MatchTimerState;
+  /** bankDelay: free time left in the current hold (as of `runningSince`). */
+  holdFreeMs?: number;
+  /** The turn number the clocks were last reset for (per-turn modes, turn time, extra turns). */
+  turnNumber?: number;
 }
 
 const MIN = 60_000;
