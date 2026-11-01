@@ -240,7 +240,7 @@ interface DueResult {
 }
 
 /** Apply the timeout transition of one due seat. */
-function applyTimeout(g: Game, seatId: SeatId, now: number): DueResult {
+function applyTimeout(g: Game, seatId: SeatId, now: number, maxLagMs = Infinity): DueResult {
   const t = g.timer;
   const cfg = t.config;
   const c = t.clocks[seatId]!;
@@ -273,7 +273,7 @@ function applyTimeout(g: Game, seatId: SeatId, now: number): DueResult {
       return { game: log(patchClock(g, seatId, { ...c, state: "flagged" }), "flagged"), lagMs: 0 };
     }
     // Lose: the seat's clock stops at exactly 0:00; time held past it moves to the next holder.
-    const lag = charging ? over : 0;
+    const lag = charging ? Math.min(over, maxLagMs) : 0;
     const next: SeatClock = {
       ...c,
       bankMs: c.bankMs + lag,
@@ -292,7 +292,7 @@ function applyTimeout(g: Game, seatId: SeatId, now: number): DueResult {
     const next: SeatClock = { ...c, bankMs: c.bankMs - over, graceMs: 0, state: "flagged" };
     return { game: log(patchClock(g, seatId, next), "flagged"), lagMs: 0 };
   }
-  const lag = charging ? over : 0;
+  const lag = charging ? Math.min(over, maxLagMs) : 0;
   const next: SeatClock = {
     ...c,
     graceMs: graceLeft(c, cfg) + lag,
@@ -311,7 +311,7 @@ function eliminate(g: Game, seatId: SeatId, now: number): Game {
 }
 
 /** Apply every due timeout (the scheduler normally dispatches them at the exact moment). */
-function resolveDue(game: Game, now: number): DueResult {
+function resolveDue(game: Game, now: number, maxLagMs = Infinity): DueResult {
   let g = game;
   let lagMs = 0;
   for (let guard = 0; guard < 4 * g.seats.length + 4; guard++) {
@@ -321,7 +321,7 @@ function resolveDue(game: Game, now: number): DueResult {
       return !s.eliminated && c !== undefined && dueKind(c, t.config) !== null;
     });
     if (!seat) break;
-    const r = applyTimeout(g, seat.id, now);
+    const r = applyTimeout(g, seat.id, now, maxLagMs);
     g = r.game;
     lagMs = Math.max(lagMs, r.lagMs);
   }
@@ -514,13 +514,27 @@ function passTurn(game: Game, prev: Game, now: number): Game {
   return syncTimer(g, now, due.lagMs);
 }
 
+/**
+ * TMR-044: when an adjustment takes the holder's clock below 0:00, only the time it really held
+ * past 0:00 before the adjustment moves to the next holder (the adjusted-away part was never
+ * held). Other seats' adjustments don't limit the holder's lag.
+ */
+function heldOvershoot(game: Game, seatId: SeatId, now: number): number {
+  const t = game.timer;
+  if (t.holder !== seatId) return Infinity;
+  const c = projectTimer(t, now).clocks[seatId]!;
+  const over = c.state === "overtime" ? -graceLeft(c, t.config) : -clockRemaining(c, t.config);
+  return Math.max(0, over);
+}
+
 export function reduceTimer(game: Game, action: GameAction, now: number, prev: Game = game): Game {
   if (action.type === "TIMER_SET_CONFIG") return setConfig(game, action.config, now);
   if (game.timer.mode === "off" && prev.timer.mode === "off") return game;
   if (isTimerAction(action)) {
     const g = timerTransition(game, action, now);
     if (g === null) return game;
-    const due = resolveDue(g, now);
+    const adjusted = action.type === "TIMER_ADJUST" || action.type === "TIMER_SET";
+    const due = resolveDue(g, now, adjusted ? heldOvershoot(game, action.seatId, now) : Infinity);
     return syncTimer(due.game, now, due.lagMs);
   }
   switch (action.type) {

@@ -463,6 +463,49 @@ describe("timeouts (§9.5)", () => {
     expect(x.used("s2")).toBe(2 * SEC);
   });
 
+  // @req TMR-044 regression (found by the timer property test): an adjustment below 0:00 is
+  // not time held past it, so nothing moves to the next holder and real usage is kept.
+  it("an adjustment past 0:00 eliminates without charging the adjusted-away time to anyone", () => {
+    const x = new Table({ mode: "perTurn", perTurnMs: SEC, timeoutAction: "lose" });
+    x.doAt(0, { type: "START_GAME" });
+    x.doAt(SEC, { type: "TIMER_TIMEOUT", seatId: "s1" });
+    expect(holder(x.g)).toBe("s2");
+    x.do({ type: "TIMER_ADJUST", seatId: "s2", deltaMs: -1001 });
+    expect(x.g.seats[1]!.eliminated).toBe(true);
+    expect(holder(x.g)).toBe("s3");
+    expect(x.used("s3")).toBe(0);
+    expect(x.rem("s3")).toBe(SEC);
+    expect(x.used("s1") + x.used("s2") + x.used("s3") + x.used("s4")).toBe(SEC);
+  });
+
+  // @req TMR-044
+  it("an adjustment past 0:00 keeps the time the holder really used (addOnce → final lose)", () => {
+    const x = new Table({
+      mode: "perTurnReserve",
+      perTurnMs: SEC,
+      reserveMs: 0,
+      timeoutAction: "addOnce",
+      addOnceMs: SEC,
+      finalAction: "lose",
+    });
+    x.doAt(0, { type: "START_GAME" });
+    x.doAt(1, { type: "TIMER_ADJUST", seatId: "s1", deltaMs: -2 * SEC });
+    expect(x.g.seats[0]!.eliminated).toBe(true);
+    expect(x.used("s1")).toBe(1);
+    expect(x.used("s2")).toBe(0);
+  });
+
+  // @req TMR-044
+  it("a late timeout found while adjusting still carries only the real lateness", () => {
+    const x = new Table({ mode: "bank", bankMs: 5 * SEC, timeoutAction: "lose" });
+    x.doAt(0, { type: "START_GAME" });
+    // 2 s past 0:00 (the timeout was not dispatched in time), then an adjustment of −3 s
+    x.doAt(7 * SEC, { type: "TIMER_ADJUST", seatId: "s1", deltaMs: -3 * SEC });
+    expect(x.g.seats[0]!.eliminated).toBe(true);
+    expect(x.used("s1")).toBe(5 * SEC);
+    expect(x.used("s2")).toBe(2 * SEC);
+  });
+
   it("a late grace end also carries the lateness", () => {
     const x = new Table({ mode: "bank", bankMs: SEC, timeoutAction: "grace", graceMs: SEC });
     x.doAt(0, { type: "START_GAME" });

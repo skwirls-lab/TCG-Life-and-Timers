@@ -19,6 +19,7 @@ import { useCan } from "@/lib/entitlements/store";
 import { FREE_MAX_PLAYERS } from "@/lib/entitlements/features";
 import { useGameValue } from "@/state/gameStore";
 import { useSetting } from "@/state/settingsStore";
+import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
 import { changePlayerCount, setLayoutVariant } from "./boardActions";
 import { hasCommanderDamage } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
@@ -64,8 +65,9 @@ export function PlayersSheet({ open, onClose }: Props) {
     : getLayout({ players: count, variantId: info.layoutId, viewport }).variantId;
 
   const confirm = () => {
-    changePlayerCount(count, current);
     close();
+    // The Who-won prompt (HIST-031) may open next: wait until this sheet has left history.
+    afterOverlayClose(() => changePlayerCount(count, current));
   };
 
   return (

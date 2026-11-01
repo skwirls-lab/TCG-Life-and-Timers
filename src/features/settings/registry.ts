@@ -277,6 +277,8 @@ export const AVAILABLE_ROUTES: readonly string[] = [
   "/builder",
   "/account",
   "/feedback",
+  "/images",
+  "/about",
   "/pro", // PAY (T7.4)
 ];
 
@@ -788,6 +790,7 @@ const BASE_ROWS: SettingDef[] = [
   linkRow("feedback", "H", "/feedback"),
   linkRow("diagnostics", "H", "/feedback"),
   actionRow("whatsNew", "H", "whatsNew"),
+  linkRow("aboutCredits", "H", "/about"),
   {
     id: "about",
     scope: "app",

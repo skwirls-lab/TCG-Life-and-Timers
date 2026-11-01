@@ -5,7 +5,6 @@ import {
   commanderDamageGrid,
   enumLabel,
   visibleBadges,
-  type ArtRef,
   type BadgeMode,
   type CounterDefinition,
   type Game,
@@ -77,47 +76,10 @@ export function tileMetrics(
   return { topH, bottomH, glyph, numberTop, numberH, fontPx, cellPx };
 }
 
-function isImageArt(art: ArtRef | undefined): art is ArtRef & { kind: "scryfall" | "upload" } {
-  return !!art && (art.kind === "scryfall" || art.kind === "upload") && art.value !== "";
-}
-
-function cssUrl(url: string): string {
-  return `url("${url.replace(/["\\\n]/g, (c) => (c === "\n" ? "" : `\\${c}`))}")`;
-}
-
 /** Default seat background: a gradient from the seat colour into near-black. */
 export function defaultSeatBackground(color: string): string {
   return `linear-gradient(160deg, ${color} 0%, color-mix(in srgb, ${color} 55%, #000) 100%)`;
 }
-
-export interface ArtStyle {
-  backgroundImage?: string;
-  background?: string;
-  backgroundSize?: string;
-  backgroundPosition?: string;
-  transform?: string;
-  transformOrigin?: string;
-}
-
-/** CSS for a seat's background layer (ArtRef → gradient / solid / image with focal point). */
-export function artStyle(art: ArtRef | undefined, color: string): ArtStyle {
-  if (isImageArt(art)) {
-    const fx = clamp01(art.focal?.x ?? 0.5) * 100;
-    const fy = clamp01(art.focal?.y ?? 0.5) * 100;
-    const zoom = Math.max(1, art.focal?.zoom ?? 1);
-    return {
-      backgroundImage: cssUrl(art.value),
-      backgroundSize: "cover",
-      backgroundPosition: `${fx}% ${fy}%`,
-      ...(zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` } : {}),
-    };
-  }
-  if (art?.kind === "gradient" && /gradient\(/.test(art.value)) return { background: art.value };
-  if (art?.kind === "solid" && art.value) return { background: art.value };
-  return { background: defaultSeatBackground(color) };
-}
-
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export interface BadgeView {
   /** Unique per tile (`counterId` or `counterId-<index>` for per-commander instances). */

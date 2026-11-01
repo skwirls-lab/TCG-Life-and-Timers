@@ -50,6 +50,16 @@ export function PlayerTab({ game, seat, rotation }: Props) {
   const [c0, setC0] = useState(seat.commanders[0] ?? "");
   const [c1, setC1] = useState(seat.commanders[1] ?? "");
   const [partner, setPartner] = useState(seat.commanders.length >= 2);
+  // The commander inputs follow external changes (art picker "Use as commander" / "Save to deck",
+  // undo); `cmdKey` is the last commanders value the inputs reflect or committed (CMD-003).
+  const seatCmdKey = seat.commanders.join("\u0000");
+  const [cmdKey, setCmdKey] = useState(seatCmdKey);
+  if (cmdKey !== seatCmdKey) {
+    setCmdKey(seatCmdKey);
+    setC0(seat.commanders[0] ?? "");
+    setC1(seat.commanders[1] ?? "");
+    setPartner(seat.commanders.length >= 2);
+  }
 
   const hasProfile = seat.profileId !== undefined;
   const suggest = !hasProfile && suggestFor === seat.name;
@@ -82,8 +92,10 @@ export function PlayerTab({ game, seat, rotation }: Props) {
       : a.trim()
         ? [a.trim()]
         : [];
-    if (next.join("\u0000") !== seat.commanders.join("\u0000"))
-      dispatch({ type: "SEAT_SET_COMMANDERS", seatId: seat.id, commanders: next });
+    const key = next.join("\u0000");
+    if (key === seatCmdKey) return;
+    setCmdKey(key); // our own commit: keep what the user typed (e.g. an empty partner name)
+    dispatch({ type: "SEAT_SET_COMMANDERS", seatId: seat.id, commanders: next });
   };
 
   const saveAsProfile = async () => {

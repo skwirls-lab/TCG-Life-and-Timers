@@ -2,9 +2,13 @@
 import { useEffect, useState } from "react";
 import type { ArtRef } from "@/engine";
 import { cacheRemoteArt } from "@/lib/art/repo";
-import { downloadArt } from "@/lib/art/cloudRuntime";
 import { resolveArtUrl, type ArtUrlSource } from "@/lib/art/resolve";
-import { navigatorOnline } from "@/lib/art/scryfall";
+
+// The cloud runtime (auth / entitlements / Storage) loads only when a remote-only upload must be
+// downloaded, keeping it out of the board's initial chunks (PERF-003).
+const downloadArt = (id: string): Promise<boolean> =>
+  import("@/lib/art/cloudRuntime").then((m) => m.downloadArt(id));
+const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
 
 export interface ArtUrlState {
   url: string | undefined;
@@ -32,7 +36,7 @@ export function useArtUrl(art: ArtRef | undefined): ArtUrlState {
         revoke = r.revoke;
         if (!live) return r.revoke();
         setState({ key, v: { url: r.url, source: r.source } });
-        if (r.source === "remote" && r.url && navigatorOnline()) void cacheRemoteArt(r.url);
+        if (r.source === "remote" && r.url && online()) void cacheRemoteArt(r.url);
       })
       .catch(() => {
         if (live) setState({ key, v: EMPTY });

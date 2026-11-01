@@ -137,7 +137,7 @@ test.describe("paywall enabled (pw=1, free user)", () => {
     await page.waitForFunction(() => window.__tcgPay?.state().policy === "TIERED");
     await openSeatMenu(page, 0);
     const menu = page.getByTestId("seat-menu");
-    await expect(page.getByTestId("art-picker-slot")).toBeVisible();
+    await expect(page.getByTestId("art-picker")).toBeVisible();
     await expect(menu.getByLabel("Pro feature")).toHaveCount(0);
     await page.getByTestId("bg-gradient-ocean").click();
     await expect(page.getByTestId("paywall")).toHaveCount(0);

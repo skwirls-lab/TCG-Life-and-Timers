@@ -4,14 +4,17 @@
  * Cells are placed spatially like the board as seen by the tile's player (`miniGrid` from the
  * layout engine); each cell is tinted with the source seat's art/colour when colorizeMiniGrids.
  */
-import { useMemo, type CSSProperties } from "react";
+import { memo, useMemo, type CSSProperties } from "react";
+import { ArtBackground } from "@/features/art/ArtBackground";
+import { artToCss } from "@/features/backgrounds/gradients";
+import { isImageArt } from "@/lib/art/resolve";
 import type { MiniGrid as MiniGridPlacement } from "@/engine/layout";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch, useSeat } from "@/state/gameStore";
 import { useSetting } from "@/state/settingsStore";
-import { artStyle, damageSummary, type DamageSummary } from "./boardHelpers";
+import { damageSummary, type DamageSummary } from "./boardHelpers";
 import { tapFeedback } from "./feedback";
 import type { SeatLook } from "./useSeatLooks";
 
@@ -32,15 +35,24 @@ function useDamage(seatId: string): Map<string, DamageSummary> {
 
 function cellBackground(look: SeatLook | undefined, colorize: boolean): CSSProperties {
   if (!colorize || !look) return { background: "var(--color-surface-3)" };
-  const s = artStyle(look.art, look.color);
-  // Mini cells never zoom; keep only the paint.
-  return {
-    background: s.background,
-    backgroundImage: s.backgroundImage,
-    backgroundSize: s.backgroundSize,
-    backgroundPosition: s.backgroundPosition,
-  };
+  // Images paint in a CellArt layer (resolved like the tile); this is the colour/gradient base.
+  return artToCss(isImageArt(look.art) ? undefined : look.art, look.color);
 }
+
+/** Image art of the source seat inside a tinted cell (uploads/offline copies resolve too). */
+const CellArt = memo(function CellArt({
+  look,
+  colorize,
+}: {
+  look: SeatLook | undefined;
+  colorize: boolean;
+}) {
+  const art = look?.art;
+  if (!colorize || !look || !isImageArt(art)) return null;
+  // Mini cells never zoom; keep the focal point only.
+  const flat = art.focal ? { ...art, focal: { ...art.focal, zoom: 1 } } : art;
+  return <ArtBackground art={flat} fallbackColor={look.color} className="absolute inset-0" />;
+});
 
 function cellText(d: DamageSummary | undefined): string {
   if (!d) return "";
@@ -97,6 +109,7 @@ export function TileMiniGrid({
               height: cell,
             }}
           >
+            <CellArt look={look} colorize={colorize} />
             <span aria-hidden className="absolute inset-0 bg-black/45" />
             <span className="relative [text-shadow:0_1px_2px_#000]">
               {self && !text ? t("board.cmd.me") : text}
@@ -181,6 +194,7 @@ export function QuickCmdGrid({ index, seatId, grid, looks }: GridProps) {
             style={{ ...cellBackground(look, colorize), ...pos }}
             data-testid={values.length > 1 ? `seat-${index}-cmd-${c.index}` : undefined}
           >
+            <CellArt look={look} colorize={colorize} />
             <span className="pointer-events-none absolute inset-x-0 top-0 z-10 truncate bg-black/60 px-1 text-center text-[0.7rem] font-semibold leading-5 text-white">
               {name}
             </span>

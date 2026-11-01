@@ -4,6 +4,7 @@ import { RotateCcw, Settings2, Skull, Trophy, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import type { Game } from "@/engine";
+import { requestReset } from "@/features/history-past/whoWon";
 import { formatClock } from "@/features/launcher/summary";
 import { t } from "@/lib/i18n";
 import { useDispatch } from "@/state/gameStore";
@@ -77,7 +78,10 @@ export function GameOverOverlay({ game }: { game: Game }) {
             variant="primary"
             size="lg"
             icon={<RotateCcw aria-hidden />}
-            onClick={() => dispatch({ type: "RESET_GAME" })}
+            onClick={() =>
+              // HIST-031 (an ended game was already recorded, so this normally just proceeds)
+              void requestReset({ game, proceed: () => dispatch({ type: "RESET_GAME" }) })
+            }
             data-testid="game-over-rematch"
           >
             {t("shell.gameOver.rematch")}

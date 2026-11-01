@@ -112,7 +112,10 @@ export function SetupWizard() {
     if (starting) return;
     setStarting(true);
     try {
-      await startNewGame(toNewGameConfig(state, preset));
+      if (!(await startNewGame(toNewGameConfig(state, preset)))) {
+        setStarting(false); // the Who-won prompt was closed: keep the current game (HIST-031)
+        return;
+      }
       // The picker doesn't record Recent on select in setup; the preset is "used" at Start.
       await rememberPresetUse(preset.id).catch(() => undefined);
       router.push("/play");
