@@ -70,6 +70,9 @@ export const TimerConfigSchema = z.object({
   addOnceMs: ms(),
   finalAction: z.enum(FINAL_ACTIONS).optional(),
   warningsMs: z.array(ms()),
+  warnings: z
+    .array(z.object({ ms: ms(), sound: z.boolean(), vibrate: z.boolean(), flash: z.boolean() }))
+    .optional(),
   responses: z.enum(RESPONSE_MODES),
   passMode: z.enum(PASS_MODES),
   autoPauseBackground: z.boolean(),

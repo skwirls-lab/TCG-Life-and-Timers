@@ -9,8 +9,13 @@ import {
   holder,
   reduce,
   seededRng,
+  nextSignificantEvent,
   STICKY_ACTIONS,
   TIMER_ACTION_TYPES,
+  TimerConfigSchema,
+  timerWarnings,
+  warningFor,
+  warningsPatch,
 } from "./index";
 
 const rng = seededRng(5);
@@ -115,5 +120,48 @@ describe("TIMER_RESET_CLOCKS", () => {
       extraTurnsRemaining: 3,
     });
     expect(x.g.timer.clocks.s1!.bankMs).toBe(MIN);
+  });
+});
+
+describe("per-threshold warnings (TMR-031)", () => {
+  // @req TMR-031
+  it("normalizes the warning list and keeps warningsMs in sync", () => {
+    const p = warningsPatch([
+      { ms: 10_000, sound: false, vibrate: true, flash: true },
+      { ms: 5 * MIN, sound: true, vibrate: false, flash: true },
+      { ms: 10_000, sound: true, vibrate: true, flash: true },
+      { ms: 0, sound: true, vibrate: true, flash: true },
+    ]);
+    expect(p.warningsMs).toEqual([5 * MIN, 10_000]);
+    expect(p.warnings![1]).toMatchObject({ ms: 10_000, sound: false });
+    // Without `warnings`, every warningsMs threshold alerts fully.
+    expect(timerWarnings({ warningsMs: [MIN, 5 * MIN] })).toEqual([
+      { ms: 5 * MIN, sound: true, vibrate: true, flash: true },
+      { ms: MIN, sound: true, vibrate: true, flash: true },
+    ]);
+    expect(warningFor(p, 10_000).sound).toBe(false);
+    expect(warningFor(p, 123)).toEqual({ ms: 123, sound: true, vibrate: true, flash: true });
+    expect(warningFor(p, undefined).ms).toBe(0);
+  });
+
+  // @req TMR-031 @req TMR-051
+  it("the scheduler's next warning follows `warnings`, editable while the clocks run", () => {
+    const x = new Table({ mode: "bank", bankMs: 10 * MIN, warningsMs: [5 * MIN] });
+    x.doAt(0, { type: "START_GAME" });
+    expect(nextSignificantEvent(x.g, x.now)).toMatchObject({
+      kind: "warning",
+      thresholdMs: 5 * MIN,
+    });
+    x.doAt(SEC, {
+      type: "TIMER_SET_CONFIG",
+      config: warningsPatch([{ ms: 2 * MIN, sound: true, vibrate: false, flash: false }]),
+    });
+    expect(x.g.timer.config.warningsMs).toEqual([2 * MIN]);
+    expect(nextSignificantEvent(x.g, x.now)).toMatchObject({
+      kind: "warning",
+      thresholdMs: 2 * MIN,
+      at: T0 + 10 * MIN - 2 * MIN,
+    });
+    expect(TimerConfigSchema.safeParse(x.g.timer.config).success).toBe(true);
   });
 });

@@ -342,6 +342,7 @@ const RUNTIME_KEYS = [
   "addOnceMs",
   "finalAction",
   "warningsMs",
+  "warnings",
   "responses",
   "passMode",
   "autoPauseBackground",
