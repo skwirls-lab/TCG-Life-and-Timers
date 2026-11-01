@@ -207,6 +207,15 @@ export function seatStart(state: SetupState, preset: Preset, index: number): num
 }
 
 /** PRE-013: the seat's effective primary threshold (undefined when the primary has none). */
+/**
+ * A-10: a game-wide starting-value picker only makes sense when the start can vary: presets with
+ * quick-start values, or counters that don't simply count up from 0 (damage, lore).
+ */
+export function offersStartPicker(preset: Preset): boolean {
+  const primary = primaryCounter(preset);
+  return !!preset.quickStartValues?.length || !(primary.start === 0 && primary.direction === "up");
+}
+
 export function seatThreshold(
   state: SetupState,
   preset: Preset,

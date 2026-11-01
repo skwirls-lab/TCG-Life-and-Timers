@@ -113,6 +113,8 @@ export interface ThresholdRule {
   autoApply?: AutoKOMode;
   /** Setup may offer per-seat threshold overrides for this rule (PRE-013, e.g. SWU base HP). */
   perSeatOverride?: boolean;
+  /** Short name of the limit shown on the tile and in setup (e.g. "Base HP" for SWU). */
+  label?: string;
 }
 
 export interface CounterLink {

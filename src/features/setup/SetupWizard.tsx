@@ -3,6 +3,7 @@
  * `/setup` wizard (T1.12, GAME-001): preset → players + layout → seats → options → Start.
  * Start is available on every step, so a default game is 2 taps from the launcher (≤ 6 budget).
  */
+import { SHOW_VERIFY_HINTS } from "@/lib/presets/verifyHints";
 import { ArrowDown, ArrowUp, Palette, TriangleAlert, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,6 +43,7 @@ import {
   playerChoices,
   seatStart,
   seatThreshold,
+  offersStartPicker,
   setPlayers,
   setTimer,
   stateForPreset,
@@ -108,7 +110,9 @@ export function SetupWizard() {
   const last = state.step === SETUP_STEPS.length - 1;
   const primary = primaryCounter(preset);
   const chips = perSeatChips(preset);
-  const verifyItems = hasUnverifiedValues(preset) ? presetVerifyItems(preset) : [];
+  const limitLabel = chips?.threshold ? (primary.threshold?.label ?? "") : "";
+  const verifyItems =
+    SHOW_VERIFY_HINTS && hasUnverifiedValues(preset) ? presetVerifyItems(preset) : [];
 
   const start = async () => {
     if (starting) return;
@@ -304,22 +308,35 @@ export function SetupWizard() {
 
       {step === "options" && (
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <h3 className="text-lg">
-              {t("shell.settings.start.title", { counter: primary.name })}
-            </h3>
-            <StartValuePicker
-              label={t("shell.settings.start.title", { counter: primary.name })}
-              values={preset.quickStartValues ?? [primary.start]}
-              value={effectiveStart(state, preset)}
-              onChange={(v) => setState((s) => ({ ...s, startValue: v }))}
-              testId="setup-start"
-            />
-          </div>
+          {offersStartPicker(preset) && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-lg">
+                {t("shell.settings.start.title", { counter: primary.name })}
+              </h3>
+              <StartValuePicker
+                label={t("shell.settings.start.title", { counter: primary.name })}
+                values={preset.quickStartValues ?? [primary.start]}
+                value={effectiveStart(state, preset)}
+                onChange={(v) => setState((s) => ({ ...s, startValue: v }))}
+                testId="setup-start"
+              />
+            </div>
+          )}
           {chips && (
             <div className="flex flex-col gap-2" data-testid="setup-per-seat">
-              <h3 className="text-lg">{t("shell.settings.perSeatStart.title")}</h3>
-              <p className="text-sm text-fg-muted">{t("shell.setup.perSeat.hint")}</p>
+              <h3 className="text-lg">
+                {limitLabel
+                  ? t("shell.perSeat.limitTitle", { label: limitLabel })
+                  : t("shell.settings.perSeatStart.title")}
+              </h3>
+              <p className="text-sm text-fg-muted">
+                {limitLabel
+                  ? t("shell.perSeat.limitHint", {
+                      label: limitLabel,
+                      counter: primary.name.toLocaleLowerCase(),
+                    })
+                  : t("shell.setup.perSeat.hint")}
+              </p>
               <ul className="flex flex-col gap-3">
                 {state.seats.map((seat, i) => {
                   const name = seat.name.trim() || t("shell.setup.seat.placeholder", { n: i + 1 });
@@ -350,12 +367,14 @@ export function SetupWizard() {
                       {chips.threshold && threshold !== undefined && (
                         <>
                           <span className="text-sm text-fg-muted">
-                            {t(
-                              primary.threshold?.outcome === "win"
-                                ? "shell.perSeat.thresholdWin"
-                                : "shell.perSeat.thresholdLose",
-                              { counter: primary.name },
-                            )}
+                            {limitLabel
+                              ? limitLabel
+                              : t(
+                                  primary.threshold?.outcome === "win"
+                                    ? "shell.perSeat.thresholdWin"
+                                    : "shell.perSeat.thresholdLose",
+                                  { counter: primary.name },
+                                )}
                           </span>
                           <StartValuePicker
                             label={t("shell.perSeat.threshold", { name, counter: primary.name })}

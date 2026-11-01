@@ -30,7 +30,13 @@ export const starWarsUnlimited: Preset = {
       "up",
       {
         verify: true,
-        threshold: { comparator: ">=", value: 30, outcome: "lose", perSeatOverride: true },
+        threshold: {
+          comparator: ">=",
+          value: 30,
+          outcome: "lose",
+          perSeatOverride: true,
+          label: "Base HP",
+        },
         description: "Damage on your base. Set each seat's base HP in setup.",
       },
     ),

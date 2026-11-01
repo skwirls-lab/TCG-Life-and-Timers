@@ -122,6 +122,7 @@ export const ThresholdRuleSchema = z.object({
   perSource: z.boolean().optional(),
   autoApply: z.enum(AUTO_KO_MODES).optional(),
   perSeatOverride: z.boolean().optional(),
+  label: z.string().min(1).max(24).optional(),
 });
 
 export const CounterDefinitionSchema = z.object({

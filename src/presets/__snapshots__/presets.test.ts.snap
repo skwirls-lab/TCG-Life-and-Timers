@@ -594,6 +594,7 @@ exports[`built-in presets > swu.premier enabled-by-default counters (snapshot) 1
   "start": 0,
   "threshold": {
     "comparator": ">=",
+    "label": "Base HP",
     "outcome": "lose",
     "perSeatOverride": true,
     "value": 30,
