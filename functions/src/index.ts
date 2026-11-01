@@ -11,11 +11,20 @@ import {
   type DeleteUserDataDeps,
 } from "./logic/deleteUserData";
 import { syncEntitlements as syncEntitlementsLogic } from "./logic/syncEntitlements";
+import { stripeFromEnv } from "./logic/stripe";
 
-/** Lazily initialised admin dependencies (keeps cold-start and deploy analysis cheap). */
+/**
+ * Lazily initialised admin dependencies (keeps cold-start and deploy analysis cheap). The Stripe
+ * client exists only when the optional env STRIPE_SECRET_KEY is set (B-3, DEPLOY.md Part 7).
+ */
 function deps(): DeleteUserDataDeps {
   if (getApps().length === 0) initializeApp();
-  return { firestore: getFirestore(), bucket: getStorage().bucket(), auth: getAuth() };
+  return {
+    firestore: getFirestore(),
+    bucket: getStorage().bucket(),
+    auth: getAuth(),
+    stripe: stripeFromEnv(),
+  };
 }
 
 export const hello = onCall((req) => ({ message: helloLogic(String(req.data?.name ?? "world")) }));

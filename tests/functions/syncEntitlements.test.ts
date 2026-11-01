@@ -110,6 +110,16 @@ describe("syncEntitlements (T7.2)", () => {
     expect(await entitlement()).toMatchObject({ pro: true, source: "lifetime" });
   });
 
+  // @req PAY-003
+  it("B-8: refunding the lifetime payment (doc rewritten) revokes pro on the next sync", async () => {
+    const pay = db.doc(`customers/${U}/payments/pi_1`);
+    await pay.set({ status: "succeeded", amount: 2999, price: "price_lifetime" });
+    expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, source: "lifetime" });
+    await pay.set({ status: "refunded", amount: 2999, price: "price_lifetime" });
+    expect(await syncEntitlements(deps, U)).toMatchObject({ pro: false, written: true });
+    expect((await auth.getUser(U)).customClaims).toEqual({ pro: false });
+  });
+
   it("a non-lifetime or failed payment does not grant pro", async () => {
     await db.doc(`customers/${U}/payments/pi_1`).set({ status: "succeeded", price: "price_other" });
     await db
@@ -134,12 +144,24 @@ describe("syncEntitlements (T7.2)", () => {
     expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, source: "manual" });
   });
 
-  it("works when the Auth user is gone or claims are disabled", async () => {
+  // @req AUTH-005
+  it("B-3: never writes entitlements for a deleted Auth user (late Stripe webhook)", async () => {
     await auth.deleteUser(U);
     await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
-    expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, claimUpdated: false });
+    expect(await syncEntitlements(deps, U)).toMatchObject({
+      written: false,
+      claimUpdated: false,
+      userDeleted: true,
+    });
+    expect((await db.doc(`users/${U}/private/entitlements`).get()).exists).toBe(false);
+  });
+
+  it("works when claims are disabled (no auth dependency)", async () => {
+    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
     const noClaims = { ...deps, auth: undefined };
+    expect(await syncEntitlements(noClaims, U)).toMatchObject({ pro: true, written: true });
     expect(await syncEntitlements(noClaims, U)).toMatchObject({ pro: true, written: false });
+    expect((await auth.getUser(U)).customClaims ?? {}).toEqual({});
   });
 
   it("rejects unsafe uids", async () => {
