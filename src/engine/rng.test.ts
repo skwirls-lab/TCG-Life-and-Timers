@@ -20,11 +20,47 @@ describe("rng", () => {
   });
 
   it("cryptoRng uses rejection sampling within range and is roughly uniform", () => {
-    const r = cryptoRng();
-    const counts = [0, 0, 0];
-    for (let i = 0; i < 3000; i++) counts[r.int(3)]!++;
-    expect(chiSquare(counts)).toBeLessThan(13.8); // df=2, p=0.001
-    expect(r.int(1)).toBe(0);
+    // Range check on the real CSPRNG (deterministic: any draw must be in range).
+    const real = cryptoRng();
+    const draws = Array.from({ length: 1000 }, () => real.int(3));
+    expect(draws.every((v) => Number.isInteger(v) && v >= 0 && v < 3)).toBe(true);
+    expect(real.int(1)).toBe(0);
+    // Uniformity of the mapping, fed by a fixed-seed 32-bit source (mulberry32) so the
+    // chi-square bound is checked deterministically instead of failing 1 run in 1000.
+    let state = 0x2026_1101;
+    const next32 = () => {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let z = state;
+      z = Math.imul(z ^ (z >>> 15), z | 1);
+      z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
+      return (z ^ (z >>> 14)) >>> 0;
+    };
+    const orig = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+    const seeded = (arr: Uint32Array) => {
+      for (let i = 0; i < arr.length; i++) arr[i] = next32();
+      return arr;
+    };
+    Object.defineProperty(globalThis.crypto, "getRandomValues", {
+      value: seeded,
+      configurable: true,
+    });
+    try {
+      const r = cryptoRng();
+      for (const n of [3, 7]) {
+        const counts = Array.from({ length: n }, () => 0);
+        for (let i = 0; i < 1000 * n; i++) {
+          const v = r.int(n);
+          expect(v >= 0 && v < n).toBe(true);
+          counts[v]!++;
+        }
+        expect(chiSquare(counts)).toBeLessThan(n === 3 ? 13.82 : 22.46); // df=n-1, p=0.001
+      }
+    } finally {
+      Object.defineProperty(globalThis.crypto, "getRandomValues", {
+        value: orig,
+        configurable: true,
+      });
+    }
   });
 
   it("cryptoRng rejects values above the unbiased limit", () => {
