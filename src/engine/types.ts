@@ -596,6 +596,12 @@ export type SeatAction =
   | ({ type: "SEAT_ADD"; seat?: SeatInput; index?: number } & Timed)
   | ({ type: "SEAT_REMOVE"; seatId: SeatId } & Timed);
 
+/**
+ * LAY-003: switch the layout variant (a view preference). Sticky like the seat cosmetics: not an
+ * undo step, applied to every undo snapshot, and not logged.
+ */
+export type LayoutAction = { type: "SET_LAYOUT"; layoutId: string } & MaybeTimed;
+
 export type SetOptionAction = {
   [K in keyof GameOptions]: { type: "SET_OPTION"; key: K; value: GameOptions[K]; now?: number };
 }[keyof GameOptions];
@@ -615,9 +621,21 @@ export type TimerAction =
   | ({ type: "TIMER_ADJUST"; seatId: SeatId; deltaMs: number } & Timed)
   | ({ type: "TIMER_SET"; seatId: SeatId; bankMs: number } & Timed)
   | ({ type: "TIMER_TIMEOUT"; seatId: SeatId } & Timed)
-  | ({ type: "TIMER_SET_CONFIG"; config: Partial<TimerConfig> } & Timed);
+  | ({ type: "TIMER_SET_CONFIG"; config: Partial<TimerConfig> } & Timed)
+  /**
+   * §13.1-C "Restart the clocks": back to an idle timer (clocks reset to the configured bank,
+   * START begins again) with the current config plus an optional patch (structure keys such as
+   * mode/bank apply here). One undo step; logs a timer event `{action: "restart"}`.
+   */
+  | ({ type: "TIMER_RESET_CLOCKS"; config?: Partial<TimerConfig> } & Timed);
 
 export type GameAction =
-  CounterAction | LifecycleAction | SeatAction | SetOptionAction | HistoryAction | TimerAction;
+  | CounterAction
+  | LifecycleAction
+  | SeatAction
+  | LayoutAction
+  | SetOptionAction
+  | HistoryAction
+  | TimerAction;
 
 export type GameActionType = GameAction["type"];

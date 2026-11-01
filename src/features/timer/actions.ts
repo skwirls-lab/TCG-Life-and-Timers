@@ -1,6 +1,6 @@
 "use client";
 /** Imperative timer UI actions shared by the bar, the toolbar, the overlay and settings. */
-import { initialTimerState, type Game, type GameEvent, type TimerConfig } from "@/engine";
+import { type Game, type GameEvent, type TimerConfig } from "@/engine";
 import { browserAudio, type Tone } from "@/lib/device/audio";
 import { browserHaptics, vibrate, type HapticPattern } from "@/lib/device/haptics";
 import { useGameStore } from "@/state/gameStore";
@@ -54,26 +54,12 @@ export function startClocks(): void {
 }
 
 /**
- * Restart the clocks with a new config (mode / bank changes mid-game, §13.1-C). The engine only
- * applies structure keys to idle clocks, and has no "back to idle" action, so the store's game is
- * patched with a fresh idle timer (like settings' live layout patch, D-036); START begins again.
- * Turn tracking is turned on for any clock mode (as TIMER_SET_CONFIG does).
+ * Restart the clocks with a new config (mode / bank changes mid-game, §13.1-C): engine
+ * TIMER_RESET_CLOCKS returns to idle clocks at the configured bank (undoable, logged); START
+ * begins again. Turn tracking is turned on for any clock mode.
  */
 export function restartClocks(patch: Partial<TimerConfig>): void {
-  const s = useGameStore.getState();
-  const session = s.session;
-  if (!session) return;
-  const g = session.game;
-  const config: TimerConfig = { ...g.timer.config, ...patch };
-  const timer = initialTimerState(
-    config,
-    g.seats.map((x) => x.id),
-  );
-  const options =
-    config.mode !== "off" && !g.options.turnTracking
-      ? { ...g.options, turnTracking: true }
-      : g.options;
-  useGameStore.setState({ session: { ...session, game: { ...g, options, timer } } });
+  useGameStore.getState().dispatch({ type: "TIMER_RESET_CLOCKS", config: patch });
 }
 
 /** SET-013: pause running clocks while menus / settings are open (config.autoPauseMenus). */

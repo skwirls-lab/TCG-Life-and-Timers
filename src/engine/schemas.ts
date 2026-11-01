@@ -70,6 +70,9 @@ export const TimerConfigSchema = z.object({
   addOnceMs: ms(),
   finalAction: z.enum(FINAL_ACTIONS).optional(),
   warningsMs: z.array(ms()),
+  warnings: z
+    .array(z.object({ ms: ms(), sound: z.boolean(), vibrate: z.boolean(), flash: z.boolean() }))
+    .optional(),
   responses: z.enum(RESPONSE_MODES),
   passMode: z.enum(PASS_MODES),
   autoPauseBackground: z.boolean(),
@@ -506,6 +509,7 @@ const actionSchemas = [
     now,
   }),
   z.object({ type: z.literal("SEAT_REMOVE"), seatId, now }),
+  z.object({ type: z.literal("SET_LAYOUT"), layoutId: id(), now: maybeNow }),
   ...optionActions,
   z.object({ type: z.literal("UNDO"), now: maybeNow }),
   z.object({ type: z.literal("REDO"), now: maybeNow }),
@@ -519,6 +523,11 @@ const actionSchemas = [
   z.object({ type: z.literal("TIMER_SET"), seatId, bankMs: z.number(), now }),
   z.object({ type: z.literal("TIMER_TIMEOUT"), seatId, now }),
   z.object({ type: z.literal("TIMER_SET_CONFIG"), config: TimerConfigSchema.partial(), now }),
+  z.object({
+    type: z.literal("TIMER_RESET_CLOCKS"),
+    config: TimerConfigSchema.partial().optional(),
+    now,
+  }),
 ] as const;
 
 /**

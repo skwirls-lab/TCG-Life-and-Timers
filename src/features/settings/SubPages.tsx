@@ -2,14 +2,16 @@
 /**
  * Settings sub-pages (§13.1-A): Seats (LAY-005 reorder + rename, live), Per-player starting
  * values (PRE-013), Win/loss conditions (CTR-003 thresholdOverrides), Counters in this game
- * (CTR-001). Structural sub-pages edit a local copy and apply once (one SET-011 confirm).
+ * (CTR-001), and Timers › Low-time warnings (TMR-031, live). Structural sub-pages edit a local
+ * copy and apply once (one SET-011 confirm).
  */
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
 import { Button, IconButton, PageShell, Stepper, Toggle } from "@/components/ui";
-import { primaryCounter } from "@/engine";
+import { primaryCounter, type TimerConfig } from "@/engine";
 import { setPerSeatValue } from "@/features/setup/setupModel";
 import { StartValuePicker } from "@/features/setup/StartValuePicker";
+import { WarningsPage } from "@/features/timer/WarningsPage";
 import { t } from "@/lib/i18n";
 import { perSeatChips } from "@/presets";
 import { useDispatch } from "@/state/gameStore";
@@ -21,6 +23,8 @@ interface Props {
   ctx: SettingsContext;
   onClose: () => void;
   applyDraft: (draft: GameDraft) => void;
+  /** Timer config patches (live; the warnings sub-page). */
+  applyTimer: (patch: Partial<TimerConfig>) => void;
 }
 
 const TITLES = {
@@ -28,9 +32,10 @@ const TITLES = {
   perSeatStart: "shell.settings.perSeatStart.title",
   thresholds: "shell.settings.thresholds.title",
   counters: "shell.settings.counters.title",
+  warnings: "timer.settings.warnings.title",
 } as const;
 
-export function SettingsSubPage({ page, ctx, onClose, applyDraft }: Props) {
+export function SettingsSubPage({ page, ctx, onClose, applyDraft, applyTimer }: Props) {
   const done = (d: GameDraft) => {
     applyDraft(d);
     onClose();
@@ -41,6 +46,7 @@ export function SettingsSubPage({ page, ctx, onClose, applyDraft }: Props) {
       {page === "thresholds" && <ThresholdsPage ctx={ctx} onApply={done} />}
       {page === "counters" && <CountersPage ctx={ctx} onApply={done} />}
       {page === "perSeatStart" && <PerSeatStartPage ctx={ctx} onApply={done} />}
+      {page === "warnings" && <WarningsPage ctx={ctx} onPatch={applyTimer} />}
     </PageShell>
   );
 }

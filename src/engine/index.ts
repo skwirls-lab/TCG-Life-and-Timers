@@ -23,8 +23,12 @@
  *   TOKEN_GIVE/CLEAR, CMD_DAMAGE_ADD (life link: one undo step, two events grouped by linkedTo),
  *   CMD_TAX_CAST, COUNTER_ENABLE, ELIMINATE, REVIVE, CONCEDE, RESOLVE_PROMPT, END_GAME,
  *   RESET_GAME, SET_FIRST_PLAYER, START_GAME, PASS_TURN, LOG_NOTE, SEAT_* (rename, art, color,
- *   commanders, profile, rotation, contrast, reorder, add, remove), SET_OPTION, UNDO, REDO,
- *   UNDO_TO, TIMER_* (timer/reducer.ts). Timer helpers (timer/clock.ts): remaining, timeUsed,
+ *   commanders, profile, rotation, contrast, reorder, add, remove), SET_LAYOUT, SET_OPTION, UNDO,
+ *   REDO, UNDO_TO, TIMER_* (timer/reducer.ts).
+ *   Additive W6 changes (DECISIONS): SET_LAYOUT {layoutId} (LAY-003; sticky like the seat
+ *   cosmetics: not an undo step, not logged) and TIMER_RESET_CLOCKS {config?} (§13.1-C: back to
+ *   an idle timer with the current config + optional patch; one undo step; logs timer "restart").
+ *   TimerConfig.warnings (TMR-031 per-threshold sound/vibrate/flash; warningsMs kept). Timer helpers (timer/clock.ts): remaining, timeUsed,
  *   turnTimeUsed, displayMs, holder, matchRemaining, nextSignificantEvent, formatClock, turnStats.
  *
  * Selectors (selectors.ts): value, counterValue, counterDef, enabledCounters, primaryCounter,

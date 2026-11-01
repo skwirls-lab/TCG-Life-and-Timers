@@ -188,6 +188,10 @@ describe("formatEventRow", () => {
       s.game,
     );
     expect(row).toMatchObject({ label: "Clocks paused", tone: "timer", variant: "event" });
+    // TIMER_RESET_CLOCKS (§13.1-C) logs a restart.
+    expect(
+      formatEventRow({ id: "r", at: T0, kind: "timer", meta: { action: "restart" } }, s.game).label,
+    ).toBe("Clocks restarted");
     const seatEv = formatEventRow(
       { id: "y", at: T0, kind: "seatRemove", seatId: "ghost", meta: { name: "Zed" } },
       s.game,

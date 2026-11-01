@@ -12,7 +12,7 @@
 import { Play } from "lucide-react";
 import { useEffect } from "react";
 import { useSnackbar } from "@/components/ui/Snackbar";
-import { formatClock } from "@/engine";
+import { formatClock, warningFor } from "@/engine";
 import { useBoardUi } from "@/features/board/boardStore";
 import { t } from "@/lib/i18n";
 import { useDispatch, useGameStore, useGameValue } from "@/state/gameStore";
@@ -54,9 +54,12 @@ function useTimerServices() {
       onTimerSignal((sig) => {
         const flash = useTimerUi.getState().flash;
         if (sig.kind === "warning") {
-          if (sig.seatId) flash(sig.seatId, "warning");
-          playTone("warn");
-          buzz("warn");
+          // TMR-031: each threshold has its own sound / vibrate / flash flags.
+          const cfg = useGameStore.getState().session?.game.timer.config;
+          const w = cfg ? warningFor(cfg, sig.thresholdMs) : null;
+          if (sig.seatId && w?.flash !== false) flash(sig.seatId, "warning");
+          if (w?.sound !== false) playTone("warn");
+          if (w?.vibrate !== false) buzz("warn");
         } else if (sig.kind === "timeout" || sig.kind === "graceEnd") {
           if (sig.seatId) flash(sig.seatId, "timeout");
           playTone("timeout");

@@ -14,6 +14,7 @@
  */
 import type { Game, SeatId } from "../types";
 import type { ClockState, SeatClock, TimerConfig, TimerMode, TimerState } from "./types";
+import { timerWarnings } from "./types";
 
 /** Modes with a time limit (timeouts and warnings apply). */
 export function isLimited(mode: TimerMode): boolean {
@@ -213,7 +214,9 @@ export function nextSignificantEvent(
       const left = clockRemaining(c, cfg);
       if (c.state === "normal") {
         out.push({ at: now + free + left, kind: "timeout", seatId: h });
-        const w = cfg.warningsMs.filter((x) => x > 0 && x < left).sort((a, b) => b - a)[0];
+        const w = timerWarnings(cfg)
+          .map((x) => x.ms)
+          .find((x) => x < left);
         if (w !== undefined)
           out.push({ at: now + free + left - w, kind: "warning", seatId: h, thresholdMs: w });
       } else if (c.state === "overtime") {

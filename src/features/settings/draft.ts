@@ -9,6 +9,7 @@ import {
   type NewGameConfig,
   type Preset,
   type SeatInput,
+  type TimerConfig,
 } from "@/engine";
 import type { PresetDefaults } from "@/state/presetDefaults";
 import { clampPlayers } from "@/features/setup/setupModel";
@@ -36,6 +37,8 @@ export interface GameDraft {
   /** PRE-013 per-seat threshold values (seat id → counter id → value). */
   perSeatThreshold: Record<string, Record<string, number | null>>;
   enabledCounters: string[];
+  /** §13.1-C timer config (scope Game, savable as preset default — SET-012, D-058). */
+  timer: TimerConfig;
 }
 
 export function draftFromGame(game: Game): GameDraft {
@@ -49,6 +52,7 @@ export function draftFromGame(game: Game): GameDraft {
     perSeatStart: structuredCloneRecord(game.perSeatStart),
     perSeatThreshold: structuredCloneRecord(game.perSeatThreshold),
     enabledCounters: [...game.enabledCounters],
+    timer: { ...game.timer.config },
   };
 }
 
@@ -84,6 +88,7 @@ export function draftFromDefaults(preset: Preset, defaults: PresetDefaults | und
     enabledCounters: defaults?.enabledCounters
       ? [...defaults.enabledCounters]
       : preset.counters.filter((c) => c.enabledByDefault).map((c) => c.id),
+    timer: { ...preset.defaults.timer, ...defaults?.timer },
   };
 }
 
@@ -145,7 +150,22 @@ export function seatsForPlayers(seats: readonly SeatInput[], players: number): S
   return out;
 }
 
-/** Engine config for a re-created game (keeping seats by index and the timer config). */
+/**
+ * §13.1-C: apply a timer patch to a next-game draft (no active game). Any clock mode turns turn
+ * tracking on, as TIMER_SET_CONFIG does for a game.
+ */
+export function draftWithTimer(draft: GameDraft, patch: Partial<TimerConfig>): GameDraft {
+  const { match, ...rest } = { ...draft.timer, ...patch };
+  // `{ match: undefined }` turns the round timer off (no undefined key is stored).
+  const timer: TimerConfig = match ? { ...rest, match } : rest;
+  const options =
+    timer.mode !== "off" && !draft.options.turnTracking
+      ? { ...draft.options, turnTracking: true }
+      : draft.options;
+  return { ...draft, timer, options };
+}
+
+/** Engine config for a re-created game (keeping seats by index; the timer comes from the draft). */
 export function configFromDraft(
   draft: GameDraft,
   preset: Preset,
@@ -159,7 +179,7 @@ export function configFromDraft(
     seats: seatsForPlayers(seats, players),
     layoutId: normalizeLayoutId(players, draft.layoutId),
     options: { ...draft.options },
-    ...(timer ? { timer } : {}),
+    timer: { ...(timer ?? draft.timer) },
     startOverrides: { ...draft.startOverrides },
     thresholdOverrides: { ...draft.thresholdOverrides },
     perSeatStart: structuredCloneRecord(draft.perSeatStart),
@@ -177,5 +197,6 @@ export function presetDefaultsFromDraft(draft: GameDraft): PresetDefaults {
     startOverrides: { ...draft.startOverrides },
     thresholdOverrides: { ...draft.thresholdOverrides },
     enabledCounters: [...draft.enabledCounters],
+    timer: { ...draft.timer },
   };
 }

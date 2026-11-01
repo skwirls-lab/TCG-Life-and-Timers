@@ -36,6 +36,16 @@ export type ResponseMode = (typeof RESPONSE_MODES)[number];
 export const PASS_MODES = ["tap", "hold"] as const;
 export type PassMode = (typeof PASS_MODES)[number];
 
+/** TMR-031: one low-time warning threshold and how it alerts. */
+export interface TimerWarning {
+  /** Remaining time at which the warning fires. */
+  ms: number;
+  sound: boolean;
+  vibrate: boolean;
+  /** Visual pulse on the tile. */
+  flash: boolean;
+}
+
 export interface MatchTimerConfig {
   /** Total round length, e.g. 50 min. */
   totalMs: number;
@@ -65,6 +75,12 @@ export interface TimerConfig {
   finalAction?: FinalAction;
   /** Low-time warning thresholds, descending (default 5:00, 1:00, 0:10). */
   warningsMs: number[];
+  /**
+   * TMR-031 per-threshold alerts (W6, additive). When present it is authoritative and
+   * `warningsMs` mirrors its `ms` values (kept for compatibility); absent = every
+   * `warningsMs` threshold alerts with sound, vibration and flash.
+   */
+  warnings?: TimerWarning[];
   responses: ResponseMode;
   passMode: PassMode;
   autoPauseBackground: boolean;
@@ -129,6 +145,41 @@ export interface TimerState {
 }
 
 const MIN = 60_000;
+
+/** TMR-031: the effective warning list (descending, unique, positive thresholds). */
+export function timerWarnings(
+  config: Pick<TimerConfig, "warningsMs" | "warnings">,
+): TimerWarning[] {
+  const list =
+    config.warnings ??
+    config.warningsMs.map((ms) => ({ ms, sound: true, vibrate: true, flash: true }));
+  const byMs = new Map<number, TimerWarning>();
+  for (const w of list) if (w.ms > 0 && !byMs.has(w.ms)) byMs.set(w.ms, { ...w });
+  return [...byMs.values()].sort((a, b) => b.ms - a.ms);
+}
+
+/** The alert flags for a threshold (all on when it isn't in the list). */
+export function warningFor(
+  config: Pick<TimerConfig, "warningsMs" | "warnings">,
+  ms: number | undefined,
+): TimerWarning {
+  return (
+    timerWarnings(config).find((w) => w.ms === ms) ?? {
+      ms: ms ?? 0,
+      sound: true,
+      vibrate: true,
+      flash: true,
+    }
+  );
+}
+
+/** A config patch setting the warnings (normalized) with `warningsMs` kept in sync. */
+export function warningsPatch(
+  list: readonly TimerWarning[],
+): Pick<TimerConfig, "warnings" | "warningsMs"> {
+  const warnings = timerWarnings({ warningsMs: [], warnings: [...list] });
+  return { warnings, warningsMs: warnings.map((w) => w.ms) };
+}
 
 /** Defaults per §13.1-C (casual: grace period; warnings 5:00/1:00/0:10). */
 export function defaultTimerConfig(overrides: Partial<TimerConfig> = {}): TimerConfig {

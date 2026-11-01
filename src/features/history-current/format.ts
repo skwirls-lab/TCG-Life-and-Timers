@@ -250,6 +250,7 @@ function eventLabel(event: GameEvent, game: Game): { label: string; icon: string
         resume: "history.ev.timer.resume",
         timeout: "history.ev.timer.timeout",
         matchEnd: "history.ev.timer.matchEnd",
+        restart: "history.ev.timer.restart",
       };
       const key = known[action];
       const delta =

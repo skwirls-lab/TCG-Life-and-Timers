@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { seededRng, type Game, type Preset } from "@/engine";
-import { draftFromDefaults, draftFromGame } from "@/features/settings/draft";
+import { draftFromDefaults, draftFromGame, draftWithTimer } from "@/features/settings/draft";
 import { visibleSettings, getSetting, type SettingsContext } from "@/features/settings/registry";
 import { getBuiltInPreset } from "@/presets";
 import { configureGameStore, resetGameStore, useGameStore } from "@/state/gameStore";
@@ -8,6 +8,7 @@ import { defaultAppSettings } from "@/state/settingsStore";
 import { passTurn, restartClocks } from "./actions";
 import { applyTimerPatch } from "./timerSettings";
 import { useTimerSettingsUi } from "./timerSettingsUi";
+import { presetWarnings } from "./warnings";
 
 const commander = getBuiltInPreset("mtg.commander")!;
 let now = 1_700_000_000_000;
@@ -42,7 +43,7 @@ describe("settings section C (§13.1-C)", () => {
   // @req SET-010
   it("shows only the mode row when clocks are off, and rows by mode", () => {
     expect(timerIds(ctx(null))).toEqual(["timer.mode"]);
-    expect(getSetting("timer.mode")!.disabledIf!(ctx(null))).toBe("timer.settings.needsGame");
+    expect(getSetting("timer.mode")!.disabledIf).toBeUndefined();
     expect(timerIds(ctx(game()))).toEqual(["timer.mode"]);
     applyTimerPatch({ mode: "bankIncrement" });
     const ids = timerIds(ctx(game()));
@@ -63,7 +64,8 @@ describe("settings section C (§13.1-C)", () => {
     const set = (id: string, v: string | number | boolean) => {
       const def = getSetting(id)!;
       const change = def.set!(ctx(game()), v);
-      expect(change.kind).toBe("game");
+      if (change.kind !== "timer") throw new Error("timer change expected");
+      applyTimerPatch(change.patch);
     };
     set("timer.mode", "perTurnReserve");
     expect(game().timer.config.mode).toBe("perTurnReserve");
@@ -84,7 +86,8 @@ describe("settings section C (§13.1-C)", () => {
     set("timer.timeoutAction", "grace");
     set("timer.grace", 30_000);
     expect(game().timer.config.graceMs).toBe(30_000);
-    set("timer.warnings", "off");
+    applyTimerPatch(presetWarnings([]));
+    expect(getSetting("timer.warnings")!.control).toEqual({ kind: "subpage", page: "warnings" });
     expect(game().timer.config.warningsMs).toEqual([]);
     set("timer.showTenths", false);
     set("timer.autoPauseBackground", false);
@@ -118,6 +121,31 @@ describe("settings section C (§13.1-C)", () => {
     restartClocks({ mode: "perTurn" });
     expect(game().timer).toMatchObject({ status: "idle", mode: "perTurn" });
     expect(game().options.turnTracking).toBe(true);
+  });
+});
+
+describe("next-game timer defaults (no active game)", () => {
+  // @req SET-012 @req SET-010
+  it("rows edit the next game's draft timer and show rows by its mode", () => {
+    const base = ctx(null);
+    const change = getSetting("timer.mode")!.set!(base, "bank");
+    expect(change).toEqual({ kind: "timer", patch: { mode: "bank" } });
+    const draft = draftWithTimer(base.draft, { mode: "bank" });
+    expect(draft.options.turnTracking).toBe(true);
+    const next: SettingsContext = { ...base, draft };
+    expect(timerIds(next)).toEqual(expect.arrayContaining(["timer.bank", "timer.timeoutAction"]));
+    expect(getSetting("timer.bank")!.set!(next, 20)).toEqual({
+      kind: "timer",
+      patch: { bankMs: 20 * 60_000 },
+    });
+    // The custom keypad: no patch from the row itself.
+    expect(getSetting("timer.bank")!.set!(next, "custom")).toEqual({ kind: "timer", patch: {} });
+    // Turning the match timer off drops the key.
+    const withMatch = draftWithTimer(draft, { match: { totalMs: 50 * 60_000, extraTurns: 3 } });
+    expect(withMatch.timer.match).toEqual({ totalMs: 50 * 60_000, extraTurns: 3 });
+    expect("match" in draftWithTimer(withMatch, { match: undefined }).timer).toBe(false);
+    // Mode off keeps turn tracking as it was.
+    expect(draftWithTimer(base.draft, { mode: "off" }).options).toBe(base.draft.options);
   });
 });
 

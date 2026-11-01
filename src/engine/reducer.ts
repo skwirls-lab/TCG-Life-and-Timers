@@ -410,6 +410,12 @@ function core(game: Game, action: GameAction, ctx: ReduceContext): ReduceResult 
       return unchanged(addSeat(game, action.seat, action.index, now));
     case "SEAT_REMOVE":
       return unchanged(removeSeat(game, action.seatId, now));
+    case "SET_LAYOUT": {
+      // LAY-003: a view preference (sticky, not logged). Unknown ids fall back at render time.
+      const layoutId = action.layoutId.trim();
+      if (!layoutId || layoutId === game.layoutId) return unchanged(game);
+      return unchanged({ ...game, layoutId });
+    }
     case "SET_OPTION": {
       if (game.options[action.key] === action.value) return unchanged(game);
       const options = { ...game.options, [action.key]: action.value };

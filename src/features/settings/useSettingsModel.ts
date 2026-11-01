@@ -4,11 +4,12 @@
  * changes are applied (SET-011 structural confirm + re-create, live SET_OPTION, app patches,
  * SET-012 save/restore preset defaults).
  */
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSnackbar } from "@/components/ui";
 import type { Game, Preset } from "@/engine";
 import { configFromGame, loadLastConfig, seatsFromGame } from "@/features/setup/gameConfig";
 import { startNewGame } from "@/features/setup/startGame";
+import { applyTimerPatch } from "@/features/timer/timerSettings";
 import { afterOverlayClose } from "./afterOverlayClose";
 import { fullscreenSupported, isStandalone } from "@/lib/device/fullscreen";
 import { useEntitlements } from "@/lib/entitlements/store";
@@ -29,6 +30,7 @@ import {
   draftForPreset,
   draftFromDefaults,
   draftFromGame,
+  draftWithTimer,
   isStructuralChange,
   presetDefaultsFromDraft,
   type GameDraft,
@@ -55,14 +57,6 @@ const noopSubscribe = () => () => {};
 
 export function useDeviceEnv(): DeviceEnv {
   return useSyncExternalStore(noopSubscribe, readEnv, () => SERVER_ENV);
-}
-
-/** Replace the active game's layout variant without a reset (SET-011: non-structural). */
-function setLayoutLive(layoutId: string): void {
-  const s = useGameStore.getState();
-  const session = s.session;
-  if (!session || session.game.layoutId === layoutId) return;
-  useGameStore.setState({ session: { ...session, game: { ...session.game, layoutId } } });
 }
 
 function presetFor(id: string, game: Game | null, picked: Preset | null): Preset | undefined {
@@ -98,6 +92,8 @@ export function useSettingsModel(): SettingsModel {
   const [picked, setPicked] = useState<Preset | null>(null);
   const [nextDraft, setNextDraft] = useState<GameDraft | null>(null);
   const [pending, setPending] = useState<GameDraft | null>(null);
+  /** The next-game draft was edited (the initial load must not overwrite it). */
+  const editedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -105,7 +101,8 @@ export function useSettingsModel(): SettingsModel {
       const last = await loadLastConfig().catch(() => null);
       const preset = last?.preset ?? getBuiltInPreset(DEFAULT_PRESET_ID)!;
       const defaults = await getPresetDefaults(preset.id).catch(() => undefined);
-      if (!alive) return;
+      // An edit made while this was loading wins (it already saved its own draft).
+      if (!alive || editedRef.current) return;
       setNextPreset(preset);
       setNextDraft(draftFromDefaults(preset, defaults));
     })().catch(() => {});
@@ -132,6 +129,7 @@ export function useSettingsModel(): SettingsModel {
   };
 
   const persistNext = useCallback((d: GameDraft) => {
+    editedRef.current = true;
     setNextDraft(d);
     savePresetDefaults(d.presetId, presetDefaultsFromDraft(d)).catch((e: unknown) =>
       console.warn("[settings] save defaults failed", e),
@@ -152,7 +150,9 @@ export function useSettingsModel(): SettingsModel {
       for (const key of changedOptions(before, next)) {
         dispatch({ type: "SET_OPTION", key, value: next.options[key] } as ActionInput);
       }
-      if (next.layoutId !== before.layoutId) setLayoutLive(next.layoutId);
+      // SET-011: the layout variant applies live (engine SET_LAYOUT, LAY-003).
+      if (next.layoutId !== before.layoutId)
+        dispatch({ type: "SET_LAYOUT", layoutId: next.layoutId });
     },
     [game, dispatch, persistNext],
   );
@@ -164,9 +164,14 @@ export function useSettingsModel(): SettingsModel {
           .getState()
           .update(change.patch)
           .catch((e: unknown) => console.warn("[settings] update failed", e));
+      } else if (change.kind === "timer") {
+        if (Object.keys(change.patch).length === 0) return;
+        // §13.1-C: the active game's clocks, or the next game's timer defaults (SET-012).
+        if (game) applyTimerPatch(change.patch);
+        else persistNext(draftWithTimer(draft, change.patch));
       } else applyDraft(change.draft);
     },
-    [applyDraft],
+    [applyDraft, game, draft, persistNext],
   );
 
   const confirmPending = useCallback(async () => {
@@ -195,6 +200,7 @@ export function useSettingsModel(): SettingsModel {
       );
       setPicked(p);
       if (!game) {
+        editedRef.current = true;
         setNextPreset(p);
         setNextDraft(draftFromDefaults(p, defaults));
         return;
