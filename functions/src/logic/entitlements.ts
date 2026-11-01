@@ -3,8 +3,10 @@
  * Stripe extension's mirrored docs (customers/{uid}/subscriptions/*, customers/{uid}/payments/*).
  *
  *   - a subscription with status "active" | "trialing"                    => pro (subscription)
- *   - a payment with status "succeeded" whose metadata.lifetime == "true",
- *     or which bought a price listed in LIFETIME_PRICE_IDS              => pro (lifetime)
+ *   - a payment with status "succeeded" which bought a price listed in LIFETIME_PRICE_IDS
+ *                                                                       => pro (lifetime)
+ *     Client-settable metadata (e.g. metadata.lifetime) is NEVER trusted: checkout_sessions are
+ *     written by the browser, so metadata could be forged (D-062).
  *
  * Lifetime wins over a subscription because it never lapses. Pure; the PAY lane wires triggers.
  */
@@ -48,7 +50,6 @@ export function paymentPriceIds(p: PaymentLike): string[] {
 
 export function isLifetimePayment(p: PaymentLike, lifetimePriceIds: ReadonlySet<string>): boolean {
   if (p.status !== "succeeded") return false;
-  if (p.metadata?.lifetime === "true") return true;
   return paymentPriceIds(p).some((id) => lifetimePriceIds.has(id));
 }
 

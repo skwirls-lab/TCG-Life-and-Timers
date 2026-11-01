@@ -31,9 +31,15 @@ describe("entitlementsFromSubscriptions (SEC-002)", () => {
   );
 
   // @req SEC-002
-  it("a succeeded lifetime payment (metadata) grants lifetime, beating a subscription", () => {
-    const p = { status: "succeeded", metadata: { lifetime: "true" } };
-    expect(entitlementsFromSubscriptions([{ status: "active" }], [p], none)).toEqual({
+  it("client-settable metadata never grants lifetime (D-062); only LIFETIME_PRICE_IDS do", () => {
+    const forged = { status: "succeeded", metadata: { lifetime: "true" }, price: "price_monthly" };
+    expect(entitlementsFromSubscriptions([], [forged], none)).toEqual({
+      pro: false,
+      source: "none",
+    });
+    const ids = parseLifetimePriceIds("price_life");
+    const real = { status: "succeeded", price: "price_life" };
+    expect(entitlementsFromSubscriptions([{ status: "active" }], [real], ids)).toEqual({
       pro: true,
       source: "lifetime",
     });

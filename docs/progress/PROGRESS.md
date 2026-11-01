@@ -69,10 +69,10 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T6.5 | Identity, merge and edit | W4 | HISTORY | DONE | HIST-033..035, PROF-011. | history e2e 42 ✅ Scenario 11 (harness; board wiring INTEGRATE-B) |
 | T6.6 | Export/import | W4 | HISTORY | DONE | HIST-006. | history e2e 42 ✅ Scenario 11 (harness; board wiring INTEGRATE-B) |
 | T6.7 | Game history toggle and limits | W4 | HISTORY | DONE | HIST-008, HIST-007. | history e2e 42 ✅ Scenario 11 (harness; board wiring INTEGRATE-B) |
-| T7.1 | Gating UI | W5 | PAY | IN_PROGRESS | PAY-004, §17.2. |  |
-| T7.2 | Stripe checkout and entitlements | W5 | PAY | IN_PROGRESS | PAY-002, PAY-003. |  |
-| T7.3 | Share links | W5 | PAY | IN_PROGRESS | CUS-007, SEC-005. |  |
-| T7.4 | Pricing config | W5 | PAY | IN_PROGRESS | PAY-002, Q4. |  |
+| T7.1 | Gating UI | W5 | PAY | DONE | PAY-004, §17.2. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
+| T7.2 | Stripe checkout and entitlements | W5 | PAY | DONE | PAY-002, PAY-003. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
+| T7.3 | Share links | W5 | PAY | DONE | CUS-007, SEC-005. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
+| T7.4 | Pricing config | W5 | PAY | DONE | PAY-002, Q4. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
 | T8.6 | i18n completeness | W5 | POLISH-A | TODO |  |  |
 | T8.7 | Landing, about, install UX, what's new | W5 | POLISH-A | TODO | PWA-003, LEG-002, SET-043. |  |
 | T8.1 | Performance | W6 | HARDEN + ORCH | TODO | PERF-001..004. |  |
