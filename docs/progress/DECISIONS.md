@@ -13,3 +13,4 @@
 | D-009 | 2026-11-01 | Owner authorized merging the finished work to `main` | Owner message after "go" | §11 |
 | D-010 | 2026-11-01 | `fg-subtle` token raised to `#8a909e` on dark | WCAG AA contrast (axe) | A11Y-002 |
 | D-011 | 2026-11-01 | SW `controllerchange` reloads only after the user taps "Reload" | The first-install `clientsClaim` was reloading pages (it would interrupt games) | PWA-004 |
+| D-012 | 2026-11-01 | Started the FIREBASE-RULES lane (T4.2 + T4.5 server logic + Stripe entitlement mapping) and the ART-CORE lane (T5.1 + T5.3 libraries) during W1, in parallel with ENGINE | They have no dependency on the engine; this shortens the critical path. Concurrency is 3 agents. | §5.2 |

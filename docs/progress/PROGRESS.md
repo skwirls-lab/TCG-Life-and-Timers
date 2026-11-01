@@ -13,11 +13,11 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T0.7 | Entitlements stub | W0 | ORCH | DONE | ARCH-008, PAY-001. | see GATES.md#w0 |
 | T0.8 | CI workflows | W0 | ORCH | DONE | REL-003. | see GATES.md#w0 |
 | T0.9 | Progress files + trace exemptions | W0 | ORCH | DONE |  | see GATES.md#w0 |
-| T1.1 | Engine types and schemas | W1 | ENGINE | TODO | §6.2, §6.3, CTR-001, PRE-001. |  |
-| T1.2 | Reducer | W1 | ENGINE | TODO | CTR-002..005, CMD-001, CMD-003..005, CMD-010, TOK-001, TOK-003, TOK-004, GAME-01 |  |
-| T1.3 | MTG presets | W1 | ENGINE | TODO | §10.2, PRE-001, PRE-002, CMD-011, TOK-002. |  |
-| T1.4 | Persistence | W1 | ENGINE | TODO | ARCH-006, GAME-016, REL-001. |  |
-| T1.5 | Store | W1 | ENGINE | TODO | PERF-002, REL-004. |  |
+| T1.1 | Engine types and schemas | W1 | ENGINE | IN_PROGRESS | §6.2, §6.3, CTR-001, PRE-001. |  |
+| T1.2 | Reducer | W1 | ENGINE | IN_PROGRESS | CTR-002..005, CMD-001, CMD-003..005, CMD-010, TOK-001, TOK-003, TOK-004, GAME-01 |  |
+| T1.3 | MTG presets | W1 | ENGINE | IN_PROGRESS | §10.2, PRE-001, PRE-002, CMD-011, TOK-002. |  |
+| T1.4 | Persistence | W1 | ENGINE | IN_PROGRESS | ARCH-006, GAME-016, REL-001. |  |
+| T1.5 | Store | W1 | ENGINE | IN_PROGRESS | PERF-002, REL-004. |  |
 | T1.6 | Layout engine | W2 | BOARD | TODO | LAY-001..004, LAY-006, LAY-009, LAY-010. |  |
 | T1.7 | Seat tile | W2 | BOARD | TODO | LIFE-001..006, INP-001..004, INP-006, INP-008, INP-009, LAY-007, LAY-008, SET-00 |  |
 | T1.8 | Center toolbar | W2 | BOARD | TODO | §7.2, LAY-010, LAY-011, SET-031. |  |
@@ -50,15 +50,15 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T3.7 | Roll-off | W3 | PRESETS | TODO | TOOL-004, GAME-012. |  |
 | T3.6 | Custom preset builder | W3 | BUILDER | TODO | CUS-001..008, CUS-010. |  |
 | T4.1 | Auth | W3 | FIREBASE | TODO | AUTH-001, AUTH-002, AUTH-004. |  |
-| T4.2 | Rules and rules tests | W3 | FIREBASE | TODO | SEC-001..006, LEG-005. |  |
+| T4.2 | Rules and rules tests | W3 | FIREBASE | IN_PROGRESS | SEC-001..006, LEG-005. |  |
 | T4.3 | Sync engine | W3 | FIREBASE | TODO | ARCH-007, SYNC-001..004, PROF-003, SET-014. |  |
 | T4.4 | Guest → account merge | W3 | FIREBASE | TODO | AUTH-003. |  |
-| T4.5 | Account data functions | W3 | FIREBASE | TODO | AUTH-005, AUTH-006. |  |
+| T4.5 | Account data functions | W3 | FIREBASE | IN_PROGRESS | AUTH-005, AUTH-006. |  |
 | T4.6 | App Check | W3 | FIREBASE | TODO | SEC-007. |  |
 | T4.7 | Feedback and diagnostics | W3 | FIREBASE | TODO | SET-040..043, §13.1-H. |  |
-| T5.1 | Scryfall client | W4 | ART | TODO | ART-001..003, ART-006. |  |
+| T5.1 | Scryfall client | W4 | ART | IN_PROGRESS | ART-001..003, ART-006. |  |
 | T5.2 | Art picker and focal editor | W4 | ART | TODO | ART-001..005, ART-008, PROF-010. |  |
-| T5.3 | Uploads | W4 | ART | TODO | ART-020..023, ART-025. |  |
+| T5.3 | Uploads | W4 | ART | IN_PROGRESS | ART-020..023, ART-025. |  |
 | T5.4 | Cloud art sync | W4 | ART | TODO | ART-022, ART-024, SEC-004. |  |
 | T5.5 | Offline art caching | W4 | ART | TODO | ART-009, PWA-002. |  |
 | T5.6 | Attribution | W4 | ART | TODO | ART-005, LEG-003, TOOL-013. |  |
