@@ -146,10 +146,10 @@ test("long-press a row opens undo to here", async ({ page }) => {
   await expect(page.getByTestId("undo-to-sheet")).toBeHidden();
 });
 
-test("empty state without a game and past games placeholder", async ({ page }) => {
+test("empty state without a game and an empty Past Games list", async ({ page }) => {
   await page.goto("/history");
   await expect(page.getByTestId("history-empty")).toContainText("No game in progress");
   await page.getByTestId("history-segment-past").click();
-  await expect(page.getByTestId("past-games")).toContainText("Past games arrive soon");
+  await expect(page.getByTestId("past-games")).toContainText("No past games yet");
   await expectNoSeriousA11yViolations(page);
 });
