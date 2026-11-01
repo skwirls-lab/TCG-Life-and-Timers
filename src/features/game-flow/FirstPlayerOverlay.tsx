@@ -1,30 +1,36 @@
 "use client";
 /**
- * GAME-011 first-player announcement: a highlight cycles over the seat names, decelerates for
- * ~1.8 s and lands on the starter ("{name} goes first"). Tap skips to the result; tap again (or
- * wait) closes. Instant when "Dice & randomizer animations" is off or motion is reduced.
+ * GAME-011 first-player announcement: a highlight cycles over the seats, decelerates for ~1.8 s
+ * and lands on the starter ("{name} goes first"). Tap skips to the result; tap again (or wait)
+ * closes. Instant when "Dice & randomizer animations" is off or motion is reduced.
  *
- * The board's tile positions are unknown here, so the names are shown as a centered list.
+ * A-1: on the board the highlight cycles over the seat TILES themselves, and every tile shows the
+ * result rotated toward its own player (the starter's tile gets the "Player 1" chip), so the side
+ * and top players read it too. Without a board (dev harness) the names are a centered list.
+ * After the overlay closes, the starter's tile keeps a "goes first" marker (FirstPlayerMarker).
  *
  * T3.7 roll-off (TOOL-004, GAME-012): the engine rolls the d20s itself when the game is created
  * or reset (`pickFirstSeat` with the store's Rng, ties re-roll among the tied seats) and records
  * them in `game.turn.rolloff`. This overlay only *shows* those rolls per seat: numbers tumble
- * during the spin, then every round's roll appears ("12 → 17" after a tie), and the winner's row
- * is highlighted. Nothing is re-rolled in the UI, so undo/reload show the same result.
+ * during the spin, then every round's roll appears ("12 → 17" after a tie), and the winner's tile
+ * (row) is highlighted. Nothing is re-rolled in the UI, so undo/reload show the same result.
  *
- * PRD §10.3 (coin-prominent presets, 2 players): "Flip a coin to decide" (TOOL-002) offers the
- * opening coin flip instead: seat 1 is heads, the flip winner picks who goes first
- * (SET_FIRST_PLAYER), and the flip is logged to the history (HIST-012).
+ * PRD §10.3 (coin-prominent presets, 2 players): the table first chooses how to decide — "Flip a
+ * coin" (TOOL-002; seat 1 is heads, the flip winner picks who goes first, SET_FIRST_PLAYER, logged
+ * to history HIST-012) or keep the random pick (A-11c: no "X goes first" is announced before the
+ * choice).
  */
 import { Crown, Dices } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui";
+import { RotatedContainer } from "@/components/ui/RotatedContainer";
 import { cryptoRng, seatById, type Game, type SeatId } from "@/engine";
 import { useReducedMotion } from "@/features/app-effects/AppEffects";
 import { toLogNote } from "@/features/tools/tools";
 import { t } from "@/lib/i18n";
 import { flipCoin, type CoinFace } from "@/lib/random";
 import { cn } from "@/lib/ui/cn";
+import type { Rotation } from "@/lib/ui/rotation";
 import { useDispatch } from "@/state/gameStore";
 import { useSettingsStore } from "@/state/settingsStore";
 import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
@@ -36,12 +42,50 @@ import {
   seatName,
   shouldAnnounce,
   spinSequence,
+  type RolloffRow,
   type RolloffView,
 } from "./flow";
 import { useFlowUi } from "./flowUi";
 
 const RESULT_MS = 2000;
 const coinRng = cryptoRng();
+
+interface TileBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  rotation: Rotation;
+}
+
+/** Board tile boxes by seat index (empty when no board is mounted). */
+function useTileBoxes(count: number): TileBox[] {
+  const [boxes, setBoxes] = useState<TileBox[]>([]);
+  useLayoutEffect(() => {
+    const read = () => {
+      const out: TileBox[] = [];
+      for (let i = 0; i < count; i++) {
+        const el = document.querySelector<HTMLElement>(
+          `[data-testid="board"] [data-testid="seat-${i}"][data-rotation]`,
+        );
+        if (!el) return setBoxes([]);
+        const r = el.getBoundingClientRect();
+        out.push({
+          left: r.left,
+          top: r.top,
+          width: r.width,
+          height: r.height,
+          rotation: Number(el.dataset.rotation) as Rotation,
+        });
+      }
+      setBoxes(out);
+    };
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, [count]);
+  return boxes;
+}
 
 export function FirstPlayerOverlay({ game }: { game: Game }) {
   const ev = latestFirstPlayerEvent(game);
@@ -56,15 +100,18 @@ export function FirstPlayerOverlay({ game }: { game: Game }) {
   const visible = !!key && !announced && !testSkip && shouldAnnounce(game);
 
   const seats = game.seats;
+  const boxes = useTileBoxes(visible ? seats.length : 0);
+  const onBoard = boxes.length === seats.length && seats.length > 0;
   const target = Math.max(
     0,
     seats.findIndex((s) => s.id === ev?.seatId),
   );
   const manual = ev?.meta?.rule === "manual";
-  const instant = !diceAnimations || reduced || manual || seats.length < 2;
+  const coinOffered = !manual && offersOpeningCoin(game);
+  // The coin choice comes first (A-11c): no spin announcing a starter that may not stand.
+  const instant = !diceAnimations || reduced || manual || seats.length < 2 || coinOffered;
   const seq = useMemo(() => spinSequence(seats.length, target), [seats.length, target]);
   const rolloff = useMemo(() => rolloffView(game), [game]);
-  const coinOffered = !manual && offersOpeningCoin(game);
   const [spin, setSpin] = useState<{ key: string | null; i: number; skipped: boolean }>({
     key: null,
     i: 0,
@@ -119,6 +166,166 @@ export function FirstPlayerOverlay({ game }: { game: Game }) {
     dispatch({ type: "SET_FIRST_PLAYER", seatId });
   };
 
+  const skipButton = (
+    <button
+      type="button"
+      onClick={onTap}
+      aria-label={landed ? t("common.close") : t("shell.firstPlayer.skip")}
+      data-testid="first-player-skip"
+      className="absolute inset-0 h-full w-full cursor-pointer"
+    />
+  );
+
+  // PRD §10.3: decide how to pick before anyone is announced.
+  if (coinOffered || flipped) {
+    return (
+      <div
+        className="fixed inset-0 z-[55] flex items-center justify-center bg-black/75"
+        data-testid="first-player-overlay"
+        data-landed={landed ? "1" : "0"}
+        data-rule="coin"
+      >
+        {skipButton}
+        <div className="pointer-events-none relative flex w-[min(88vw,24rem)] flex-col items-center gap-4">
+          {flipped ? (
+            <CoinChooser game={game} face={flipped.face} onChoose={choose} />
+          ) : (
+            <div
+              role="dialog"
+              aria-labelledby="first-player-coin-title"
+              className="pointer-events-auto flex w-full flex-col items-center gap-3 rounded-[2rem] bg-surface p-5 text-center"
+              data-testid="first-player-coin-offer"
+            >
+              <h2 id="first-player-coin-title" className="text-2xl font-bold">
+                {t("shell.firstPlayer.chooseTitle")}
+              </h2>
+              <Button className="w-full" onClick={flip} data-testid="first-player-coin">
+                {t("shell.coin.offer")}
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => markAnnounced(key)}
+                data-testid="first-player-coin-skip"
+              >
+                {t("shell.coin.keepRandom", { name: starter })}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const status = landed
+    ? t("shell.firstPlayer.goesFirst", { name: starter })
+    : rolloff
+      ? t("shell.rolloff.rolling")
+      : t("shell.firstPlayer.picking");
+
+  if (onBoard) {
+    const rows = new Map<SeatId, RolloffRow>(rolloff?.rows.map((r) => [r.seatId, r]) ?? []);
+    const tick = mine ? spin.i : 0;
+    const List = rolloff ? "ol" : "div";
+    return (
+      <div
+        className="fixed inset-0 z-[55] bg-black/70"
+        data-testid="first-player-overlay"
+        data-landed={landed ? "1" : "0"}
+        data-mode="tiles"
+        data-rule={rolloff ? "rolloff" : String(ev?.meta?.rule ?? "")}
+      >
+        {skipButton}
+        <span className="sr-only" role="status" aria-live="polite">
+          {status}
+        </span>
+        <List data-testid={rolloff ? "rolloff" : undefined} className="contents">
+          {seats.map((s, i) => {
+            const box = boxes[i]!;
+            const on = rolloff ? landed && s.id === rolloff.winnerId : i === highlight;
+            const win = landed && i === target;
+            const row = rows.get(s.id);
+            const Item = rolloff ? "li" : "div";
+            return (
+              <Item
+                key={s.id}
+                aria-hidden={rolloff ? undefined : true}
+                data-testid={rolloff ? `rolloff-seat-${i}` : `first-player-name-${i}`}
+                data-highlight={on ? "1" : "0"}
+                data-seat-id={s.id}
+                data-winner={rolloff ? (on ? "1" : "0") : undefined}
+                data-rolls={rolloff && landed && row ? row.rolls.join(",") : undefined}
+                aria-label={
+                  rolloff && landed && row
+                    ? t("shell.rolloff.seat", { name: s.name, rolls: row.rolls.join(", ") })
+                    : undefined
+                }
+                className="pointer-events-none absolute p-[3px]"
+                style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+              >
+                <RotatedContainer
+                  rotation={box.rotation}
+                  className={cn(
+                    "size-full rounded-tile transition-[box-shadow,opacity] duration-100",
+                    on ? "shadow-[0_0_0_4px_#fff]" : "opacity-95",
+                  )}
+                  style={{
+                    background: on
+                      ? `color-mix(in srgb, ${s.color} 55%, #000)`
+                      : "rgb(0 0 0 / 0.72)",
+                  }}
+                >
+                  <div className="flex size-full flex-col items-center justify-center gap-[2cqh] p-3 text-center text-white">
+                    {win && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-fg">
+                        <Crown size={14} aria-hidden /> {t("shell.firstPlayer.chip")}
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "max-w-full truncate py-0.5 font-bold leading-snug",
+                        on ? "text-[min(16cqh,2.5rem)]" : "text-[min(12cqh,1.75rem)]",
+                      )}
+                    >
+                      {s.name}
+                    </span>
+                    {rolloff && <RollChips row={row} landed={landed} tick={tick} seatIndex={i} />}
+                    {landed && (
+                      <span
+                        data-testid={win ? "first-player-result" : `first-player-result-${i}`}
+                        className={cn(
+                          "max-w-full font-semibold",
+                          win
+                            ? "rounded-full bg-black/60 px-3 text-[min(9cqh,1.5rem)]"
+                            : "text-[min(7cqh,1.1rem)] opacity-90",
+                        )}
+                      >
+                        {t("shell.firstPlayer.goesFirst", { name: starter })}
+                      </span>
+                    )}
+                    {landed && rolloff && rolloff.rounds > 1 && win && (
+                      <span
+                        data-testid="rolloff-reroll"
+                        className="rounded-full bg-black/60 px-2 text-xs"
+                      >
+                        {t("shell.rolloff.reroll")}
+                      </span>
+                    )}
+                    {landed && (
+                      <span className="rounded-full bg-black/60 px-2 text-xs">
+                        {t("shell.firstPlayer.tapToClose")}
+                      </span>
+                    )}
+                  </div>
+                </RotatedContainer>
+              </Item>
+            );
+          })}
+        </List>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-[55] flex items-center justify-center bg-black/75"
@@ -126,76 +333,94 @@ export function FirstPlayerOverlay({ game }: { game: Game }) {
       data-landed={landed ? "1" : "0"}
       data-rule={rolloff ? "rolloff" : String(ev?.meta?.rule ?? "")}
     >
-      <button
-        type="button"
-        onClick={onTap}
-        aria-label={landed ? t("common.close") : t("shell.firstPlayer.skip")}
-        data-testid="first-player-skip"
-        className="absolute inset-0 h-full w-full cursor-pointer"
-      />
+      {skipButton}
       <div className="pointer-events-none relative flex w-[min(88vw,24rem)] flex-col items-center gap-5">
-        {flipped ? (
-          <CoinChooser game={game} face={flipped.face} onChoose={choose} />
+        {rolloff ? (
+          <RolloffList view={rolloff} landed={landed} tick={mine ? spin.i : 0} />
         ) : (
-          <>
-            {rolloff ? (
-              <RolloffList view={rolloff} landed={landed} tick={mine ? spin.i : 0} />
-            ) : (
-              <ol className="flex w-full flex-col items-center gap-1.5" aria-hidden>
-                {seats.map((s, i) => {
-                  const on = i === highlight;
-                  return (
-                    <li
-                      key={s.id}
-                      data-testid={`first-player-name-${i}`}
-                      data-highlight={on ? "1" : "0"}
-                      className={cn(
-                        "w-[min(100%,16rem)] truncate rounded-full px-4 py-1.5 text-center text-lg font-semibold transition-transform duration-100",
-                        on ? "scale-110 text-black shadow-lg" : "bg-surface-2/90 text-fg",
-                      )}
-                      style={{ background: on ? s.color : undefined }}
-                    >
-                      {s.name}
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-            <div
-              className="flex min-h-24 flex-col items-center gap-2 text-center"
-              aria-live="polite"
-              role="status"
-            >
-              {landed ? (
-                <>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-fg">
-                    <Crown size={14} aria-hidden /> {t("shell.firstPlayer.chip")}
-                  </span>
-                  <span className="text-2xl font-bold" data-testid="first-player-result">
-                    {t("shell.firstPlayer.goesFirst", { name: starter })}
-                  </span>
-                  <span className="text-sm text-fg-muted">{t("shell.firstPlayer.tapToClose")}</span>
-                </>
-              ) : (
-                <span className="text-lg text-fg-muted">
-                  {rolloff ? t("shell.rolloff.rolling") : t("shell.firstPlayer.picking")}
-                </span>
-              )}
-            </div>
-            {coinOffered && (
-              <Button
-                variant="secondary"
-                className="pointer-events-auto"
-                onClick={flip}
-                data-testid="first-player-coin"
-              >
-                {t("shell.coin.offer")}
-              </Button>
-            )}
-          </>
+          <ol className="flex w-full flex-col items-center gap-1.5" aria-hidden>
+            {seats.map((s, i) => {
+              const on = i === highlight;
+              return (
+                <li
+                  key={s.id}
+                  data-testid={`first-player-name-${i}`}
+                  data-highlight={on ? "1" : "0"}
+                  className={cn(
+                    "w-[min(100%,16rem)] truncate rounded-full px-4 py-1.5 text-center text-lg font-semibold transition-transform duration-100",
+                    on ? "scale-110 text-black shadow-lg" : "bg-surface-2/90 text-fg",
+                  )}
+                  style={{ background: on ? s.color : undefined }}
+                >
+                  {s.name}
+                </li>
+              );
+            })}
+          </ol>
         )}
+        <div
+          className="flex min-h-24 flex-col items-center gap-2 text-center"
+          aria-live="polite"
+          role="status"
+        >
+          {landed ? (
+            <>
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-fg">
+                <Crown size={14} aria-hidden /> {t("shell.firstPlayer.chip")}
+              </span>
+              <span className="text-2xl font-bold" data-testid="first-player-result">
+                {status}
+              </span>
+              <span className="text-sm text-fg-muted">{t("shell.firstPlayer.tapToClose")}</span>
+            </>
+          ) : (
+            <span className="text-lg text-fg-muted">{status}</span>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** A seat's d20(s) on its own tile; they tumble until the spin lands. */
+function RollChips({
+  row,
+  landed,
+  tick,
+  seatIndex,
+}: {
+  row: RolloffRow | undefined;
+  landed: boolean;
+  tick: number;
+  seatIndex: number;
+}) {
+  const cls =
+    "flex size-[min(16cqh,3rem)] items-center justify-center rounded-xl bg-black/30 text-[min(10cqh,1.5rem)] font-bold tabular";
+  if (!landed || !row) {
+    return (
+      <span aria-hidden className={cn(cls, "gap-1")}>
+        {((tick + 1) * 7 + seatIndex * 11) % 20 || 20}
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1">
+      {row.rolls.map((v, k) => (
+        <span key={k} className="flex items-center gap-1">
+          {k > 0 && (
+            <span aria-hidden className="text-sm opacity-70">
+              →
+            </span>
+          )}
+          <span
+            className={cn(cls, k < row.rolls.length - 1 && "opacity-60")}
+            data-testid={`rolloff-seat-${seatIndex}-roll-${k}`}
+          >
+            {v}
+          </span>
+        </span>
+      ))}
+    </span>
   );
 }
 
