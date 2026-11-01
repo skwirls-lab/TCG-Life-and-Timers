@@ -1,7 +1,7 @@
 "use client";
 /**
  * Cloud entry point: `startCloud()` = App Check + auth init + (when signed in with Google) the
- * guest → account merge and the sync engine. Idempotent; guests who never open an account
+ * guest → account merge, the sync engine and cloud art (ART-022). Idempotent; guests who never open an account
  * feature never load Firebase (AUTH-002, PERF-003).
  */
 import { create } from "zustand";
@@ -67,6 +67,8 @@ export interface CloudDeps {
   db: () => TcgDb;
   historySync: () => boolean;
   reloadSettings: () => Promise<unknown>;
+  /** Start cloud art (ART-022): uploads/downloads follow the signed-in Google account. */
+  startArtCloud: () => Promise<void>;
 }
 
 const defaultDeps = (): CloudDeps => ({
@@ -80,6 +82,8 @@ const defaultDeps = (): CloudDeps => ({
   db: getLocalDb,
   historySync: () => can(useEntitlements.getState(), "historySync"),
   reloadSettings: () => useSettingsStore.getState().load(),
+  // Lazy: the art runtime (and Firebase Storage behind it) loads only for signed-in users.
+  startArtCloud: () => import("@/lib/art/cloudRuntime").then((m) => m.watchArtCloud()),
 });
 
 let deps: CloudDeps = defaultDeps();
@@ -122,6 +126,8 @@ async function runAccountFlow(user: AuthUser): Promise<void> {
     onSettingsApplied: () => void deps.reloadSettings(),
   });
   engineUid = user.uid;
+  // Idempotent; it also re-runs an upload pass on every later Google sign-in.
+  void deps.startArtCloud().catch((err: unknown) => warn("cloud: art sync failed to start", err));
 }
 
 function onAuthChange(state: AuthState): void {

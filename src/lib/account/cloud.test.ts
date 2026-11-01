@@ -63,12 +63,14 @@ let db: TcgDb;
 let fake: FakeFirestore;
 let n = 0;
 const reload = vi.fn(async () => {});
+const artStart = vi.fn(async () => {});
 
 beforeEach(async () => {
   vi.stubEnv("NEXT_PUBLIC_USE_EMULATORS", "1");
   db = new TcgDb(`cloud-${++n}`);
   await db.open();
   fake = new FakeFirestore();
+  artStart.mockClear();
   resetCloudForTests();
   resetAuthForTests({
     cloudConfigured: () => true,
@@ -91,6 +93,7 @@ function start() {
     db: () => db,
     historySync: () => false,
     reloadSettings: reload,
+    startArtCloud: artStart,
   });
 }
 
@@ -99,6 +102,7 @@ describe("startCloud", () => {
     await Promise.all([start(), start()]);
     expect(useAuth.getState()).toMatchObject({ status: "signedOut", initialized: true });
     expect(useSyncStatus.getState().active).toBe(false);
+    expect(artStart).not.toHaveBeenCalled(); // guests never load cloud art
   });
 
   // @req AUTH-003
@@ -138,6 +142,8 @@ describe("startCloud", () => {
     expect(useSyncStatus.getState().active).toBe(true);
     expect((await db.kv.get(LINKED_UID_KEY))?.value).toBe("u1");
     expect(fake.docs.get("users/u1")).toMatchObject({ displayName: "Alice" });
+    // @req ART-022 cloud art starts once the account's sync engine runs
+    expect(artStart).toHaveBeenCalledTimes(1);
 
     // AUTH-004: sign out and remove data; the active game stays.
     await signOut({ removeLocalData: true });
@@ -199,6 +205,19 @@ describe("startCloud", () => {
     await signOut();
     expect(useCloud.getState()).toMatchObject({ mergePrompt: null, phase: "idle" });
     expect(await db.profiles.count()).toBe(1);
+    expect(artStart).not.toHaveBeenCalled(); // no account sync → no cloud art
+  });
+
+  // @req ART-022
+  it("a cloud-art start failure does not stop account sync", async () => {
+    await db.kv.put({ key: LINKED_UID_KEY, value: "u1" });
+    artStart.mockRejectedValueOnce(new Error("no storage"));
+    await start();
+    await signInForTests("alice@example.com");
+    await until(() => artStart.mock.calls.length === 1);
+    await until(() => useSyncStatus.getState().lastSyncedAt !== null);
+    expect(useSyncStatus.getState()).toMatchObject({ active: true, state: "idle" });
+    expect(useCloud.getState().phase).toBe("syncing");
   });
 
   it("a returning user skips the merge and syncs directly; failures surface as errors", async () => {
