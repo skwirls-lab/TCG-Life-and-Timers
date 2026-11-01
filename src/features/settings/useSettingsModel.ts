@@ -57,14 +57,6 @@ export function useDeviceEnv(): DeviceEnv {
   return useSyncExternalStore(noopSubscribe, readEnv, () => SERVER_ENV);
 }
 
-/** Replace the active game's layout variant without a reset (SET-011: non-structural). */
-function setLayoutLive(layoutId: string): void {
-  const s = useGameStore.getState();
-  const session = s.session;
-  if (!session || session.game.layoutId === layoutId) return;
-  useGameStore.setState({ session: { ...session, game: { ...session.game, layoutId } } });
-}
-
 function presetFor(id: string, game: Game | null, picked: Preset | null): Preset | undefined {
   if (game && game.preset.id === id) return game.preset;
   if (picked && picked.id === id) return picked; // custom presets (CUS-001)
@@ -152,7 +144,9 @@ export function useSettingsModel(): SettingsModel {
       for (const key of changedOptions(before, next)) {
         dispatch({ type: "SET_OPTION", key, value: next.options[key] } as ActionInput);
       }
-      if (next.layoutId !== before.layoutId) setLayoutLive(next.layoutId);
+      // SET-011: the layout variant applies live (engine SET_LAYOUT, LAY-003).
+      if (next.layoutId !== before.layoutId)
+        dispatch({ type: "SET_LAYOUT", layoutId: next.layoutId });
     },
     [game, dispatch, persistNext],
   );

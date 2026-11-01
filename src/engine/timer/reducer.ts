@@ -43,6 +43,7 @@ export const TIMER_ACTION_TYPES = [
   "TIMER_SET",
   "TIMER_TIMEOUT",
   "TIMER_SET_CONFIG",
+  "TIMER_RESET_CLOCKS",
 ] as const satisfies readonly TimerAction["type"][];
 
 /** Non-timer actions the timer reducer also sees, so clock accounting can hook them. */
@@ -374,6 +375,26 @@ function setConfig(game: Game, patch: Partial<TimerConfig>, now: number): Game {
   return withTimer(g, { ...g.timer, config });
 }
 
+/**
+ * §13.1-C restart: a fresh idle timer for every seat with the current config (+ patch). Turn
+ * tracking is turned on for any clock mode (as TIMER_SET_CONFIG does). No-op when the clocks are
+ * already idle with the same config. Logged so history shows "Clocks restarted".
+ */
+function resetClocks(game: Game, patch: Partial<TimerConfig>, now: number): Game {
+  const t = game.timer;
+  const config: TimerConfig = { ...t.config, ...patch };
+  const timer = initialTimerState(
+    config,
+    game.seats.map((s) => s.id),
+  );
+  if (t.status === "idle" && JSON.stringify(timer) === JSON.stringify(t)) return game;
+  const options =
+    config.mode !== "off" && !game.options.turnTracking
+      ? { ...game.options, turnTracking: true }
+      : game.options;
+  return timerEvent({ ...game, options, timer }, now, { action: "restart", mode: config.mode });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Reducer
 // ---------------------------------------------------------------------------------------------
@@ -479,6 +500,7 @@ function timerTransition(game: Game, action: TimerAction, now: number): Game | n
       return settle(game, now);
     }
     case "TIMER_SET_CONFIG":
+    case "TIMER_RESET_CLOCKS":
       return null;
   }
 }
@@ -529,6 +551,7 @@ function heldOvershoot(game: Game, seatId: SeatId, now: number): number {
 
 export function reduceTimer(game: Game, action: GameAction, now: number, prev: Game = game): Game {
   if (action.type === "TIMER_SET_CONFIG") return setConfig(game, action.config, now);
+  if (action.type === "TIMER_RESET_CLOCKS") return resetClocks(game, action.config ?? {}, now);
   if (game.timer.mode === "off" && prev.timer.mode === "off") return game;
   if (isTimerAction(action)) {
     const g = timerTransition(game, action, now);

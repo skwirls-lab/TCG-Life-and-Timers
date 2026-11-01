@@ -13,9 +13,9 @@
  * - Linked effects (commander damage + life) are one action → one undo step.
  * - UNDO_TO(eventId) restores the snapshot taken just before that event (reverting it and
  *   everything after); the skipped states go to `future` so REDO re-applies them in order.
- * - "Sticky" seat cosmetics (rename, art, color, profile, rotation, contrast) are not undo steps:
- *   they apply to the current game AND every snapshot, so undoing a life change never reverts a
- *   name or background.
+ * - "Sticky" seat cosmetics (rename, art, color, profile, rotation, contrast) and the layout
+ *   variant (SET_LAYOUT, LAY-003) are not undo steps: they apply to the current game AND every
+ *   snapshot, so undoing a life change never reverts a name, background or layout.
  */
 import { UNDO_LIMIT } from "./options";
 import { reduce, reduceWithMeta, type ReduceContext } from "./reducer";
@@ -42,6 +42,7 @@ export const STICKY_ACTIONS = [
   "SEAT_SET_PROFILE",
   "SEAT_SET_ROTATION",
   "SEAT_SET_CONTRAST",
+  "SET_LAYOUT",
 ] as const satisfies readonly GameAction["type"][];
 
 const STICKY: ReadonlySet<string> = new Set(STICKY_ACTIONS);

@@ -94,5 +94,6 @@
   "history.ev.timer.pause": "Clocks paused",
   "history.ev.timer.resume": "Clocks resumed",
   "history.ev.timer.timeout": "{name} ran out of time",
-  "history.ev.timer.matchEnd": "Round time is up"
+  "history.ev.timer.matchEnd": "Round time is up",
+  "history.ev.timer.restart": "Clocks restarted"
 }

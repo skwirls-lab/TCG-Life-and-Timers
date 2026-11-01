@@ -47,14 +47,7 @@ export function changePlayerCount(players: number, layoutId?: string): void {
   });
 }
 
-/**
- * LAY-003: switch the layout variant without resetting. The frozen engine has no layout action,
- * so this patches `game.layoutId` in place (a display preference, like the sticky seat edits;
- * autosave persists it).
- */
+/** LAY-003: switch the layout variant without resetting (engine SET_LAYOUT; sticky, no undo step). */
 export function setLayoutVariant(layoutId: string): void {
-  useGameStore.setState((st) => {
-    if (!st.session || st.session.game.layoutId === layoutId) return {};
-    return { session: { ...st.session, game: { ...st.session.game, layoutId } } };
-  });
+  useGameStore.getState().dispatch({ type: "SET_LAYOUT", layoutId });
 }

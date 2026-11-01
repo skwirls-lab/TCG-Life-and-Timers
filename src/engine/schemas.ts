@@ -506,6 +506,7 @@ const actionSchemas = [
     now,
   }),
   z.object({ type: z.literal("SEAT_REMOVE"), seatId, now }),
+  z.object({ type: z.literal("SET_LAYOUT"), layoutId: id(), now: maybeNow }),
   ...optionActions,
   z.object({ type: z.literal("UNDO"), now: maybeNow }),
   z.object({ type: z.literal("REDO"), now: maybeNow }),
@@ -519,6 +520,11 @@ const actionSchemas = [
   z.object({ type: z.literal("TIMER_SET"), seatId, bankMs: z.number(), now }),
   z.object({ type: z.literal("TIMER_TIMEOUT"), seatId, now }),
   z.object({ type: z.literal("TIMER_SET_CONFIG"), config: TimerConfigSchema.partial(), now }),
+  z.object({
+    type: z.literal("TIMER_RESET_CLOCKS"),
+    config: TimerConfigSchema.partial().optional(),
+    now,
+  }),
 ] as const;
 
 /**
