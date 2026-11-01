@@ -12,6 +12,7 @@ import {
   kb,
   measureRoute,
   PLAY_BUDGET_BYTES,
+  PLAY_TOTAL_CAP_BYTES,
   type RouteReport,
 } from "./check-bundle";
 
@@ -44,7 +45,21 @@ describe("check-bundle (PERF-003)", () => {
       chunks: [{ file: "a.js", raw: 1, gzip: 1, firebase: [] }],
     };
     expect(evaluate(ok)).toEqual([]);
-    expect(evaluate({ ...ok, gzipTotal: PLAY_BUDGET_BYTES + 1 })[0]).toMatch(/over the/);
+    // app JS (non-framework chunks) over the 200 KB app budget (D-067)
+    expect(evaluate({ ...ok, gzipTotal: PLAY_BUDGET_BYTES + 1 })[0]).toMatch(/app JS .* over the/);
+    // framework runtime is excluded from the app budget but counts toward the total cap
+    const withRuntime: RouteReport = {
+      ...ok,
+      gzipTotal: 280 * 1024,
+      chunks: [
+        { file: "rt.js", raw: 1, gzip: 131 * 1024, firebase: [], framework: true },
+        { file: "app.js", raw: 1, gzip: 149 * 1024, firebase: [] },
+      ],
+    };
+    expect(evaluate(withRuntime)).toEqual([]);
+    expect(evaluate({ ...withRuntime, gzipTotal: PLAY_TOTAL_CAP_BYTES + 1 }).join(" ")).toMatch(
+      /total, over the/,
+    );
     expect(
       evaluate({ ...ok, chunks: [{ file: "f.js", raw: 1, gzip: 1, firebase: ["@firebase/"] }] }),
     ).toEqual(["/play chunk f.js contains Firebase SDK markers: @firebase/"]);

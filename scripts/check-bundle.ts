@@ -16,7 +16,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
+/**
+ * PERF-003 as revised in D-067: the PRD's "≤ 200 KB gzip" applies to the board's APP code on top
+ * of the shared React/Next root runtime (~131 KB in Next 16, identical on every route), plus a
+ * hard cap on the total so the runtime can't grow unnoticed.
+ */
 export const PLAY_BUDGET_BYTES = 200 * 1024;
+export const PLAY_TOTAL_CAP_BYTES = 300 * 1024;
 export const FIREBASE_MARKERS = ["@firebase/", "FirebaseError", "identitytoolkit"] as const;
 
 /** Chunk paths (relative to the dist dir's `static/chunks`) referenced by a prerendered page. */
@@ -101,9 +107,15 @@ export function measureRoute(dist: string, route: string, htmlFile: string): Rou
 
 export function evaluate(play: RouteReport): string[] {
   const errors: string[] = [];
-  if (play.gzipTotal > PLAY_BUDGET_BYTES) {
+  const app = play.gzipTotal - frameworkGzip(play);
+  if (app > PLAY_BUDGET_BYTES) {
     errors.push(
-      `/play loads ${kb(play.gzipTotal)} gzip, over the ${kb(PLAY_BUDGET_BYTES)} budget (PERF-003)`,
+      `/play app JS is ${kb(app)} gzip, over the ${kb(PLAY_BUDGET_BYTES)} budget (PERF-003, D-067)`,
+    );
+  }
+  if (play.gzipTotal > PLAY_TOTAL_CAP_BYTES) {
+    errors.push(
+      `/play loads ${kb(play.gzipTotal)} gzip in total, over the ${kb(PLAY_TOTAL_CAP_BYTES)} cap (PERF-003, D-067)`,
     );
   }
   for (const c of play.chunks) {
@@ -151,7 +163,8 @@ function main(argv: string[]): number {
   }
   console.log(
     `\ncheck:bundle OK — / ${kb(launcher.gzipTotal)}, /play ${kb(play.gzipTotal)} gzip ` +
-      `(budget ${kb(PLAY_BUDGET_BYTES)}); no Firebase SDK in /play chunks`,
+      `(app budget ${kb(PLAY_BUDGET_BYTES)}, total cap ${kb(PLAY_TOTAL_CAP_BYTES)}); ` +
+      `no Firebase SDK in /play chunks`,
   );
   return 0;
 }
