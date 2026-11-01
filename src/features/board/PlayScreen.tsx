@@ -20,6 +20,7 @@ import { useGameStore } from "@/state/gameStore";
 import { mergeSettings, useSettingsStore } from "@/state/settingsStore";
 import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { Board } from "./Board";
+import { LiveAnnouncer } from "./LiveAnnouncer";
 import { PlayersSheet, QuickToolsMenu } from "./Toolbar";
 import { parseSettingsParams } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
@@ -162,6 +163,7 @@ export function PlayScreen() {
         <GameErrorBoundary>
           <h1 className="sr-only">{t("board.label")}</h1>
           <Board />
+          <LiveAnnouncer />
           <GameFlowOverlays />
           {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
           <TimerLayer />
