@@ -21,9 +21,11 @@ import {
   toggleWarningFlag,
 } from "./warnings";
 
+type TimerPatch = Partial<TimerConfig>;
+
 interface Props {
   ctx: SettingsContext;
-  onPatch: (patch: Partial<TimerConfig>) => void;
+  onPatch: (patch: TimerPatch) => void;
 }
 
 export function WarningsPage({ ctx, onPatch }: Props) {
@@ -31,7 +33,7 @@ export function WarningsPage({ ctx, onPatch }: Props) {
   const list = timerWarnings(cfg);
   const pro = ctx.can("timerAdvancedModes");
   /** Custom edits are Pro (locked → paywall). */
-  const edit = (patch: () => Partial<TimerConfig>) =>
+  const edit = (patch: () => TimerPatch) =>
     pro ? onPatch(patch()) : openPaywall("timerAdvancedModes");
   const presetId = warningPresetId(cfg.warningsMs);
   const presetLocked = (id: string) => id === "more" && !pro;
