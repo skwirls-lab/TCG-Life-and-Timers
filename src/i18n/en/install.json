@@ -1,0 +1,16 @@
+{
+  "install.title": "Install the app",
+  "install.body": "Add TCG Life & Timers to your home screen for full-screen play that works offline.",
+  "install.install": "Install app",
+  "install.howTo": "How to install",
+  "install.notNow": "Not now",
+  "install.ios.title": "Add to Home Screen",
+  "install.ios.step1": "Tap the Share button in Safari's toolbar.",
+  "install.ios.step2": "Scroll down and tap “Add to Home Screen”.",
+  "install.ios.step3": "Tap “Add”. Open the app from your home screen next time.",
+  "install.ios.done": "Got it",
+  "whatsnew.title": "What's new",
+  "whatsnew.version": "Version {version}",
+  "whatsnew.current": "Installed version: {version}",
+  "whatsnew.empty": "No release notes yet."
+}

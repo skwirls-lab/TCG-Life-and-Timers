@@ -17,7 +17,7 @@
     "test:sync": "firebase emulators:exec --only firestore,auth,storage --project demo-tcg-life \"vitest run -c vitest.sync.config.ts\"",
     "test:e2e": "npm run build:test && playwright test --grep-invert @emu",
     "test:e2e:emu": "npm run build:emu && E2E_SERVER=emu firebase emulators:exec --only firestore,storage,auth --project demo-tcg-life \"playwright test --grep @emu\"",
-    "check:bundle": "size-limit",
+    "check:bundle": "tsx scripts/check-bundle.ts",
     "check:presets": "tsx scripts/check-presets.ts",
     "check:trace": "tsx scripts/trace.ts",
     "screens": "playwright test -c playwright.screens.config.ts",
@@ -31,6 +31,7 @@
     "test:e2e:only": "playwright test --grep-invert @emu"
   },
   "dependencies": {
+    "@sentry/browser": "^11.10.0",
     "dexie": "^4.4.7",
     "firebase": "^13.1.0",
     "lucide-react": "^1.66.0",
@@ -48,7 +49,6 @@
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.63.0",
     "@serwist/turbopack": "^9.5.13",
-    "@size-limit/file": "^14.3.0",
     "@tailwindcss/turbopack": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -71,7 +71,6 @@
     "msw": "^3.0.3",
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
-    "size-limit": "^14.3.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

@@ -27,7 +27,7 @@ import { flipCoin, type CoinFace } from "@/lib/random";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch } from "@/state/gameStore";
 import { useSettingsStore } from "@/state/settingsStore";
-import { TEST_HOOKS_ENABLED } from "@/state/testHooks";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import {
   coinFlipWinner,
   latestFirstPlayerEvent,

@@ -280,6 +280,7 @@ export const AVAILABLE_ROUTES: readonly string[] = [
   "/images",
   "/about",
   "/pro", // PAY (T7.4)
+  "/whats-new", // HARDEN (T8.7)
 ];
 
 function linkRow(id: string, section: SectionId, href: string): SettingDef {
@@ -789,7 +790,7 @@ const BASE_ROWS: SettingDef[] = [
   actionRow("share", "H", "share"),
   linkRow("feedback", "H", "/feedback"),
   linkRow("diagnostics", "H", "/feedback"),
-  actionRow("whatsNew", "H", "whatsNew"),
+  linkRow("whatsNew", "H", "/whats-new"), // HARDEN (T8.7, SET-043)
   linkRow("aboutCredits", "H", "/about"),
   {
     id: "about",

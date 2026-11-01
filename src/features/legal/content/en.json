@@ -1,0 +1,153 @@
+{
+  "updated": "2026-11-01",
+  "privacy": {
+    "intro": "TCG Life & Timers (“the app”) is a life counter and game clock for trading card games. It works fully offline without an account. This policy explains what data the app handles, where it is kept and how you control it. Placeholders in [brackets] must be completed by the app owner before launch.",
+    "sections": [
+      {
+        "id": "device",
+        "heading": "Data stored on your device",
+        "paragraphs": [
+          "Games in progress, finished game records, player profiles, decks, custom presets, settings and any images you add are stored in your browser's local storage (IndexedDB) on this device. This data never leaves the device unless you sign in to sync it."
+        ]
+      },
+      {
+        "id": "account",
+        "heading": "If you sign in with Google",
+        "paragraphs": [
+          "Signing in is optional. When you sign in, we receive your Google account's name, email address, profile photo address and a unique user id from Google, through Firebase Authentication.",
+          "While you are signed in, your game history, profiles, decks, custom presets, settings and uploaded images are synced to your private area in Google Firebase (Cloud Firestore and Cloud Storage) so they appear on your other devices. Uploaded images are private to your account and are never made public."
+        ]
+      },
+      {
+        "id": "sharing",
+        "heading": "Shared preset links",
+        "paragraphs": [
+          "If you create a share link for a custom preset, the preset's rules and counters (never images) are stored under a short code. Anyone with the code can view and import that preset. You can delete your share links from the account page."
+        ]
+      },
+      {
+        "id": "payments",
+        "heading": "Payments",
+        "paragraphs": [
+          "Pro purchases are handled by Stripe. Your card details go directly to Stripe and are never seen or stored by the app. We store your subscription status (plan, renewal date) so Pro features unlock on your devices."
+        ]
+      },
+      {
+        "id": "analytics",
+        "heading": "Analytics and crash reports (only with your consent)",
+        "paragraphs": [
+          "Analytics and crash reporting are off until you allow them in the consent banner. If you allow them, the app sends anonymous usage events (for example: a game started with a given preset and player count, a game ended with its duration and number of turns, a timer response or timeout, a custom preset was created, card art was chosen or uploaded, sign-in, the Pro screen was viewed, a purchase was made) to Google Analytics for Firebase, with IP anonymization and advertising signals turned off, and crash reports (error messages and stack traces, with web addresses stripped of query parameters) to Sentry. Names you type, game contents and images are never included.",
+          "You can withdraw consent at any time on this page; collection stops immediately."
+        ]
+      },
+      {
+        "id": "thirdparty",
+        "heading": "Card search (Scryfall)",
+        "paragraphs": [
+          "When you search for card art, your device contacts the Scryfall API and image servers directly. Scryfall receives your search text and your IP address under its own privacy policy. Images you pick may be cached on your device for offline use."
+        ]
+      },
+      {
+        "id": "location",
+        "heading": "Where data is stored",
+        "paragraphs": [
+          "Cloud data is stored by Google Firebase in the [REGION — owner to fill, e.g. europe-west1 / us-central1] region. Analytics data is processed by Google and crash reports by Sentry ([Sentry data region — owner to fill])."
+        ]
+      },
+      {
+        "id": "retention",
+        "heading": "How long data is kept",
+        "paragraphs": [
+          "Data on your device is kept until you remove it (Settings → Remove data from this device) or clear your browser storage. Cloud data is kept while your account exists and is deleted when you delete your account. Analytics data is kept for [owner to fill, e.g. 14 months] and crash reports for [owner to fill, e.g. 90 days]."
+        ]
+      },
+      {
+        "id": "rights",
+        "heading": "Export and deletion",
+        "paragraphs": [
+          "On the account page you can export all data stored on this device as a JSON file, remove it from this device, and permanently delete your account together with all of its cloud data (game records, profiles, presets, images, share links and subscription records). Depending on where you live you may also have rights to access, correct or object to processing; contact us to exercise them."
+        ]
+      },
+      {
+        "id": "ads",
+        "heading": "No ads, no selling",
+        "paragraphs": ["The app shows no advertising and does not sell or rent personal data."]
+      },
+      {
+        "id": "children",
+        "heading": "Children",
+        "paragraphs": [
+          "The app is not directed at children under 13, and we do not knowingly collect personal data from them. Google sign-in applies Google's own age requirements. If you believe a child has given us personal data, contact us and we will delete it."
+        ]
+      },
+      {
+        "id": "contact",
+        "heading": "Contact and changes",
+        "paragraphs": [
+          "Questions or requests: [owner contact email]. If this policy changes, the new version will be published here with a new date."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "intro": "These terms govern your use of TCG Life & Timers. By using the app you agree to them. Placeholders in [brackets] must be completed by the app owner before launch.",
+    "sections": [
+      {
+        "id": "use",
+        "heading": "Using the app",
+        "paragraphs": [
+          "You may use the app for personal, non-commercial play and at events. Everything needed to play is free; optional Pro features are offered by subscription or one-time purchase."
+        ]
+      },
+      {
+        "id": "fan",
+        "heading": "Unofficial fan tool",
+        "paragraphs": [
+          "The app is an independent tool. It is not affiliated with, endorsed, sponsored or approved by any trading card game publisher. All trademarks belong to their owners; see the About page for the full notice. Preset values (starting life, thresholds, timers) are provided for convenience and may contain mistakes: the official rules of each game and the decisions of event officials always take precedence."
+        ]
+      },
+      {
+        "id": "content",
+        "heading": "Your content",
+        "paragraphs": [
+          "You keep ownership of the names, presets and images you add. Only upload images you have the right to use. When you share a preset link, you allow others to view and copy that preset. Do not use the app to store or share unlawful or offensive content."
+        ]
+      },
+      {
+        "id": "pro",
+        "heading": "Pro purchases",
+        "paragraphs": [
+          "Prices are shown before you pay and are set by the owner. Subscriptions renew automatically until cancelled; you can cancel any time from the Pro page (Stripe customer portal), and Pro stays active until the end of the paid period. Refunds follow the law of your country and [owner refund policy]. If the app is discontinued, [owner to fill: what happens to lifetime purchases]."
+        ]
+      },
+      {
+        "id": "account",
+        "heading": "Accounts",
+        "paragraphs": [
+          "You must be at least 13 years old (or the minimum age in your country) to create an account. You are responsible for activity under your account. You can delete your account at any time on the account page."
+        ]
+      },
+      {
+        "id": "warranty",
+        "heading": "No warranty",
+        "paragraphs": [
+          "The app is provided “as is”, without warranties of any kind. We do our best to keep games safe on your device, but we cannot guarantee that the app will be uninterrupted or that data can never be lost; export your data if it matters to you."
+        ]
+      },
+      {
+        "id": "liability",
+        "heading": "Limitation of liability",
+        "paragraphs": [
+          "To the extent permitted by law, the owner is not liable for indirect or consequential losses, or for losses above the amount you paid for Pro in the last 12 months."
+        ]
+      },
+      {
+        "id": "changes",
+        "heading": "Changes and governing law",
+        "paragraphs": [
+          "We may update these terms; the new version will be published here with a new date. These terms are governed by the laws of [owner jurisdiction]. Contact: [owner contact email]."
+        ]
+      }
+    ]
+  }
+}
