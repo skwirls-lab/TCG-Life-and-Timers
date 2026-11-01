@@ -1,0 +1,6 @@
+{
+  "object": "error",
+  "code": "rate_limited",
+  "status": 429,
+  "details": "You are sending requests too quickly. Please slow down."
+}
