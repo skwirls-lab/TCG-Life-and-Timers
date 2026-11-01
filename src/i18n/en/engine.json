@@ -1,0 +1,8 @@
+{
+  "engine.recover.title": "Something went wrong",
+  "engine.recover.body": "The board hit an error. Your game is saved on this device.",
+  "engine.recover.button": "Recover game",
+  "engine.recover.working": "Recovering…",
+  "engine.recover.failed": "No saved game could be recovered.",
+  "engine.corruptNotice": "The saved game could not be read. A backup was kept and a new game was started."
+}
