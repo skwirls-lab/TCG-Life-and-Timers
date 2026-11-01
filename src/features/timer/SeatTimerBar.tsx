@@ -18,7 +18,7 @@
 import { Hand, Undo2, Zap } from "lucide-react";
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { formatClock, turnTimeUsed, type Game, type SeatId } from "@/engine";
-import { useSnackbar } from "@/components/ui/Snackbar";
+import { useSnackbar, type SnackAnchor } from "@/components/ui/Snackbar";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
@@ -114,6 +114,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
       {view.canPass && (
         <PassTurnButton
           index={index}
+          seatId={seatId}
           rotation={rotation}
           hold={view.passMode === "hold"}
           short={compact}
@@ -440,21 +441,36 @@ function BarButton({
   );
 }
 
-/** TMR-003/004: tap + 3 s undo snackbar on the passing seat, or hold-to-pass (600 ms). */
+/**
+ * TMR-003/004: tap + 3 s undo snackbar on the passing seat (anchored to the seat tile when the
+ * board registers it, else to this button — D-043/D-058), or hold-to-pass (600 ms).
+ */
 function PassTurnButton({
   index,
+  seatId,
   rotation,
   hold,
   short,
 }: {
   index: number;
+  seatId: SeatId;
   rotation: Rotation;
   hold: boolean;
   short: boolean;
 }) {
   const show = useSnackbar((s) => s.show);
   const [holding, setHolding] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const anchor = (): SnackAnchor => {
+    const r = btnRef.current?.getBoundingClientRect();
+    return {
+      rotation,
+      seatId,
+      ...(r ? { rect: { left: r.left, top: r.top, width: r.width, height: r.height } } : {}),
+    };
+  };
   const doPass = (withUndo: boolean) => {
+    const at = anchor(); // before the pass: the button unmounts once the turn moves on
     const r = passTurn();
     if (!r) return;
     playTone("pass", "taps");
@@ -464,6 +480,7 @@ function PassTurnButton({
       actionLabel: t("common.undo"),
       durationMs: PASS_UNDO_MS,
       rotation,
+      anchor: at,
       onAction: r.undo,
     });
   };
@@ -475,7 +492,7 @@ function PassTurnButton({
     },
     onTap: () => {
       setHolding(false);
-      show({ message: t("timer.holdToPass"), durationMs: 2000, rotation });
+      show({ message: t("timer.holdToPass"), durationMs: 2000, rotation, anchor: anchor() });
     },
   });
   const cls = cn(
@@ -486,6 +503,7 @@ function PassTurnButton({
   if (!hold) {
     return (
       <button
+        ref={btnRef}
         type="button"
         data-testid={`seat-${index}-pass`}
         aria-label={label}
@@ -499,6 +517,7 @@ function PassTurnButton({
   }
   return (
     <button
+      ref={btnRef}
       type="button"
       data-testid={`seat-${index}-pass`}
       data-hold="1"
