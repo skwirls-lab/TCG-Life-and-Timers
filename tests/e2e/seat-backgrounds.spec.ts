@@ -8,7 +8,7 @@ test.describe("seat backgrounds", () => {
     await gotoHarness(page);
     await openSeatMenu(page, 0);
     const seat = page.getByTestId("harness-seat-0");
-    await expect(page.getByTestId("art-picker-slot")).toBeDisabled();
+    await expect(page.getByTestId("art-picker")).toBeVisible(); // the ART lane replaced the slot
 
     const ocean = page.getByTestId("bg-gradient-ocean");
     await ocean.click();
