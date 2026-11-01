@@ -13,6 +13,7 @@ import { GameIcon } from "@/components/icons/GameIcon";
 import type { Rect, ToolbarOrientation } from "@/engine/layout";
 import { enumLabel, globalValue } from "@/engine";
 import { requestReset } from "@/features/history-past/whoWon";
+import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
 import { QuickToolsMenu } from "@/features/tools/QuickToolsMenu";
 import { ClockToolbar } from "@/features/timer/ClockToolbar";
 import { useHold } from "@/lib/hooks/useHold";
@@ -315,7 +316,8 @@ function ResetButton() {
             data-testid="reset-confirm"
             onClick={() => {
               setDialog(false);
-              doReset();
+              // The Who-won prompt may open next: wait until this sheet has left history.
+              afterOverlayClose(doReset);
             }}
           >
             {t("common.reset")}

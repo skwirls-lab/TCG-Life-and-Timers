@@ -9,6 +9,7 @@ import { useSnackbar } from "@/components/ui";
 import type { Game, Preset } from "@/engine";
 import { configFromGame, loadLastConfig, seatsFromGame } from "@/features/setup/gameConfig";
 import { startNewGame } from "@/features/setup/startGame";
+import { afterOverlayClose } from "./afterOverlayClose";
 import { fullscreenSupported, isStandalone } from "@/lib/device/fullscreen";
 import { useEntitlements } from "@/lib/entitlements/store";
 import { can } from "@/lib/entitlements/policy";
@@ -181,6 +182,8 @@ export function useSettingsModel(): SettingsModel {
       seatsFromGame(game),
       samePreset ? configFromGame(game).timer : undefined,
     );
+    // The confirm sheet just closed; the Who-won prompt (HIST-031) may open next.
+    await new Promise<void>((resolve) => afterOverlayClose(resolve));
     if (!(await startNewGame(config))) return; // Who-won prompt closed (HIST-031)
     show({ message: t("shell.settings.resetDone"), durationMs: 3000 });
   }, [pending, game, show, picked]);
