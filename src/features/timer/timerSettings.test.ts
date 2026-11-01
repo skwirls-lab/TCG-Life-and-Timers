@@ -41,10 +41,14 @@ afterEach(() => resetGameStore());
 
 describe("settings section C (§13.1-C)", () => {
   // @req SET-010
-  it("shows only the mode row when clocks are off, and rows by mode", () => {
-    expect(timerIds(ctx(null))).toEqual(["timer.mode"]);
+  it("clocks off shows the mode row and the round timer (A-3), then rows by mode", () => {
+    expect(timerIds(ctx(null))).toEqual(["timer.mode", "timer.match"]);
     expect(getSetting("timer.mode")!.disabledIf).toBeUndefined();
-    expect(timerIds(ctx(game()))).toEqual(["timer.mode"]);
+    expect(timerIds(ctx(game()))).toEqual(["timer.mode", "timer.match"]);
+    // TMR-032: a match timer with per-seat clocks Off still shows/edits its extra turns.
+    applyTimerPatch({ match: { totalMs: 50 * 60_000, extraTurns: 3 } });
+    expect(timerIds(ctx(game()))).toEqual(["timer.mode", "timer.match", "timer.extraTurns"]);
+    applyTimerPatch({ match: undefined });
     applyTimerPatch({ mode: "bankIncrement" });
     const ids = timerIds(ctx(game()));
     expect(ids).toEqual(

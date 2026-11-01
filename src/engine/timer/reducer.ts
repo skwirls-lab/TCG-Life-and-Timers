@@ -30,6 +30,7 @@ import {
   isCharging,
   isLimited,
   projectTimer,
+  timerEngaged,
 } from "./clock";
 import { initialTimerState, type SeatClock, type TimerConfig, type TimerState } from "./types";
 
@@ -123,7 +124,7 @@ export function settle(g: Game, now: number): Game {
 /** Start the clocks (TMR-002): the turn holder's clock runs from `now`. */
 function start(g: Game, now: number): Game {
   const t = g.timer;
-  if (t.mode === "off" || t.status !== "idle" || g.status !== "running") return g;
+  if (!timerEngaged(t) || t.status !== "idle" || g.status !== "running") return g;
   const active = g.turn.activeSeat;
   const { pausedReason: _p, ...rest } = t;
   return withTimer(g, {
@@ -183,7 +184,7 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
  */
 export function syncTimer(game: Game, now: number, lagMs = 0): Game {
   const t0 = game.timer;
-  if (t0.mode === "off" || t0.status === "idle") return game;
+  if (!timerEngaged(t0) || t0.status === "idle") return game;
   let g = game;
   if (g.status === "ended") {
     if (t0.status === "ended") return game;
@@ -553,7 +554,7 @@ function heldOvershoot(game: Game, seatId: SeatId, now: number): number {
 export function reduceTimer(game: Game, action: GameAction, now: number, prev: Game = game): Game {
   if (action.type === "TIMER_SET_CONFIG") return setConfig(game, action.config, now);
   if (action.type === "TIMER_RESET_CLOCKS") return resetClocks(game, action.config ?? {}, now);
-  if (game.timer.mode === "off" && prev.timer.mode === "off") return game;
+  if (!timerEngaged(game.timer) && !timerEngaged(prev.timer)) return game;
   if (isTimerAction(action)) {
     const g = timerTransition(game, action, now);
     if (g === null) return game;
