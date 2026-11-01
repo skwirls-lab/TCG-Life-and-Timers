@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | Product Requirements Document |
-| Version | 0.2 (draft for owner review). v0.2 adds the full Settings spec (§13.1) and clarifies the selectable seat count (LAY-001, LAY-009). |
+| Version | 0.3 (draft for owner review). v0.2 added the full Settings spec (§13.1) and the selectable seat count (LAY-001, LAY-009). v0.3 expands History & Stats (§12), Tools / Dice & Misc / Mana counter (§16), adds Decks (PROF-010), and sets the free vs. Pro split (§17.2). |
 | Date | 2026-11-01 |
 | Owner | John (skwirls) |
 | Status | **Draft: awaiting review.** After sign-off, this PRD becomes the input for `instructions.md` (execution plan with loops and gates). |
@@ -483,8 +483,8 @@ interface Preset {
 | City's Blessing | player boolean | off | — | badge | Ascend |
 | Speed | player number, min 0, max 4 | 0 | — | badge | "Start your engines!" (Aetherdrift). ⚠ VERIFY max value |
 | The Ring tempts you | player number | 0 | — | badge | ring-bearer level (LotR), capped at 4 ⚠ VERIFY |
-| Storm count | global number, resets on pass turn | 0 | — | toolbar (opt) | auto-reset when turn passes, if turn tracking is on |
-| Mana pool (WUBRGC) | player numbers ×6 | 0 | — | panel | P2, opt-in |
+| Storm count | global number, resets on pass turn | 0 | — | Mana & Storm page (TOOL-011) | auto-reset when turn passes, if turn tracking is on |
+| Mana pool (WUBRGC) | device-level numbers ×6 (per seat in P2) | 0 | — | Mana & Storm page (TOOL-011) | P1 |
 | K.O. / custom tally | player number | 0 | — | badge | generic; LifeTap has "K.O." |
 | Dungeon progress | player enum per dungeon | — | — | panel | P2 |
 
@@ -591,13 +591,58 @@ This is the agnostic core, and a likely premium anchor.
 
 ## 12. History, log, and stats
 
-- **HIST-001 (P0, M1):** **In-game history** (toolbar 🕒): a chronological log showing time, seat, action, and before → after (e.g. "07:35 · Conner · Life 24 → 21 (−3)"; "07:36 · JP · Commander damage from Bethany +5 (life −5)"; "07:40 · Turn 7 → Josh"; "07:41 · ⚡ Bethany responded (0:42)"). Filterable by seat.
-- **HIST-002 (P1, M1):** A **life chart**: life over time (or by turn) per seat, as a line chart, available in history and at game end.
-- **HIST-003 (P0, M6):** **Completed game records** are saved locally, and to the cloud when signed in. A record holds: preset, players (names/profile IDs), winner, elimination order and causes, duration, turns, per-seat time used, starting player, and the full event log (compressed).
-- **HIST-004 (P1, M6):** **Game history list**: filter by preset/player/date, and open a game summary.
-- **HIST-005 (P1, M6):** **Player stats** (per profile): games played, win rate, win rate when going first, average turn time, and "most damaged by" (commander damage). Advanced stats are premium (see §17).
-- **HIST-006 (P2, M6):** Export history as CSV/JSON.
-- **HIST-007 (P0, M6):** Free tier keeps the last **N = 20** games locally (Q5). Signed-in premium users get unlimited history.
+LifeTap's history screens (third batch of reference screenshots) are the baseline. Most people don't know these features exist, so **we make them visible**: the game-over screen links to stats, and the launcher shows a "Your stats" card once there are 3 or more games. The history screen opens from the toolbar 🕒 as a full-screen page. It has two top-level segments: **Current Game** and **Past Games**.
+
+### 12.1 Current Game tab
+- **HIST-001 (P0, M1):** **Game header card**: "Game 8", start date/time (relative: "Yesterday at 10:05 AM"), player count, starting value of the primary counter (♡ 40), preset name, and elapsed time. A chevron expands it to show the settings used (thresholds, timer mode).
+- **HIST-010 (P0, M1):** **Standings list**, one row per seat, sorted by current primary value (eliminated seats last, dimmed, with ☠). Each row shows a left color bar in the seat's color, the name, a **deck / commander name subtitle** (e.g. "Toxrill, the Corrosive"; see PROF-010), and the current value. Tapping a row filters the log to that seat.
+- **HIST-011 (P0, M1):** **Event log**, newest first. Each row shows:
+  - a colored dot in the **affected** seat's color, then the name. For matrix counters it reads **"Source → Target"** (e.g. "Josh → Conner" for commander damage).
+  - the **counter icon** (♡ life, poison, commander-tax castle, commander damage, …).
+  - a **delta chip** color-coded by counter category: life loss red, life gain green, poison purple, commander damage orange, timers blue, and other counters neutral. Colors come from the counter definition, not hard-coded.
+  - "→ new value".
+  - the timestamp, revealed by tapping the row or by a "show times" toggle.
+  - Batched taps appear as one row (INP-006).
+  - Linked effects appear as **two rows grouped together** (commander damage +9 and life −9), matching the LifeTap screenshot.
+- **HIST-012 (P0, M2):** Non-counter events appear inline with distinct styling: turn passes ("Turn 7 → Josh · 2:41"), responses ("⚡ Bethany responded · 0:42"), pauses, timeouts, eliminations (with cause), token transfers (👑 Monarch → JP), day/night changes, dice/coin results, resets, and undo markers.
+- **HIST-013 (P1, M1):** **Edit from history**: long-press a row to see "Undo to here" (reverts this and all later actions, with confirmation) or "Delete this change" (only for independent counter changes; it recomputes later values).
+- **HIST-002 (P1, M1):** A **life chart** toggle (List | Chart): primary counter over time, or by turn when turn tracking is on, with one line per seat in the seat color. Elimination points are marked ☠.
+
+### 12.2 Past Games tab
+Sub-tabs: **Games · Players · Decks · Insights**, plus a **Filter** bar and an **Export** (⤓) button. LifeTap's "Profiles" tab is player + commander pairs. We call these **Decks**, since we also cover non-MTG games.
+
+- **HIST-003 (P0, M6):** **Completed game records** are saved locally (and to the cloud when signed in). A record holds: preset, players (names, profile IDs, deck IDs, commander names), seat order, **turn position of each player**, starting player, winner(s), elimination order with cause and turn, duration, **active play time** (excluding pauses and idle gaps), turns and rounds, per-seat time used and average turn time (when timers or turn tracking are on), final counter values, and the full event log (compressed).
+- **HIST-020 (P0, M6):** **Games list**: cards with game number, date/time, player count, starting value, duration, and the winner (🏆 name with an accent left bar), or "No winner". Tapping a card opens **Game detail**: the read-only Current-Game view (standings, log, chart) for that game, plus "Rematch with same setup" and "Delete game".
+- **HIST-021 (P0, M6):** **Players list**: one row per **player identity** with W / L and win %. Tapping opens the player detail: games, win % by preset, by deck, and by turn position, average turn time, favorite opponents, head-to-head records, and most common elimination cause.
+- **HIST-022 (P1, M6):** **Decks list**: thumbnail art, player name, deck/commander name, W / L, and win %. Tapping opens deck detail: win % by turn position, average finish position, games list, and "most damage dealt to / taken from".
+- **HIST-023 (P1, M6):** **Insights** (dashboard):
+  - **Summary tiles**: games, total play time, average game.
+  - **Turn order advantage**: win % by starting position (goes first, position 2, …, position N), with counts (e.g. 1/3, 33%).
+  - **Game duration**: average, longest, shortest. Also average turns per game and average turn length.
+  - **Our additions**:
+    - win % by preset/format;
+    - **elimination causes** (life / poison / commander damage / time / concede, as a breakdown);
+    - **first blood** (who is usually eliminated first);
+    - **commander damage leaderboard** (most total commander damage dealt);
+    - **clock stats**: slowest and fastest player by average turn time, total time spent responding, and timeouts. This is unique to our app and good for friendly banter.
+    - **Playgroup** view: the same players together over time.
+  - A "Suggest a stat" link to the feedback form (SET-041).
+- **HIST-024 (P0, M6):** **Filter** (applies to all four sub-tabs): date range, preset/game, player count, players included, decks included, starting value, timer on/off, and "has winner only". The active filter shows as chips.
+- **HIST-006 (P1, M6):** **Export** (⤓): CSV (one row per game-seat) and JSON (full records), using the current filter. Also **import JSON** (to restore or move between guest devices).
+
+### 12.3 Data quality (fixing problems visible in LifeTap's screenshots)
+The LifeTap screenshots show durations like "171 hr 17 min" and "204 hr 59 min", most games marked "No winner", generic names ("Player 1…5") counted as real players, and the same person ("Declan") listed twice. We avoid these:
+
+- **HIST-030 (P0, M6):** **Active play time.** The duration counts only active time. Clock pauses are excluded, and so are **idle gaps longer than 15 minutes** with no input (configurable). A game left open overnight doesn't record 171 hours. Wall-clock duration is stored separately.
+- **HIST-031 (P0, M6):** **"Who won?" prompt.** When the user resets or starts a new game while the current game has meaningful activity (≥ 3 counter changes or ≥ 5 minutes active) and no winner was detected, ask: "Who won?" with seat buttons, plus "Draw", "No winner", and "Don't save this game". The prompt is skippable. A setting can make it "Always ask", "Ask if unclear" (default), or "Never".
+- **HIST-032 (P0, M6):** **Abandoned-game handling.** A game with trivial activity (e.g. under 1 minute and no changes) is discarded automatically and never pollutes stats.
+- **HIST-033 (P0, M6):** **Player identity.** Stats group by **profile ID** when a profile is loaded, otherwise by normalized name (case- and whitespace-insensitive). Default names ("Player 1", "Player 2", …) are **excluded from Players and Decks stats** by default (a filter toggle can show them).
+- **HIST-034 (P1, M6):** **Merge / rename players.** In Players, long-press to merge two identities (e.g. two "Declan" rows), or to link a name-only identity to a profile. The merge rewrites the stored records' identity references, and can be undone right after.
+- **HIST-035 (P1, M6):** Edit a past game: winner, player names/profiles, and deck. You can't edit the event log, but you can delete the whole game.
+
+### 12.4 Storage and tiers
+- **HIST-007 (P0, M6):** All game records are **kept locally** (soft cap 1,000 games; older ones are compacted to summaries without logs). Free users can **view the most recent 20** games in the Games list; older games stay stored, and a "34 more games saved — unlock with Pro" row shows at the end. Upgrading reveals them immediately with nothing lost. See §17.2 for which stats views are free.
+- **HIST-008 (P0, M6):** When the "Game history" setting is Off (§13.1-B), the app keeps no records and hides the history button.
 
 ## 13. Player profiles, personalization, and settings
 
@@ -605,6 +650,8 @@ This is the agnostic core, and a likely premium anchor.
 - **PROF-002 (P0, M1):** **Load** (as in the screenshot's Load button) assigns a saved profile to a seat. Recently used profiles appear first.
 - **PROF-003 (P1, M4):** Profiles sync to the account. One "**me**" profile is designated for the account owner and pre-fills seat 1 by default.
 - **PROF-004 (P2):** Friends / linked accounts (shared profiles between users) are out of scope for v1.
+- **PROF-010 (P0, M1):** **Decks.** A profile can own several **decks**. Each deck has a name, the game/preset it belongs to, optional commander name(s) (MTG; partners allowed), default art, and an optional color identity. In the seat menu, after loading a profile, pick the deck (or "New deck…"). Selecting Scryfall art for a commander-type preset **offers to save that card as the deck's commander**, which is how LifeTap gets the "Toxrill, the Corrosive" subtitles. Decks drive the history subtitles (HIST-010), Decks stats (HIST-022), and one-tap setup ("Load JP · Toxrill" sets name, art, and commander).
+- **PROF-011 (P0, M1):** **Seats without a profile** still record a name (and optional deck name) for stats. When a name-only player is used 2 or more times, offer "Save Declan as a profile?".
 - **SET-001 (P0, M1):** A full **Settings screen** with Game, Preset-default and App scopes. It covers everything in LifeTap's settings plus multi-TCG, custom-preset, timer, account and Pro settings. Full specification in §13.1.
 - **SET-002 (P0, M1):** **Seat background options**:
   1. **Scryfall art** (§14)
@@ -794,6 +841,7 @@ LifeTap's support section has Review / Donate / Send feedback / Send diagnostics
 ```
 users/{uid}                                   // profile doc: displayName, createdAt, settings, meProfileId
 users/{uid}/profiles/{profileId}              // player profiles
+users/{uid}/profiles/{profileId}/decks/{deckId} // decks (name, presetId, commanders[], art)
 users/{uid}/presets/{presetId}                // custom presets
 users/{uid}/games/{gameId}                    // completed game summaries (+ compressed log)
 users/{uid}/art/{artId}                       // metadata for uploaded art (storage path, dims, focal)
@@ -817,15 +865,36 @@ sharedPresets/{code}                          // public read, create by signed-i
 - **SYNC-003 (P0, M4):** Game records are write-once.
 - **SYNC-004 (P1, M4):** A sync status indicator in Settings/Account shows "Synced · 2 min ago", "Offline — will sync", or an error.
 
-## 16. Tools
+## 16. Tools ("Dice & Misc")
 
-- **TOOL-001 (P0, M1):** **Dice**: d4, d6, d8, d10, d12, d20, and d100. Roll multiple at once (e.g. 3d6) with a sum. Each roll is animated and saved to history.
-- **TOOL-002 (P0, M1):** **Coin flip**: single, or "flip N", or "flip until tails" (Pokémon). Results go to history.
-- **TOOL-003 (P0, M1):** **Random player picker** (the same animation as the first-player pick).
-- **TOOL-004 (P1, M3):** **Roll-off for first player**: each seat rolls a d20 on its own tile.
+LifeTap's "Dice & Misc" screen (third batch of screenshots) is the baseline. It opens as a full-screen page from the toolbar 🎲 tap. **Hold** the 🎲 button for the **quick-access radial menu** (described below).
+
+**Randomizers**
+- **TOOL-003 (P0, M1):** **Randomize player** picks a random seat among living seats, with the same highlight-cycling animation as the first-player pick (GAME-011).
+- **TOOL-008 (P0, M1):** **Randomize opponent** picks a random **opponent** of a given seat, among living seats other than that seat. It is used for "choose an opponent at random" card effects. If opened from a seat menu, that seat is the chooser. If opened from the toolbar, a quick "Who's choosing?" seat picker appears first.
+
+**Coins and dice**
+- **TOOL-002 (P0, M1):** **Flip coin**: single flip (heads/tails, animated), plus "Flip N" and "Flip until tails" (Pokémon), which report the count of heads.
+- **TOOL-001 (P0, M1):** **Dice**: d4, d6, d8, d10, d12, d20 (one button each, as in LifeTap), plus d100.
+  - **Custom die**: "Set N → Roll", rolling 1..N for any N from 2 to 1000. The last N is remembered.
+  - **Multiple dice**: a stepper (×1…×10) for rolling e.g. 3d6; the result shows each die and the sum.
+- **TOOL-009 (P0, M1):** **Result overlay**: a large card in the center of the screen showing the die face or number (the LifeTap d6 "6" overlay). Tap anywhere to dismiss, or tap "Roll again". Results face the invoking seat (TOOL-007), and the roll is logged to the game history (HIST-012). When "Dice & randomizer animations" is off, the result appears instantly.
+- **TOOL-010 (P0, M1):** **Quick access**: press and hold the toolbar 🎲 to open a radial or compact popover with every die, the coin, randomize player, and randomize opponent. Releasing on an item fires it. This matches LifeTap's "Hold the die button for instant access to all dice and randomizers" tip, and we show the same tip on the Tools page.
+
+**Game-specific and other tools**
+- **TOOL-004 (P1, M3):** **Roll-off for first player**: each seat rolls a d20 on its own tile; ties re-roll.
 - **TOOL-005 (P2):** **Planar die** (Planechase: blank / chaos / planeswalk).
-- **TOOL-006 (P1, M3):** **Yu-Gi-Oh LP calculator** (INP-007).
+- **TOOL-006 (P1, M3):** **Yu-Gi-Oh! LP calculator** (INP-007).
+- **TOOL-011 (P1, M1):** **Mana & Storm counter** (MTG presets; LifeTap has a "Mana Counter" page):
+  - A full-screen page with six rows: **W, U, B, R, G, C** (colorless). Each row has − / mana symbol / value / +.
+  - A **Storm counter** row below them.
+  - **Clear** (resets all to 0) and **Close** buttons.
+  - The mana pool belongs to **the device user**, not a seat, matching LifeTap. In P2 it becomes per seat, opened from the seat menu.
+  - The storm count **resets automatically when the turn passes**, if turn tracking is on.
+  - Mana symbols: use **Scryfall's symbology SVGs** (`/symbology` endpoint, cached for offline use) or the open-source community "Mana" font. **Do not** use symbols ripped from official assets. Keep the attribution. (WotC Fan Content Policy; see §18.)
+- **TOOL-012 (P1, M3):** **Generic counter page** for non-MTG presets: the preset can declare a "scratch counters" set (e.g. Pokémon damage calculator, Lorcana ink) using the same row UI.
 - **TOOL-007 (P0, M1):** Tool results are shown **rotated toward the seat that invoked them**, or in the center if invoked from the toolbar. Randomness uses `crypto.getRandomValues` with rejection sampling to avoid modulo bias.
+- **TOOL-013 (P0, M1):** **Icons.** Dice icons come from an open-licensed set (e.g. game-icons.net, CC BY 3.0) or are custom-drawn SVGs, with attribution on the About screen (LifeTap credits "Dicefont").
 
 ## 17. Monetization
 
@@ -834,24 +903,38 @@ sharedPresets/{code}                          // public read, create by signed-i
 - Premium sells **power, customization, and convenience**: advanced timers, custom presets, cloud sync breadth, stats, themes.
 - **Do not paywall Scryfall-sourced data/images** (ART-007). Also be cautious with WotC's **Fan Content Policy**, which restricts charging for access to content that uses their IP. Premium features should be **game-agnostic** features (timers, builder, stats, themes, sync), not "premium MTG content". This is another reason your agnostic design is the right call. **Get a legal review before launch (Q7).**
 
-### 17.2 Proposed tiers (to be refined; see Q4)
+### 17.2 Free vs. Pro split (owner delegated this decision; revisit before M7)
 
-| Feature | Free | Premium ("Pro") |
-|---|---|---|
-| All built-in presets, 1–6 players | ✅ | ✅ |
-| 7–8 players | — | ✅ |
-| Life and all counters, commander damage, partners, tokens | ✅ | ✅ |
-| Scryfall art, upload art (local) | ✅ | ✅ |
-| Turn tracking, count-up timer, basic chess clock (bank only), global pause | ✅ | ✅ |
-| Increment, delay, per-turn, hybrid, match timer, grace and "add time once" options | Basic grace only | ✅ |
-| Custom presets | 1 | Unlimited + share links |
-| Player profiles | 4 | Unlimited |
-| Cloud sync (profiles, presets, settings) | ✅ (with sign-in) | ✅ |
-| Cloud sync of uploaded art | 10 images | 200 images |
-| Game history | Last 20, local | Unlimited, synced |
-| Stats dashboard (per-player, per-preset) | Basic (win/loss) | Advanced |
-| Themes (seat frames, fonts, animated backgrounds), custom sounds | Default | ✅ |
-| Ads | **None** (recommended) | None |
+**How I split it.** Everything you need to **play** a game is free: tracking, art, tools, a fair basic clock, and the full current-game history. Pro sells **depth**: advanced clock modes, unlimited customization, and the **long-term stats** people love but rarely know exist. Free users get a real **taste** of stats (recent games, W/L, summary tiles, and a blurred preview of the locked Insights), so they find out the value before they meet the paywall. Nothing a free user records is ever deleted. Upgrading reveals it all (HIST-007).
+
+| Area | Feature | Free | Pro |
+|---|---|---|---|
+| **Play** | All built-in presets, 2–6 players, One-player mode | ✅ | ✅ |
+| | 7–8 players | — | ✅ |
+| | Life and all counters, commander damage, partners, tokens, day/night | ✅ | ✅ |
+| | Scryfall art (must stay free, ART-007), local image uploads, gradients | ✅ | ✅ |
+| | Camera mode, player card layouts, all LifeTap-equivalent settings | ✅ | ✅ |
+| **Tools** | Dice, custom die, coin, randomize player/opponent, quick access, Mana & Storm | ✅ | ✅ |
+| **Timers** | Turn tracking, count-up, chess clock (bank), Respond/Pass back, global pause, timeout: lose / grace / flag | ✅ | ✅ |
+| | Increment, delay, per-turn, hybrid, match timer + extra turns, "add time once", per-seat handicap, custom warning thresholds | — | ✅ |
+| **Customize** | Custom presets | 1 | Unlimited + share links + import |
+| | Player profiles / decks | 4 profiles, 3 decks each | Unlimited |
+| | Themes, seat frames, sound packs | Default themes | ✅ |
+| **History** | Current game: log, standings, life chart, edit from history | ✅ | ✅ |
+| | Past games list | Most recent 20 viewable (all kept) | All |
+| | Players tab (W/L, win %) | ✅ | ✅ + player detail pages and head-to-head |
+| | Decks tab | Preview (top 3) | ✅ |
+| | Insights | Summary tiles (games, total time, avg game) | Full: turn-order advantage, durations, elimination causes, first blood, commander-damage leaderboard, clock stats, by-preset |
+| | Filters | Date range only | All filters |
+| | Export / import (CSV/JSON) | — | ✅ |
+| **Sync** | Sign in with Google; sync of settings, profiles, decks, presets | ✅ | ✅ |
+| | Sync of game history across devices | — (kept on device) | ✅ |
+| | Cloud sync of uploaded art | 10 images | 200 images |
+| **Ads** | | **None** | None |
+
+> **Why history sync is Pro but profile sync is free:** profile sync is the reason to create an account at all, and accounts help retention and later conversion. Cross-device history and deep stats are what power users will pay for.
+>
+> Open question Q5 (free-tier limits) is now **answered by this table** unless you change it.
 
 - **PAY-001 (P0, M0):** Entitlement plumbing (`can(feature)`) exists from M0. All features are free until M7 (ARCH-008).
 - **PAY-002 (P1, M7):** **Stripe Checkout** via the Firebase "Run Payments with Stripe" extension. Products: monthly (e.g. $1.99), yearly (e.g. $14.99), lifetime (e.g. $29.99). Prices are placeholders (Q4).
@@ -942,7 +1025,7 @@ Key events: `game_start` (preset, players, timers on/off, mode), `game_end` (dur
 | Q2 | App name and domain? | Placeholder "TCG Life & Timers". Candidates: *TurnTap*, *ClockTap*, *Life & Clock*, *PodClock*, *TableClock*. Check trademark and domain availability. |
 | Q3 | Default timeout behaviour for casual presets? | **Grace period 60 s → eliminate**, with "Flag only" one tap away in setup. Competitive presets: **lose immediately**. |
 | Q4 | Pricing model and price points? | Freemium + **Pro**: $1.99/mo, $14.99/yr, $29.99 lifetime. Decide before M7. |
-| Q5 | Free-tier limits (profiles, custom presets, history, cloud art)? | 4 profiles, 1 custom preset, 20 games of history, 10 cloud images |
+| Q5 | Free-tier limits? | **Decided in §17.2** (owner delegated): 4 profiles × 3 decks, 1 custom preset, 20 most recent games viewable (all kept), 10 cloud images |
 | Q6 | Should response time be charged to the responder (default) or freeze all clocks? | **Charge responder** by default, with "Freeze all" as an option (TMR-010) |
 | Q7 | Legal review of trademark use and the WotC Fan Content Policy against paid tiers? | Get a short consult before M7. Keep premium features game-agnostic. |
 | Q8 | Do you want the 7–8 player layouts to be premium? | Yes (low cost to free users, nice upsell) |
@@ -979,6 +1062,11 @@ Key events: `game_start` (preset, players, timers on/off, mode), `game_end` (dur
 | Seat menu rotated toward the player, with **Player** tab: name, **Load**, Backgrounds, Colors, Increase contrast | §8.2, PROF-002, SET-003 |
 | **Counters** tab: Monarch, Initiative, Ascend, Day/night, Energy, Exp, Treasure, Poison, Rad, C.Tax, K.O.; "Tap to increment. Hold for additional options."; commander-damage grid with "me" | §8.2, §10.2, CMD-010 |
 | *Settings screenshots:* Players 2–6 chips, Layout thumbnails, Starting life 20/25/30/40/60 + Custom, Planechase/Archenemy/Bounty, Auto-KO, Commander damage life loss, Turn timer, Game history, Starting player, Colorize mini-grids, Player card layout, Auto-hide menu, Dice animations, One-player mode, Camera mode, Language, Keep awake, Haptics, Hide system bars, Feedback/Diagnostics | §13.1 (all included; Planechase/Archenemy/Bounty as P2) |
+| *Dice & Misc:* Randomize player, Randomize opponent, Flip coin, Custom die (Set N → Roll), d4–d20, large result overlay, hold-the-die quick access | §16 TOOL-001..013 |
+| *Mana Counter:* WUBRGC rows with −/+, Storm counter, Clear | TOOL-011 |
+| *Game History, Current Game:* header card (game #, date, players, starting life), standings with commander subtitle and ☠, log with icons, colored delta chips, "Source → Target" | HIST-001, HIST-010..013 |
+| *Past Games:* Games / Players / Profiles / Insights tabs, filter, export; turn-order advantage; duration stats | HIST-020..024, HIST-006; Profiles = our **Decks** (PROF-010) |
+| *Problems seen:* 171-hour durations, mostly "No winner", "Player 1–5" counted as players, duplicate "Declan" | Fixed by HIST-030..034 |
 
 **Additions beyond LifeTap:** chess clocks with respond/pass-back, turn tracking, multi-TCG presets, a custom builder, accounts and sync, stats, a calculator for high-LP games, and per-seat thresholds.
 
@@ -994,6 +1082,8 @@ Key events: `game_start` (preset, players, timers on/off, mode), `game_end` (dur
 8. **Data separation.** User A cannot read or write `users/B/**` (rules test). The client cannot write entitlements (rules test).
 9. **Yu-Gi-Oh calculator.** LP 8000 → enter `−2300` → 5700 → `/2` → 2850 → history shows the tape.
 10. **Pokémon.** Prizes 6 → take 6 → win. Active damage +30 (3 taps at step 10) → "KO'd/reset" clears it.
+11. **History and stats.** Play 3 games with profiles and decks: one with a clear winner, one reset mid-game (the "Who won?" prompt picks a winner), and one left idle for 2 hours before finishing. Past Games shows 3 games. The idle game's duration excludes the idle gap. Players shows W/L with no "Player N" rows. Insights turn-order advantage matches the fixtures. Merging two same-name players combines their records. CSV export has one row per game-seat.
+12. **Dice.** Hold 🎲 → the quick menu → release on d20 → the result overlay faces the toolbar, and the roll appears in the history log. Randomize opponent from JP's seat never returns JP or an eliminated seat (property test, 10k runs).
 
 ---
 
