@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { overlayStack } from "./overlayStack";
 
 /**
- * While `open`, pushes a history entry so Android/browser Back closes the overlay
- * instead of leaving the page (SEAT-005).
+ * While `open`, the overlay owns a history entry so Android/browser Back closes it instead of
+ * leaving the page (SEAT-005). Stack-aware (D-043): Back closes only the top overlay, and closing
+ * one overlay while opening another in the same tick keeps the new one open (see overlayStack).
  */
 export function useBackClose(open: boolean, onClose: () => void) {
   const closeRef = useRef(onClose);
@@ -13,23 +15,8 @@ export function useBackClose(open: boolean, onClose: () => void) {
 
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
-    const marker = { overlay: Math.random().toString(36).slice(2) };
-    window.history.pushState(marker, "");
-    let poppedByBack = false;
-    const onPop = () => {
-      poppedByBack = true;
-      closeRef.current();
-    };
-    window.addEventListener("popstate", onPop);
-    return () => {
-      window.removeEventListener("popstate", onPop);
-      if (
-        !poppedByBack &&
-        window.history.state &&
-        window.history.state.overlay === marker.overlay
-      ) {
-        window.history.back();
-      }
-    };
+    const stack = overlayStack();
+    const id = stack.push(() => closeRef.current());
+    return () => stack.release(id);
   }, [open]);
 }
