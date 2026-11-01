@@ -1,4 +1,4 @@
-// @req ENV-003
+// @req ENV-003 @req TMR-001
 /**
  * ENV-003: the smallest supported viewport, 320×568 portrait. No horizontal scrolling on any
  * page; on the board every seat's number, name and +/− sit inside its tile, and the toolbar
@@ -66,6 +66,51 @@ for (const players of [2, 4]) {
     await expectSeatsFit(page, players);
     await expectToolbarTargets(page);
   });
+}
+
+// A-5 (review): with a clock configured the START pill (and a match clock) must not push the
+// last toolbar buttons off-screen; Settings stays reachable (on the bar or in "More").
+for (const [w, h] of [
+  [320, 568],
+  [360, 740],
+] as const) {
+  for (const players of [2, 3, 4]) {
+    for (const extra of [
+      "t.mode=bank&t.bankMs=600000",
+      "t.mode=bank&t.bankMs=600000&t.matchMs=3000000&t.extraTurns=3",
+    ]) {
+      const label = extra.includes("matchMs") ? "clock + match timer" : "clock";
+      test(`toolbar with a ${label} fits ${w}×${h}, ${players} players`, async ({ page }) => {
+        await page.setViewportSize({ width: w, height: h });
+        await page.goto(`${PLAY}&players=${players}&${extra}`);
+        await expect(page.getByTestId("timer-start")).toBeVisible();
+        await expectNoHorizontalScroll(page);
+        const toolbar = page.getByTestId("toolbar");
+        const buttons = toolbar.locator("button:visible");
+        const n = await buttons.count();
+        for (let k = 0; k < n; k++) {
+          const b = (await buttons.nth(k).boundingBox())!;
+          const id = await buttons.nth(k).getAttribute("data-testid");
+          expect(Math.min(b.width, b.height), `${id} target size`).toBeGreaterThanOrEqual(44);
+          expect(b.x, `${id} left edge`).toBeGreaterThanOrEqual(-1);
+          expect(b.x + b.width, `${id} right edge`).toBeLessThanOrEqual(w + 1);
+        }
+        if (extra.includes("matchMs")) {
+          const m = (await page.getByTestId("match-clock").boundingBox())!;
+          expect(m.x + m.width).toBeLessThanOrEqual(w + 1);
+        }
+        // Settings is on the bar, or one tap away in the overflow menu.
+        if (!(await page.getByTestId("toolbar-settings").isVisible())) {
+          await page.getByTestId("toolbar-more").click();
+        }
+        const s = (await page.getByTestId("toolbar-settings").boundingBox())!;
+        expect(s.x + s.width).toBeLessThanOrEqual(w + 1);
+        expect(Math.min(s.width, s.height)).toBeGreaterThanOrEqual(44);
+        await page.getByTestId("toolbar-settings").click();
+        await expect(page).toHaveURL(/\/settings/);
+      });
+    }
+  }
 }
 
 test("seat menu fits 320×568", async ({ page }) => {

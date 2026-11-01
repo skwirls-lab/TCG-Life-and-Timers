@@ -185,3 +185,96 @@ export function parseSettingsParams(search: URLSearchParams): Record<string, unk
   }
   return out;
 }
+
+export interface PipLayout {
+  rows: number;
+  cols: number;
+  /** Pip diameter, px. */
+  d: number;
+  gap: number;
+}
+
+/**
+ * §10.5 pips display (FFTCG damage): `n` slots in one or two rows, as large as fit `w`×`h`
+ * (px, in the player's frame). Two rows win when they give bigger pips.
+ */
+export function pipLayout(n: number, w: number, h: number): PipLayout {
+  const count = Math.max(1, Math.round(n));
+  let best: PipLayout = { rows: 1, cols: count, d: 0, gap: 0 };
+  for (const rows of count > 1 ? [1, 2] : [1]) {
+    const cols = Math.ceil(count / rows);
+    // gap = 30 % of a pip: cols·d + (cols−1)·0.3d ≤ w ; rows·d + (rows−1)·0.3d ≤ h
+    const d = Math.floor(
+      Math.max(4, Math.min(w / (cols + 0.3 * (cols - 1)), h / (rows + 0.3 * (rows - 1)), 72)),
+    );
+    if (d > best.d) best = { rows, cols, d, gap: Math.max(2, Math.round(d * 0.3)) };
+  }
+  return best;
+}
+
+/** Global number counters drawn as a shared track in the toolbar (§10.6 Digimon memory). */
+export function trackGlobals(game: Game): CounterDefinition[] {
+  return game.preset.counters.filter(
+    (c) =>
+      c.scope === "global" &&
+      c.kind === "number" &&
+      c.display === "track" &&
+      c.visibility === "board" &&
+      game.enabledCounters.includes(c.id),
+  );
+}
+
+/**
+ * Which end of a shared track holds the positive values (A-4). Convention: seat 1 (the first seat
+ * in seat order) owns the positive side, and each player's side is on their own right-hand side
+ * — on a top/bottom table that is the left of the screen for the top player and the right for
+ * the bottom one, so both read "my side is on my right". `true` = positive at the right (or
+ * bottom, for a vertical toolbar).
+ */
+export function trackPlusAtEnd(
+  orientation: "horizontal" | "vertical",
+  ownerRotation: number,
+): boolean {
+  if (orientation === "horizontal") return ownerRotation !== 180;
+  return ownerRotation !== 270;
+}
+
+export interface ToolbarItem {
+  key: string;
+  /** Main-axis size, px, at normal and compact density. */
+  size: number;
+  compactSize: number;
+  /** Lower = kept on the bar longer when space runs out. */
+  priority: number;
+  /** Never moved into the overflow menu (the clock control, Settings). */
+  pinned?: boolean;
+}
+
+export interface ToolbarFit {
+  compact: boolean;
+  /** Item keys moved into the overflow ("More") menu. */
+  overflow: string[];
+}
+
+/** Size of the overflow (More) button, px. */
+export const TOOLBAR_MORE_PX = 44;
+
+/**
+ * A-5 (ENV-003): fit the toolbar into `avail` px. First at normal density (48 px buttons, gaps,
+ * the wide START pill); then compact (44 px targets, compact START / match clock, no gaps); then
+ * compact with the lowest-priority items in an overflow menu.
+ */
+export function fitToolbar(items: ToolbarItem[], avail: number, gap = 2): ToolbarFit {
+  const normal = items.reduce((s, i) => s + i.size, 0) + gap * Math.max(0, items.length - 1);
+  if (normal <= avail) return { compact: false, overflow: [] };
+  const sum = (list: ToolbarItem[]) => list.reduce((s, i) => s + i.compactSize, 0);
+  if (sum(items) <= avail) return { compact: true, overflow: [] };
+  const byPriority = [...items].sort((a, b) => b.priority - a.priority);
+  const kept = new Set(items.map((i) => i.key));
+  for (const item of byPriority) {
+    if (sum(items.filter((i) => kept.has(i.key))) + TOOLBAR_MORE_PX <= avail) break;
+    if (item.pinned) continue;
+    kept.delete(item.key);
+  }
+  return { compact: true, overflow: items.filter((i) => !kept.has(i.key)).map((i) => i.key) };
+}
