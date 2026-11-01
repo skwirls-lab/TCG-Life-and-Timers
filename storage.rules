@@ -1,7 +1,17 @@
 rules_version = '2';
-// Baseline: deny all. Real rules land in T4.2 (SEC-004).
+// TCG Life & Timers: Cloud Storage rules (SEC-004, ART-022, ART-025, LEG-005).
+// Uploaded art is private to its owner: images only, under 2 MB after client-side processing.
 service firebase.storage {
   match /b/{bucket}/o {
+    match /users/{uid}/art/{file} {
+      function isOwner() { return request.auth != null && request.auth.uid == uid; }
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner()
+        && file.matches('^[A-Za-z0-9_.-]{1,120}$')
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

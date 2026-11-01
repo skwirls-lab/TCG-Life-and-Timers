@@ -1,9 +1,228 @@
 rules_version = '2';
-// Baseline: deny all. Real rules land in T4.2 (SEC-001..006).
+// TCG Life & Timers: Firestore security rules (PRD §15.2, SEC-001..005, SET-041).
+// Document shapes and LIMITS mirror src/lib/firebase/docs.ts; change both together.
+// Conventions: every client write sets updatedAt (or createdAt) == request.time, i.e. the client
+// writes serverTimestamp(). String limits are in characters. Unknown paths are denied.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function data() { return request.resource.data; }
+
+    function isStr(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function optStr(m, k, max) { return !(k in m) || isStr(m[k], 0, max); }
+    function optBool(m, k) { return !(k in m) || m[k] is bool; }
+    function isInt(v, min, max) { return v is int && v >= min && v <= max; }
+    function isId(v) { return v is string && v.matches('^[A-Za-z0-9_.:-]{1,100}$'); }
+    function optId(m, k) { return !(k in m) || isId(m[k]); }
+    function shape(m, required, optional) {
+      return m.keys().hasAll(required) && m.keys().hasOnly(required.concat(optional));
+    }
+    function stamped() { return data().updatedAt == request.time; }
+    function pathIdOk(id) { return id.size() <= 100; }
+
+    function isFocal(f) {
+      return f is map && shape(f, ['x', 'y'], [])
+        && f.x is number && f.x >= 0 && f.x <= 1
+        && f.y is number && f.y >= 0 && f.y <= 1;
+    }
+    function optFocal(m) { return !('focal' in m) || isFocal(m.focal); }
+    function isArt(a) {
+      return a is map && shape(a, ['kind', 'value'], ['focal', 'artist', 'cardName'])
+        && a.kind in ['scryfall', 'upload', 'gradient', 'solid']
+        && isStr(a.value, 0, 2048)
+        && optFocal(a) && optStr(a, 'artist', 200) && optStr(a, 'cardName', 200);
+    }
+    function optArt(m) { return !('art' in m) || isArt(m.art); }
+
+    // ---------- users/{uid}/** : owner only (SEC-001) ----------
+    match /users/{uid} {
+      function validUser() {
+        let d = data();
+        return shape(d, ['displayName', 'createdAt', 'updatedAt'], ['meProfileId', 'settings'])
+          && isStr(d.displayName, 0, 100)
+          && optId(d, 'meProfileId')
+          && (!('settings' in d) || (d.settings is map && d.settings.size() <= 200))
+          && stamped()
+          && d.createdAt is timestamp;
+      }
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validUser() && data().createdAt == request.time;
+      allow update: if isOwner(uid) && validUser() && data().createdAt == resource.data.createdAt;
+
+      match /profiles/{profileId} {
+        function validProfile() {
+          let d = data();
+          return shape(d, ['name', 'normalizedName', 'color', 'contrast', 'updatedAt'], ['art', 'deleted'])
+            && isStr(d.name, 1, 40)
+            && isStr(d.normalizedName, 0, 40)
+            && isStr(d.color, 0, 32)
+            && d.contrast is bool
+            && optArt(d) && optBool(d, 'deleted') && stamped();
+        }
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && pathIdOk(profileId) && validProfile();
+
+        match /decks/{deckId} {
+          function commanderOk(c, i) { return c.size() <= i || isStr(c[i], 1, 120); }
+          function validDeck() {
+            let d = data();
+            return shape(d, ['name', 'presetId', 'commanders', 'colorIdentity', 'updatedAt'], ['art', 'deleted'])
+              && isStr(d.name, 1, 60)
+              && isId(d.presetId)
+              && d.commanders is list && d.commanders.size() <= 2
+              && commanderOk(d.commanders, 0) && commanderOk(d.commanders, 1)
+              && d.colorIdentity is list && d.colorIdentity.size() <= 5
+              && d.colorIdentity.hasOnly(['W', 'U', 'B', 'R', 'G'])
+              && optArt(d) && optBool(d, 'deleted') && stamped();
+          }
+          allow read, delete: if isOwner(uid);
+          allow create, update: if isOwner(uid) && pathIdOk(deckId) && validDeck();
+        }
+      }
+
+      match /presets/{presetId} {
+        function validPreset() {
+          let d = data();
+          return shape(d, ['name', 'game', 'payload', 'schemaVersion', 'updatedAt'], ['deleted'])
+            && isStr(d.name, 1, 60)
+            && isStr(d.game, 0, 60)
+            && isStr(d.payload, 0, 204800)
+            && isInt(d.schemaVersion, 1, 1000)
+            && optBool(d, 'deleted') && stamped();
+        }
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && pathIdOk(presetId) && validPreset();
+      }
+
+      match /games/{gameId} {
+        function seatOk(s, i) {
+          return s.size() <= i || (
+            s[i] is map
+            && shape(s[i], ['name', 'winner'], ['profileId', 'deckId', 'deckName', 'place'])
+            && isStr(s[i].name, 0, 40) && s[i].winner is bool
+            && optId(s[i], 'profileId') && optId(s[i], 'deckId')
+            && optStr(s[i], 'deckName', 60)
+            && (!('place' in s[i]) || isInt(s[i].place, 1, 8)));
+        }
+        function seatsOk(s) {
+          return s is list && s.size() >= 1 && s.size() <= 8
+            && seatOk(s, 0) && seatOk(s, 1) && seatOk(s, 2) && seatOk(s, 3)
+            && seatOk(s, 4) && seatOk(s, 5) && seatOk(s, 6) && seatOk(s, 7);
+        }
+        function validGame() {
+          let d = data();
+          return shape(d,
+              ['schemaVersion', 'presetId', 'game', 'startedAt', 'endedAt', 'durationMs', 'seats', 'updatedAt'],
+              ['log', 'deleted'])
+            && isInt(d.schemaVersion, 1, 1000)
+            && isId(d.presetId)
+            && isStr(d.game, 0, 60)
+            && d.startedAt is int && d.startedAt >= 0
+            && d.endedAt is int && d.endedAt >= d.startedAt
+            && d.durationMs is int && d.durationMs >= 0
+            && seatsOk(d.seats)
+            && optStr(d, 'log', 512000)
+            && optBool(d, 'deleted') && stamped();
+        }
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && pathIdOk(gameId) && validGame();
+        // Write-once (SYNC-003): re-sends and tombstones may only touch updatedAt / deleted.
+        allow update: if isOwner(uid) && validGame()
+          && data().diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'deleted']);
+      }
+
+      match /art/{artId} {
+        function validArt() {
+          let d = data();
+          return shape(d, ['storagePath', 'width', 'height', 'bytes', 'contentType', 'name', 'updatedAt'], ['focal', 'deleted'])
+            && d.storagePath is string && d.storagePath.size() <= 300
+            && d.storagePath.matches('^users/' + uid + '/art/[A-Za-z0-9_.-]+$')
+            && isInt(d.width, 1, 10000) && isInt(d.height, 1, 10000)
+            && isInt(d.bytes, 1, 2097151)
+            && isStr(d.contentType, 1, 100) && d.contentType.matches('^image/.+$')
+            && isStr(d.name, 0, 80)
+            && optFocal(d) && optBool(d, 'deleted') && stamped();
+        }
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && pathIdOk(artId) && validArt();
+      }
+
+      // Entitlements are written only by Cloud Functions / admin (SEC-002).
+      match /private/entitlements {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // ---------- customers/** : Stripe extension (SEC-002) ----------
+    match /customers/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /{document=**} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // The only client write the Stripe extension needs: create a checkout session request.
+      match /checkout_sessions/{sessionId} {
+        function validCheckout() {
+          let d = data();
+          return shape(d, ['price', 'success_url', 'cancel_url'],
+              ['mode', 'allow_promotion_codes', 'trial_from_plan', 'quantity', 'metadata'])
+            && d.price is string && d.price.size() <= 255 && d.price.matches('^price_[A-Za-z0-9]+$')
+            && isStr(d.success_url, 1, 2048) && d.success_url.matches('^https?://.+$')
+            && isStr(d.cancel_url, 1, 2048) && d.cancel_url.matches('^https?://.+$')
+            && (!('mode' in d) || d.mode in ['subscription', 'payment'])
+            && optBool(d, 'allow_promotion_codes') && optBool(d, 'trial_from_plan')
+            && (!('quantity' in d) || isInt(d.quantity, 1, 10))
+            && (!('metadata' in d) || (d.metadata is map && d.metadata.size() <= 20));
+        }
+        allow create: if isOwner(uid) && validCheckout();
+      }
+    }
+
+    // ---------- sharedPresets/{code} : public read, immutable (SEC-005, CUS-007, LEG-005) ----------
+    match /sharedPresets/{code} {
+      function validShare() {
+        let d = data();
+        return shape(d, ['code', 'ownerUid', 'name', 'game', 'payload', 'createdAt'], [])
+          && code.matches('^[A-Za-z0-9]{8}$') && d.code == code
+          && d.ownerUid == request.auth.uid
+          && isStr(d.name, 1, 60)
+          && isStr(d.game, 0, 60)
+          && isStr(d.payload, 0, 204800)
+          // No images in share links (LEG-005).
+          && !d.payload.matches('(?s).*(data:image/|firebasestorage[.]googleapis[.]com).*')
+          && d.createdAt == request.time;
+      }
+      allow get: if true;
+      // Listing is limited to the caller's own shares (no enumeration of everyone's codes).
+      allow list: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn() && validShare();
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------- feedback/{id} : create-only (SET-041, SET-042) ----------
+    // Guests may write; App Check is enforced in production (SEC-007), not in rules.
+    match /feedback/{id} {
+      function validFeedback() {
+        let d = data();
+        return shape(d, ['category', 'text', 'appVersion', 'createdAt'], ['email', 'uid', 'diagnostics'])
+          && d.category in ['bug', 'idea', 'other']
+          && isStr(d.text, 1, 4000)
+          && isStr(d.appVersion, 1, 32)
+          && optStr(d, 'email', 200)
+          && (!('uid' in d) || (signedIn() && d.uid == request.auth.uid))
+          && optStr(d, 'diagnostics', 204800)
+          && d.createdAt == request.time;
+      }
+      allow create: if validFeedback();
+      allow read, update, delete: if false;
     }
   }
 }
