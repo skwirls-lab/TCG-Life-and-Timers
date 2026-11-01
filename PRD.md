@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | Product Requirements Document |
-| Version | 0.1 (draft for owner review) |
+| Version | 0.2 (draft for owner review). v0.2 adds the full Settings spec (§13.1) and clarifies the selectable seat count (LAY-001, LAY-009). |
 | Date | 2026-11-01 |
 | Owner | John (skwirls) |
 | Status | **Draft: awaiting review.** After sign-off, this PRD becomes the input for `instructions.md` (execution plan with loops and gates). |
@@ -223,7 +223,8 @@ interface Seat {
 ### 7.1 Layouts
 The board fills the whole viewport with no browser chrome when installed. Seats are tiles. Each tile's contents are rotated to face the player sitting on that side of the device. A **center toolbar** sits between seat rows (as in LifeTap screenshot 1).
 
-- **LAY-001 (P0, M1):** Player counts **1–6** are supported in M1. **7–8** are P1.
+- **LAY-001 (P0, M1):** The **number of seats is user-selectable for every game**: **2–6** for all users (matching LifeTap), plus **1** via One-player mode (SET-032), and **7–8** as P1 (proposed Pro, Q8). Each preset limits the range with `minPlayers`/`maxPlayers` (e.g. 1v1-only formats can still allow 2–4 for casual multiplayer). The count can be changed from the Settings "Players" chip row (§13.1-A), from the toolbar player-count button, and in the setup flow. Changing it mid-game resets with confirmation (SET-011).
+- **LAY-009 (P1, M1):** **Add/remove a seat mid-game without a full reset** (e.g. a late-arriving player): a new seat gets the preset start values and is inserted into the turn order at its position. Removing a seat counts as a concession and is recorded in history.
 - **LAY-002 (P0, M1):** Default layouts (portrait device):
 
 | Players | Default layout | Rotations |
@@ -254,7 +255,7 @@ The toolbar sits between seat groups. It is compact and icon-only, with labels s
 | 🕒 History | Life / event history (§12) | HIST-001 |
 | ▶/⏸ Clock | Start game / pause all clocks (only when timers are enabled) | TMR-020 |
 | 🎲 Tools | Dice, coin, random player, (P2) planechase | TOOL-001 |
-| ⚙ / 🎨 Settings | Game settings, theme, counters on/off | SET-001 |
+| ⚙ Settings | Full settings screen (§13.1) | SET-001, SET-010 |
 | ☀/☾ (contextual) | Day/Night global state (MTG). Shown only when enabled. | CTR (MTG) |
 
 - **LAY-010 (P0, M1):** The toolbar orientation follows the layout: a horizontal strip for 2×2 and side layouts, or a central pill for 2-player.
@@ -451,6 +452,8 @@ interface Preset {
     teams?: TeamConfig;                 // P2
   };
   tools?: ToolId[];                     // e.g. pokemon → coin flip prominent
+  quickStartValues?: number[];          // chip row in Settings, e.g. MTG [20,25,30,40,60]
+  capabilities?: PresetCapability[];    // drives which Settings rows show: 'commanderDamage','partners','planechase','perTurnFlags','calculator',...
   builtIn: boolean;
   premium?: boolean;
 }
@@ -596,19 +599,166 @@ This is the agnostic core, and a likely premium anchor.
 - **HIST-006 (P2, M6):** Export history as CSV/JSON.
 - **HIST-007 (P0, M6):** Free tier keeps the last **N = 20** games locally (Q5). Signed-in premium users get unlimited history.
 
-## 13. Player profiles and personalization
+## 13. Player profiles, personalization, and settings
 
 - **PROF-001 (P0, M1):** A **player profile** holds a name, default art, accent color, preferred contrast, and an optional "default commanders" list (P2). It is created from the seat menu with "Save as profile", or from the Profiles screen.
 - **PROF-002 (P0, M1):** **Load** (as in the screenshot's Load button) assigns a saved profile to a seat. Recently used profiles appear first.
 - **PROF-003 (P1, M4):** Profiles sync to the account. One "**me**" profile is designated for the account owner and pre-fills seat 1 by default.
 - **PROF-004 (P2):** Friends / linked accounts (shared profiles between users) are out of scope for v1.
-- **SET-001 (P0, M1):** **App settings**: theme (dark default; light; high contrast), haptics, sounds and volume, keep screen awake, hold delay and repeat rate, pending-bubble duration, tap zones (halves vs explicit buttons), swipe input, commander damage auto-life-link, auto-eliminate behaviour, pass-turn mode (tap+undo vs hold), auto-pause in background, language (EN only v1, i18n-ready strings).
+- **SET-001 (P0, M1):** A full **Settings screen** with Game, Preset-default and App scopes. It covers everything in LifeTap's settings plus multi-TCG, custom-preset, timer, account and Pro settings. Full specification in §13.1.
 - **SET-002 (P0, M1):** **Seat background options**:
   1. **Scryfall art** (§14)
   2. **Uploaded image** (§14.2)
   3. **Gradients/colors** (the "Colors" picker in the screenshot): 12–20 curated gradients plus a solid color picker
   4. **Default**: a per-seat palette color
 - **SET-003 (P0, M1):** **Increase contrast** per seat: a stronger dark scrim and a text outline over busy art.
+
+### 13.1 Settings screen (full specification)
+
+LifeTap's settings (second batch of reference screenshots) are the **baseline**: we include essentially all of them. We then add settings for **multiple TCGs, custom presets, timers, accounts and Pro**.
+
+**Presentation.** The ⚙ button in the center toolbar opens Settings as a **full-screen page, upright for the bottom of the device** (not rotated per seat). It has a back arrow, works with Android back, and is a scrollable list grouped into sections with divider headers. As in LifeTap, slivers of the seats' art peek at the top and bottom edges as a visual tie back to the board. Controls follow the LifeTap visual language: chip rows for small numeric choices, layout thumbnails, toggles, and dropdown values on the right.
+
+**Three setting scopes.** Every row belongs to exactly one scope, and the scope decides where its value is stored:
+
+| Scope | Applies to | Stored | Example |
+|---|---|---|---|
+| **Game** | The current game. On the next game it falls back to the preset defaults, unless saved. | In the active game in IndexedDB | Starting life 30 this game |
+| **Preset default** | Every new game of that preset | Locally per preset, and synced when signed in | Commander always starts with a 20-min chess clock |
+| **App** | The whole app on this device / account | Locally, and synced when signed in | Theme, haptics, keep awake |
+
+- **SET-010 (P0, M1):** The settings page implements the sections and rows below. A row appears only if it applies to the active preset (e.g. commander rows only in presets with a commander-damage counter). Rows are generated from preset capabilities, not hard-coded per game (ARCH-003).
+- **SET-011 (P0, M1):** **Structural changes mid-game** (preset, player count, starting values, thresholds, enabling or disabling counters) show "This will reset the current game. Continue?" and then perform GAME-010 reset semantics, keeping names and art where seats still exist. **Non-structural changes** apply live with no reset. These include the layout variant, appearance, input, device, timer display options, and auto-KO. Changing the timer **mode** mid-game asks whether to restart the clocks.
+- **SET-012 (P0, M1):** Under the Game Setup section there are two buttons. **"Save as default for <preset name>"** copies the current game-scope values into the preset defaults. **"Restore <preset> defaults"** reverts them.
+- **SET-013 (P0, M2):** **Opening Settings while clocks are running auto-pauses all clocks.** Clocks stay paused on return, with a Resume prompt. This prevents someone's time burning while settings are being changed.
+- **SET-014 (P1, M4):** App-scope settings and preset defaults sync to the signed-in account. Device-specific settings (keep awake method, fullscreen, haptics) stay local only.
+- **SET-015 (P1, M1):** Each setting has a one-line subtitle explaining it, as LifeTap does ("Commander damage also reduces life"). Complex settings have a **"?" help popover** (as LifeTap does for One-player mode).
+
+#### A. Game setup (scope: Game, savable as Preset default)
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Game** | Row with value (e.g. "MTG · Commander") → preset picker | Any built-in or custom preset. A change resets the game. | PRE-003 |
+| **Players** | Chip row, as in LifeTap | Chips span the preset's `minPlayers`…`maxPlayers`, capped at **2–6 for everyone**, with **7 and 8** shown with a Pro lock (Q8). 1 player is handled by One-player mode (§E). Default = preset `defaultPlayers` (Commander 4, 1v1 formats 2). | LAY-001 |
+| **Layout** | Layout thumbnails for the selected player count, as in LifeTap (4 players: "2 columns rotated" vs "rows") | The variants from LAY-002/LAY-003. Selected shows a highlight ring. | LAY-003 |
+| **Seats** | Row → seat order screen | Drag to reorder seats and set names quickly. Turn order follows seat order. | LAY-005 |
+| **Starting <primary>** | Chip row + **Custom** link (as LifeTap's "Starting life") | The label is dynamic, using the primary counter's name ("Starting life", "Life points", "Prize cards"). Chip values come from the preset's `quickStartValues`: MTG `20 25 30 40 60`; Yu-Gi-Oh `4000 8000`; Pokémon `4 6`; One Piece `4 5`; Generic `10 20 30 40`. **Custom** opens a numeric keypad. | GAME-013 |
+| **Per-player starting values** | Row → per-seat list (only when the preset allows it) | One Piece leader life, Star Wars: Unlimited base HP, Flesh and Blood hero life, Archenemy 40 | PRE-013 |
+| **Win / loss conditions** | Row → sub-page | Every threshold in the preset is editable: life ≤ 0, poison ≥ 10, commander damage ≥ 21, lore ≥ 20, damage ≥ 7, … Each has a value, plus On/Off. | CTR-003 |
+| **Counters in this game** | Row → sub-page | Turn optional counters on or off (Energy, Exp, Rad, Speed, Ring, Storm…). For each counter, choose to show it on the tile as a badge or keep it in the panel only. | CTR-001 |
+| **Starting player** | Dropdown (LifeTap "Starting player: Random") | **Random** (default) / Choose each game / Loser of last game / Winner of last game / Roll-off (d20) | GAME-012 |
+| **Turn order** | Dropdown | **Clockwise** (default) / Counter-clockwise | TURN-001 |
+
+#### B. Gameplay (scope: Game; rows depend on the preset)
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Auto-KO** | Toggle (LifeTap) + mode | **On** (default) / Ask first / Off. The subtitle is built from the preset's thresholds, e.g. "From life, poison, or commander damage" (MTG) or "From base damage" (Star Wars: Unlimited). | CTR-003 |
+| **Auto-revive** | Toggle | **On**: a KO'd seat revives when its value moves back across the threshold (fixing misclicks). | CTR-004 |
+| **Commander damage life loss** | Toggle (LifeTap) | **On**: "Commander damage also reduces life". Commander presets only. | CMD-004 |
+| **Partner commanders** | Toggle | **On**: seats may declare 2 commanders. Commander presets only. | CMD-003 |
+| **Turn tracking** | Toggle | Shows the active seat, the turn and round number, and a Pass turn control even when timers are off. Default **On** when any timer is on, otherwise **Off**. (LifeTap's "Turn timer" covers part of this; our full timer settings are in §C.) | TURN-001 |
+| **Game history** | Toggle (LifeTap) | **On**: "Track and display game history" (the log, life chart, and saving the completed game). When Off, the history button is hidden and no record is saved. The undo buffer is still kept. | HIST-001, HIST-003 |
+| **Planechase** | Toggle (LifeTap) | Off. MTG only. Adds a planar deck (plane and phenomenon cards loaded from Scryfall) and the planar die. "Internet required for first download; works offline afterwards." **P2.** | TOOL-005 |
+| **Archenemy** | Toggle (LifeTap) | Off. MTG only. Choose the archenemy seat (starting life 40 by default ⚠ VERIFY) and a scheme deck loaded from Scryfall. **P2.** | §10.2 |
+| **Bounty** | Toggle (LifeTap) | Off. MTG Commander. A bounty deck from Scryfall, with the current bounty shown in the center. **P2.** ⚠ VERIFY card set and rules. | new: **SET-020** |
+| **Pokémon: first-turn reminder** | Toggle | **On**: shows the "player going first can't attack or play a Supporter" hint. | §10.3 |
+| **Reset per-turn flags on pass** | Toggle | **On** for presets with per-turn counters (Pokémon Supporter/Energy/Retreat, Flesh and Blood action points) | CUS-008 |
+| **Tap number for calculator** | Toggle | **On** for Yu-Gi-Oh! and high-total presets, Off otherwise | INP-007 |
+
+> Supplemental decks (Planechase, Archenemy, Bounty) use Scryfall data, so per ART-007 they **stay free**. They are P2 and are recorded here so the settings structure has room for them.
+
+#### C. Timers (scope: Game, savable as Preset default)
+
+This section is unique to our app. It replaces LifeTap's single "Turn timer" dropdown. When the mode is Off, only the first row shows. The other rows appear depending on the mode chosen.
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Timer mode** | Dropdown | **Off** / Count-up (stopwatch only) / Chess clock / Chess clock + increment / Chess clock + delay / Per-turn timer / Per-turn + reserve. The default comes from the preset. | §9.2 |
+| **Time per player** | Chip row + Custom | `5 10 15 20 25 30 45 60` min, plus Custom (h:mm). Shown for chess-clock modes. | TMR-001 |
+| **Increment / delay** | Chip row + Custom | `0 5 10 15 30` s. Shown for increment and delay modes. | §9.2 |
+| **Time per turn** | Chip row + Custom | `30s 1m 2m 3m 5m`. Shown for per-turn modes. | §9.2 |
+| **Different time per player** (handicap) | Row → per-seat list | Off. Lets a new player have more time. **P2.** | new: **TMR-060** |
+| **Round / match timer** | Dropdown + Custom | **Off** / 40 / 50 / 60 min / Custom. Can be combined with any mode. | TMR-032 |
+| **Extra turns after time** | Stepper | 0–10 (the preset's default: MTG 5, Pokémon 3 ⚠ VERIFY). Shown when a match timer is set. | TMR-032 |
+| **When time runs out** | Dropdown | Lose immediately / **Grace period** (casual default) / Flag only / Add time once | TMR-030 |
+| **Grace period length** / **Extra time amount** | Chip row | `30s 60s 2m 5m` | §9.5 |
+| **Responses** | Dropdown | **Charge responder** (default) / Freeze all clocks / Disabled (no Respond button) | TMR-005, TMR-010 |
+| **Pass turn by** | Dropdown | **Tap (with 3 s undo)** / Hold to pass | TMR-004 |
+| **Pause when app is in background** | Toggle | **On** | TMR-021 |
+| **Pause when opening settings or menus** | Toggle | **On** | SET-013 |
+| **Low-time warnings** | Row → sub-page | Thresholds (default 5:00, 1:00, 0:10; add or remove), each with sound / vibrate / flash | TMR-031 |
+| **Show tenths under 10 s** | Toggle | On | TMR-040 |
+| **Show time used this turn** | Toggle | Off | TMR-043 |
+
+#### D. Appearance (scope: App)
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Theme** | Dropdown | **Dark** / Light / High contrast / Pro themes (locked) | SET-001 |
+| **Player card layout** | Three preview thumbnails (LifeTap) | **Default** (name + number + mini-grid + badges) / **Name only** (name + number; badges and mini-grid hidden until tapped) / **Big font** (number only, maximum size) | new: **SET-030** |
+| **Colorize commander mini-grids** | Toggle (LifeTap) | **On**: "Mini-grids reflect player backgrounds" (each cell shows the source seat's art or color). Off gives neutral gray cells. Commander presets only. | CMD-002 |
+| **Badges** | Dropdown | **Non-default only** / Always show enabled counters / Hidden | LIFE-002 |
+| **Change bubble duration** | Chip row | `1s 2s 3s 5s` (default 2 s) | INP-006 |
+| **Auto-hide menu** | Toggle (LifeTap) | **Off**. When On, the center toolbar collapses to a slim handle after 5 s idle; tapping the handle reveals it. Turn controls on the seats stay visible. | new: **SET-031** |
+| **Dice & randomizer animations** | Toggle (LifeTap) | **On**. When Off, results show instantly (first-player pick, dice, coin). | GAME-011, TOOL-001 |
+| **Reduce motion** | Dropdown | **Follow system** / Always reduce / Never reduce | A11Y-003 |
+| **One-player mode** | Toggle + "?" help (LifeTap) | **Off**. See SET-032 below. | new: **SET-032** |
+| **Camera mode** | Dropdown (LifeTap) | **Off** / Face bottom / Face top: "All players face one direction". It overrides seat rotations so the whole board reads one way, for recording, streaming, or everyone sitting on one side. | new: **SET-033** |
+| **Language** | Row → list (LifeTap) | English in v1. All strings are externalized (i18n-ready). P2 adds Spanish, Portuguese, German, French, Italian, and Japanese. | new: **SET-034** |
+
+- **SET-032 One-player mode (P1, M1):** the device tracks **only your own seat**, full screen and upright. This is for pods where every player uses their own phone. You still get commander damage tracking: enter the **number of opponents** (and optionally their names or commander art), which builds your damage-received grid. Tokens like Monarch become a simple "I have it" toggle. Timer options are limited to Count-up and a personal chess clock, controlled by a big tap-to-start/stop button. The multi-device sync version is a future idea (§21).
+- **SET-033 Camera mode (P1, M1):** keeps the layout geometry but sets every seat's rotation to the chosen direction. Commander mini-grids keep their spatial arrangement.
+- **SET-030 Player card layout (P0, M1):** applies to all seats. A per-seat override is available in the seat menu (P2).
+
+#### E. Input (scope: App)
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Tap zones** | Dropdown | **Halves of the tile** (LifeTap style) / Buttons only (+/− glyphs) | INP-003 |
+| **Hold delay** | Chip row | `300 500 700 1000` ms (default 500) | INP-004 |
+| **Hold repeat speed** | Chip row | Slow / **Normal** / Fast | INP-004 |
+| **Hold amount** | Stepper | Default from the preset (10 for life, 1000 for Yu-Gi-Oh! LP) | INP-004 |
+| **Swipe to change** | Toggle | Off | INP-005 |
+| **Confirm destructive actions** | Dropdown | **Hold to confirm** / Dialog | LAY-011 |
+
+#### F. Device (scope: App, local only)
+
+| Row | Control | Options and default | Req |
+|---|---|---|---|
+| **Keep display awake** | Toggle (LifeTap) | **On**. A sub-option uses the "compatibility method" (video fallback) when the Wake Lock API is unavailable. | PWA-005 |
+| **Haptic feedback** | Toggle (LifeTap) | **On**. On iOS the row shows disabled with "Not supported on this device". | INP-008 |
+| **Sounds** | Toggle + volume slider | Timer alerts **On**; tap clicks **Off** | TMR-031, INP-008 |
+| **Hide navigation and status bars** | Toggle (LifeTap) | **On**. Enters fullscreen (Fullscreen API) on the next tap in a game, since browsers require a user gesture. On iOS, it shows "Install to Home Screen for full screen". | PWA-006 |
+| **Install app** | Button (only when not installed) | Android install prompt / iOS instructions | PWA-003 |
+
+#### G. Account and data (scope: App)
+
+| Row | Control | Notes | Req |
+|---|---|---|---|
+| **Account** | "Sign in with Google", or avatar + email + Sign out | | AUTH-001, AUTH-004 |
+| **Sync status** | Status line | "Synced · 2 min ago" / "Offline — will sync" | SYNC-004 |
+| **Pro** | Upgrade button, or "Pro · renews …" + Manage subscription | Hidden until M7 | PAY-004 |
+| **Player profiles** | Row → Profiles screen | | PROF-001 |
+| **My presets** | Row → Custom presets list / builder | | CUS-001 |
+| **My images** | Row → image library | | ART-023 |
+| **Game history and stats** | Row → History screen | | HIST-004 |
+| **Export my data** | Button | JSON download | AUTH-006 |
+| **Clear image cache** | Button | Shows the size used | ART-006 |
+| **Remove my data from this device** / **Delete account** | Destructive buttons with confirmation | | AUTH-004, AUTH-005 |
+
+#### H. Support and about (scope: App)
+
+LifeTap's support section has Review / Donate / Send feedback / Send diagnostics / version. Ours:
+
+| Row | Notes | Req |
+|---|---|---|
+| **Upgrade to Pro / Support the app** | Takes the place of LifeTap's Donate card | PAY-004 |
+| **Share the app** | Web Share API, falling back to copying a link | new: **SET-040** |
+| **Send feedback** | An in-app form (category + text + optional email) written to a write-only Firestore `feedback` collection; works for guests via App Check | new: **SET-041** |
+| **Send diagnostics** | Bundles the app version, browser/OS, settings, active preset, and the last 200 events of the current game. **The user sees exactly what will be sent before sending.** No images, emails, or names unless the user ticks "include player names". | new: **SET-042** |
+| **What's new** | Changelog for the current version | new: **SET-043** |
+| **About** | Version, credits (Scryfall, card artists), open-source licenses, privacy policy, terms, trademark disclaimer | LEG-001..003 |
 
 ## 14. Card art and custom images
 
@@ -828,6 +978,7 @@ Key events: `game_start` (preset, players, timers on/off, mode), `game_end` (dur
 | Skull overlay on an eliminated player (Josh) | LIFE-004 |
 | Seat menu rotated toward the player, with **Player** tab: name, **Load**, Backgrounds, Colors, Increase contrast | §8.2, PROF-002, SET-003 |
 | **Counters** tab: Monarch, Initiative, Ascend, Day/night, Energy, Exp, Treasure, Poison, Rad, C.Tax, K.O.; "Tap to increment. Hold for additional options."; commander-damage grid with "me" | §8.2, §10.2, CMD-010 |
+| *Settings screenshots:* Players 2–6 chips, Layout thumbnails, Starting life 20/25/30/40/60 + Custom, Planechase/Archenemy/Bounty, Auto-KO, Commander damage life loss, Turn timer, Game history, Starting player, Colorize mini-grids, Player card layout, Auto-hide menu, Dice animations, One-player mode, Camera mode, Language, Keep awake, Haptics, Hide system bars, Feedback/Diagnostics | §13.1 (all included; Planechase/Archenemy/Bounty as P2) |
 
 **Additions beyond LifeTap:** chess clocks with respond/pass-back, turn tracking, multi-TCG presets, a custom builder, accounts and sync, stats, a calculator for high-LP games, and per-seat thresholds.
 
