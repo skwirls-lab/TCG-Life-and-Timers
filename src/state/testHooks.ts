@@ -5,7 +5,10 @@
  *
  * URL params understood by `applyTestHooks` (used by /play and other pages in e2e):
  *   seed=<int>          deterministic RNG for the game store
- *   quick=<presetId>    start a new game immediately (e.g. quick=mtg.commander)
+ *   quick=<presetId>    start a new game immediately (e.g. quick=mtg.commander). Built-in ids
+ *                       start synchronously; custom preset ids (`custom.*`, CUS-001) resolve from
+ *                       IndexedDB and start once any concurrent resume has finished
+ *                       (`window.__tcgQuickPending` is true until then).
  *   players=<n>         player count for quick start
  *   names=A,B,C         seat names for quick start
  *   start=<n>           start value override for the preset's primary counter
@@ -13,7 +16,7 @@
  *   fp=1                keep the first-player announcement on /play quick-starts (skipped by default)
  * It also exposes `window.__tcg` = { getState, dispatch } for e2e assertions.
  */
-import { primaryCounter, seededRng } from "@/engine";
+import { primaryCounter, seededRng, type Preset } from "@/engine";
 import { getBuiltInPreset } from "@/presets";
 import { configureGameStore, useGameStore } from "./gameStore";
 
@@ -27,6 +30,8 @@ declare global {
     };
     /** game id whose initial first-player announcement is skipped (quick-start on /play) */
     __tcgSkipAnnounceGame?: string;
+    /** true while a custom-preset quick start is resolving */
+    __tcgQuickPending?: boolean;
   }
 }
 
@@ -42,7 +47,41 @@ export function applyTestHooks(search: URLSearchParams): boolean {
   const quick = search.get("quick");
   if (!quick) return false;
   const preset = getBuiltInPreset(quick);
-  if (!preset) return false;
+  if (preset) {
+    quickStart(preset, search);
+    return true;
+  }
+  if (!quick.startsWith("custom.")) return false;
+  window.__tcgQuickPending = true;
+  void startCustom(quick, search).finally(() => {
+    window.__tcgQuickPending = false;
+  });
+  return false;
+}
+
+/** Wait until a resume started alongside the hooks has settled (it would replace the game). */
+function afterResume(): Promise<void> {
+  if (useGameStore.getState().loadState !== "loading") return Promise.resolve();
+  return new Promise((resolve) => {
+    const unsub = useGameStore.subscribe((s) => {
+      if (s.loadState !== "loading") {
+        unsub();
+        resolve();
+      }
+    });
+  });
+}
+
+async function startCustom(id: string, search: URLSearchParams): Promise<void> {
+  // Lazy: keeps the custom-preset repository out of the board chunk.
+  const { getCustomPreset } = await import("@/lib/customPresets");
+  const preset = await getCustomPreset(id).catch(() => undefined);
+  if (!preset) return;
+  await afterResume();
+  quickStart(preset, search);
+}
+
+function quickStart(preset: Preset, search: URLSearchParams): void {
   const players = Number(search.get("players") ?? preset.defaultPlayers);
   const names = search.get("names")?.split(",");
   const start = search.get("start");
@@ -59,5 +98,4 @@ export function applyTestHooks(search: URLSearchParams): boolean {
   if (window.location.pathname.startsWith("/play") && search.get("fp") !== "1") {
     window.__tcgSkipAnnounceGame = game.id;
   }
-  return true;
 }

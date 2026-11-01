@@ -11,6 +11,7 @@ import {
   type Preset,
   type SeatInput,
 } from "@/engine";
+import { getAnyPreset } from "@/lib/customPresets";
 import { getDb, type TcgDb } from "@/lib/db";
 import { getBuiltInPreset } from "@/presets";
 
@@ -52,31 +53,57 @@ export function toStoredConfig(config: NewGameConfig): StoredGameConfig {
   } as StoredGameConfig;
 }
 
-/** Rebuild a config from storage; null when the preset no longer exists or the row is invalid. */
+type ParsedStored = StoredGameConfig;
+
+function parseStored(raw: unknown): ParsedStored | null {
+  const parsed = StoredGameConfigSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+function withPreset(stored: ParsedStored, preset: Preset | undefined): NewGameConfig | null {
+  if (!preset) return null;
+  const { presetId: _id, ...rest } = stored;
+  const players = rest.players ?? rest.seats?.length ?? preset.defaultPlayers;
+  if (players < preset.minPlayers || players > preset.maxPlayers) return null;
+  return { ...rest, preset, players } as NewGameConfig;
+}
+
+/**
+ * Rebuild a config from storage with a synchronous lookup (built-ins by default); null when the
+ * preset no longer exists or the row is invalid.
+ */
 export function fromStoredConfig(
   raw: unknown,
   lookup: (id: string) => Preset | undefined = getBuiltInPreset,
 ): NewGameConfig | null {
-  const parsed = StoredGameConfigSchema.safeParse(raw);
-  if (!parsed.success) return null;
-  const { presetId, ...rest } = parsed.data;
-  const preset = lookup(presetId);
-  if (!preset) return null;
-  const players = rest.players ?? rest.seats?.length ?? preset.defaultPlayers;
-  if (players < preset.minPlayers || players > preset.maxPlayers) return null;
-  return { ...rest, preset, players } as NewGameConfig;
+  const stored = parseStored(raw);
+  return stored ? withPreset(stored, lookup(stored.presetId)) : null;
+}
+
+export type PresetLookup = (id: string) => Preset | undefined | Promise<Preset | undefined>;
+
+/** Async variant: resolves built-in or custom presets (CUS-001) by default. */
+export async function fromStoredConfigAsync(
+  raw: unknown,
+  lookup: PresetLookup = (id) => getAnyPreset(id),
+): Promise<NewGameConfig | null> {
+  const stored = parseStored(raw);
+  if (!stored) return null;
+  const preset = await Promise.resolve(lookup(stored.presetId)).catch(() => undefined);
+  return withPreset(stored, preset);
 }
 
 export async function saveLastConfig(config: NewGameConfig, db: TcgDb = getDb()): Promise<void> {
   await db.kv.put({ key: LAST_CONFIG_KEY, value: toStoredConfig(config) });
 }
 
+/** "Quick start: same as last game" config; custom presets resolve from the same db. */
 export async function loadLastConfig(
   db: TcgDb = getDb(),
-  lookup?: (id: string) => Preset | undefined,
+  lookup: PresetLookup = (id) => getAnyPreset(id, db),
 ): Promise<NewGameConfig | null> {
   const row = await db.kv.get(LAST_CONFIG_KEY);
-  return row ? fromStoredConfig(row.value, lookup) : null;
+  return row ? fromStoredConfigAsync(row.value, lookup) : null;
 }
 
 /** Seats of a game as inputs, kept by index (SET-011 "keeping names and art"). */

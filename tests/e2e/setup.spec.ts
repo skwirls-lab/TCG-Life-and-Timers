@@ -62,10 +62,9 @@ test("new game from the launcher in at most 6 taps", async ({ page }) => {
   };
   await tap("launcher-new");
   await expect(page.getByTestId("setup-step-preset")).toBeVisible();
-  await expect(page.getByTestId("setup-preset-mtg.commander")).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await expect(
+    page.getByTestId("setup-preset").getByTestId("preset-row-mtg.commander").first(),
+  ).toHaveAttribute("data-selected", "true");
   await tap("setup-next");
   await expect(page.getByTestId("setup-players-4")).toHaveAttribute("aria-checked", "true");
   await tap("setup-next");

@@ -3,7 +3,7 @@
  * Launcher `/` (T1.12): Resume card (GAME-016), "Quick start: same as last game" (GAME-001),
  * New game → /setup, and links to History, Tools, Settings and Profiles.
  */
-import { Dices, History, Play, Plus, Settings, Users, Zap } from "lucide-react";
+import { Dices, History, Layers, Play, Plus, Settings, Users, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -180,6 +180,12 @@ export function Launcher() {
           icon={<Users />}
           label={t("shell.launcher.profiles")}
           testId="launcher-link-profiles"
+        />
+        <NavTile
+          href="/builder"
+          icon={<Layers />}
+          label={t("shell.launcher.presets")}
+          testId="launcher-link-presets"
         />
       </nav>
       {loadState === "loading" && (
