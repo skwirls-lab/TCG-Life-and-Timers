@@ -20,7 +20,7 @@ import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch, useGameStore, useGameValue } from "@/state/gameStore";
-import { historyVisible } from "@/state/recordKeeper";
+import { historyVisible } from "@/lib/records/policy";
 import { useSetting, useSettingsStore } from "@/state/settingsStore";
 import { enumStateIcon, toolbarGlobals } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";

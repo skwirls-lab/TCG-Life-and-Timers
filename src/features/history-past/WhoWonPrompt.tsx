@@ -1,9 +1,10 @@
 "use client";
 /** HIST-031 "Who won?" prompt: seat buttons, Draw, No winner, Don't save this game. */
 import { Trophy } from "lucide-react";
-import { Button, Sheet } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { Sheet } from "@/components/ui/Sheet";
 import type { Game } from "@/engine";
-import type { WinnerDecision } from "@/lib/records";
+import type { WinnerDecision } from "@/lib/records/types";
 import { t } from "@/lib/i18n";
 import { useWhoWon } from "./whoWon";
 

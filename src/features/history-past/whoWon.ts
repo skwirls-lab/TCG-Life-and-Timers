@@ -9,8 +9,10 @@
  */
 import { create } from "zustand";
 import type { Game } from "@/engine";
-import { resetPlan, type WinnerDecision, type WhoWonSetting } from "@/lib/records";
-import { finalizeBeforeReset, markHandled } from "@/state/recordKeeper";
+// Only the pure decision table is bundled with the board; the record keeper (record building,
+// compression, Dexie writes) loads lazily (PERF-003). AppEffects starts it right after mount.
+import { resetPlan, type WhoWonSetting } from "@/lib/records/policy";
+import type { WinnerDecision } from "@/lib/records/types";
 import { useSettingsStore } from "@/state/settingsStore";
 
 export interface ResetRequest {
@@ -34,6 +36,8 @@ interface WhoWonState {
   cancel: () => void;
 }
 
+const keeper = () => import("@/state/recordKeeper");
+
 export const useWhoWon = create<WhoWonState>((set, get) => ({
   pending: null,
   answer: async (decision) => {
@@ -41,7 +45,7 @@ export const useWhoWon = create<WhoWonState>((set, get) => ({
     if (!p) return;
     set({ pending: null });
     try {
-      await finalizeBeforeReset(p.game, decision);
+      await (await keeper()).finalizeBeforeReset(p.game, decision);
     } catch (e) {
       console.warn("[whoWon] save failed", e);
     }
@@ -71,11 +75,17 @@ export async function requestReset(req: ResetRequest): Promise<"prompt" | "save"
     return plan;
   }
   if (plan === "skip") {
-    markHandled(game.id);
+    void keeper().then((m) => m.markHandled(game.id));
     proceed();
     return plan;
   }
-  const saving = finalizeBeforeReset(game, { kind: "auto" });
+  // finalizeBeforeReset marks the game handled synchronously, so the keeper never saves it twice.
+  let saving: Promise<unknown> = Promise.resolve();
+  try {
+    saving = (await keeper()).finalizeBeforeReset(game, { kind: "auto" });
+  } catch (e) {
+    console.warn("[whoWon] save failed", e);
+  }
   proceed();
   try {
     await saving;
