@@ -1,8 +1,0 @@
-[
-  {
-    "name": "app shell + board route JS (gzip)",
-    "path": [".next/static/chunks/**/*.js"],
-    "limit": "1000 KB",
-    "gzip": true
-  }
-]
