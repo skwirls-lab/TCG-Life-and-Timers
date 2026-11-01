@@ -139,20 +139,27 @@ function solidCss(color: string): string {
 /**
  * CSS background for a seat's ArtRef (SET-002). `fallbackColor` is used for 'default', missing
  * art, and art kinds that need resolving elsewhere (an uploaded art id that isn't a URL).
+ * `resolvedUrl` (from `resolveArtUrl` / `useArtUrl`) replaces `art.value` for image kinds, so an
+ * upload renders from its object URL. For exact cover × zoom framing use `ArtBackground`.
  */
-export function artToCss(art: ArtRef | undefined, fallbackColor: string): CSSProperties {
+export function artToCss(
+  art: ArtRef | undefined,
+  fallbackColor: string,
+  resolvedUrl?: string,
+): CSSProperties {
   if (!art || art.kind === "default") return { background: solidCss(fallbackColor) };
   if (art.kind === "gradient") {
     const g = gradientFor(art.value);
     return { background: g ? g.css : art.value || solidCss(fallbackColor) };
   }
   if (art.kind === "solid") return { background: solidCss(art.value || fallbackColor) };
-  if (!URL_LIKE.test(art.value)) return { background: solidCss(fallbackColor) };
+  const src = resolvedUrl ?? art.value;
+  if (!URL_LIKE.test(src)) return { background: solidCss(fallbackColor) };
   const focal = art.focal;
   const zoom = focal && focal.zoom > 1 ? focal.zoom : 1;
   return {
     backgroundColor: fallbackColor,
-    backgroundImage: `url("${art.value.replace(/"/g, "%22")}")`,
+    backgroundImage: `url("${src.replace(/"/g, "%22")}")`,
     backgroundSize: zoom > 1 ? `${Math.round(zoom * 100)}% auto` : "cover",
     backgroundPosition: focal
       ? `${Math.round(focal.x * 100)}% ${Math.round(focal.y * 100)}%`

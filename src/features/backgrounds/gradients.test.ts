@@ -77,4 +77,10 @@ describe("artToCss", () => {
       "#0f0f0f",
     );
   });
+
+  // @req ART-022
+  it("uses a resolved object URL for uploads", () => {
+    const css = artToCss({ kind: "upload", value: "art-id-1" }, "#000", "blob:http://x/1");
+    expect(css.backgroundImage).toBe('url("blob:http://x/1")');
+  });
 });
