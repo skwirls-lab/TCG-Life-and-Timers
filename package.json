@@ -28,7 +28,8 @@
     "start:test": "NEXT_DIST_DIR=.next-test next start",
     "build:emu": "NEXT_DIST_DIR=.next-emu NEXT_PUBLIC_TEST_HOOKS=1 NEXT_PUBLIC_USE_EMULATORS=1 next build",
     "start:emu": "NEXT_DIST_DIR=.next-emu next start",
-    "test:e2e:only": "playwright test --grep-invert @emu"
+    "test:e2e:only": "playwright test --grep-invert @emu",
+    "test:acceptance": "bash scripts/acceptance.sh"
   },
   "dependencies": {
     "@sentry/browser": "^11.10.0",
