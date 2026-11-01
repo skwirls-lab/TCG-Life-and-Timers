@@ -100,7 +100,11 @@ export function ToolsPage() {
 
   return (
     <PageShell title={t("tools.title")} backHref="/play" testId="tools-page">
-      <div data-testid="tools-root" data-kv-saved={custom.saved ? "true" : "false"}>
+      <div
+        data-testid="tools-root"
+        data-kv-saved={custom.saved ? "true" : "false"}
+        data-chooser={from && chooserValid ? from : ""}
+      >
         <SectionHeader title={t("tools.randomizers")} />
         <div className="grid grid-cols-2 gap-3">
           <Tile
@@ -190,12 +194,13 @@ export function ToolsPage() {
             <button
               type="button"
               data-testid="tool-custom"
-              aria-label={t("tools.rollDie", { sides: custom.value })}
               onClick={() => roll(custom.value)}
               className="flex flex-1 flex-col items-center justify-center gap-1 p-2 active:scale-[0.97]"
             >
               <DieIcon sides={custom.value} size={48} className="text-accent" />
-              <span className="text-base font-medium">{t("tools.custom")}</span>
+              <span className="text-base font-medium">
+                {t("tools.customDie", { sides: custom.value })}
+              </span>
             </button>
             <button
               type="button"

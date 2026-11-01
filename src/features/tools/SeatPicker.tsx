@@ -1,9 +1,7 @@
 "use client";
 /** TOOL-008 "Who's choosing?" — pick the chooser seat (living seats only) before randomizing. */
-import { useShallow } from "zustand/react/shallow";
 import { X } from "lucide-react";
 import { IconButton } from "@/components/ui";
-import { aliveSeats } from "@/engine";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 
@@ -14,13 +12,8 @@ interface Props {
 }
 
 export function SeatPicker({ onPick, onCancel, className }: Props) {
-  const seats = useGameStore(
-    useShallow((s) =>
-      s.session
-        ? aliveSeats(s.session.game).map((x) => ({ id: x.id, name: x.name, color: x.color }))
-        : [],
-    ),
-  );
+  const all = useGameStore((s) => s.session?.game.seats);
+  const seats = (all ?? []).filter((x) => !x.eliminated);
   return (
     <section
       className={className ?? "mt-3 rounded-2xl bg-surface p-3"}

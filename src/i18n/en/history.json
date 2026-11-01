@@ -79,7 +79,7 @@
   "history.chart.title": "{counter} over time",
   "history.chart.titleTurns": "{counter} by turn",
   "history.chart.desc": "One line per player in their seat color. Skulls mark eliminations.",
-  "history.chart.xTime": "Minutes",
+  "history.chart.xTime": "Elapsed time",
   "history.chart.xTurn": "Turn",
   "history.chart.tableCaption": "{counter} per player",
   "history.chart.colPlayer": "Player",

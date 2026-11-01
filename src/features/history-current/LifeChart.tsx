@@ -8,7 +8,7 @@
 import { useId } from "react";
 import type { Game } from "@/engine";
 import { t } from "@/lib/i18n";
-import { lifeChartData, niceTicks, stepPath } from "./format";
+import { formatDuration, lifeChartData, niceTicks, stepPath } from "./format";
 
 const W = 340;
 const H = 220;
@@ -39,7 +39,7 @@ export function LifeChart({ game, now }: { game: Game; now: number }) {
   for (let i = 1; i < labels.length; i++) {
     if (labels[i]!.y - labels[i - 1]!.y < LABEL_GAP) labels[i]!.y = labels[i - 1]!.y + LABEL_GAP;
   }
-  const fmtX = (v: number) => (data.axis === "turn" ? String(v) : String(Math.round(v * 10) / 10));
+  const fmtX = (v: number) => (data.axis === "turn" ? String(v) : formatDuration(v * 60_000));
 
   return (
     <section className="mt-4 rounded-2xl bg-surface p-3" data-testid="life-chart">
@@ -72,11 +72,13 @@ export function LifeChart({ game, now }: { game: Game; now: number }) {
               </text>
             </g>
           ))}
-          {xTicks.map((v) => (
-            <text key={`x${v}`} x={sx(v)} y={H - M.bottom + 14} textAnchor="middle">
-              {fmtX(v)}
-            </text>
-          ))}
+          {xTicks
+            .filter((v, i) => i === 0 || fmtX(v) !== fmtX(xTicks[i - 1]!))
+            .map((v) => (
+              <text key={`x${v}`} x={sx(v)} y={H - M.bottom + 14} textAnchor="middle">
+                {fmtX(v)}
+              </text>
+            ))}
           <text x={M.left + pw / 2} y={H - 3} textAnchor="middle">
             {data.axis === "turn" ? t("history.chart.xTurn") : t("history.chart.xTime")}
           </text>
@@ -105,6 +107,8 @@ export function LifeChart({ game, now }: { game: Game; now: number }) {
               textAnchor="middle"
               dominantBaseline="central"
               fontSize={14}
+              fill="currentColor"
+              className="text-fg"
               data-testid="chart-skull"
             >
               {"☠"}
