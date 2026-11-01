@@ -57,6 +57,25 @@ export function shouldAnnounce(game: Game): boolean {
   return game.status === "ready" && game.activity.changes === 0 && !game.turn.awaitingFirstPlayer;
 }
 
+/**
+ * A-1 (GAME-011, LIFE-006): key of the "goes first" marker for `seatId`'s tile, or "" when the
+ * seat is not the starter or the game has moved on (a counter changed, the turn passed, it
+ * ended). The marker also times out in the UI. Suffix "|1" while the announcement can still run.
+ */
+export function firstMarkerKey(game: Game, seatId: SeatId): string {
+  if (
+    game.status === "ended" ||
+    game.turn.awaitingFirstPlayer ||
+    game.turn.firstSeat !== seatId ||
+    game.turn.turnNumber !== 1 ||
+    game.activity.changes > 0
+  ) {
+    return "";
+  }
+  const ev = latestFirstPlayerEvent(game);
+  return ev ? `${game.id}:${ev.id}|${shouldAnnounce(game) ? 1 : 0}` : "";
+}
+
 export function seatName(game: Game, seatId: SeatId | undefined): string {
   return game.seats.find((s) => s.id === seatId)?.name ?? "";
 }

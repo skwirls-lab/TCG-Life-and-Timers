@@ -127,6 +127,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           compact={compact}
           title={t("timer.resolveFirst")}
           label={t("timer.returnToMe")}
+          short={t("timer.returnShort")}
           onClick={() => dispatch({ type: "TIMER_RETURN_TO_ACTIVE" })}
           icon={<Undo2 aria-hidden size={20} />}
         />
@@ -137,6 +138,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           tone="respond"
           compact={compact}
           label={t("timer.passBack")}
+          short={t("timer.passBackShort")}
           onClick={() => dispatch({ type: "TIMER_PASS_BACK", seatId })}
           icon={<Undo2 aria-hidden size={20} />}
         />
@@ -147,6 +149,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           tone="respond"
           compact={compact || view.canReturn}
           label={t("timer.respond")}
+          short={view.canReturn ? undefined : t("timer.respondShort")}
           onClick={() => dispatch({ type: "TIMER_RESPOND", seatId })}
           icon={<Zap aria-hidden size={20} />}
         />
@@ -375,7 +378,14 @@ function ResponseBanner({
       {!(compact && view.depth > 1) && (
         <Zap aria-hidden size={16} className="shrink-0 text-respond" />
       )}
-      <span className={cn("min-w-0 truncate text-sm", compact && "sr-only")}>
+      {/* A-7: compact tiles abbreviate the responder's name rather than hiding it. */}
+      <span
+        data-testid={`seat-${index}-banner-name`}
+        className={cn(
+          "min-w-0 truncate",
+          compact ? "min-w-[2.5rem] max-w-[5.5rem] text-xs" : "text-sm",
+        )}
+      >
         {t("timer.bannerName", { name: view.responderName })}
       </span>
       <span
@@ -422,6 +432,7 @@ function BarButton({
   icon,
   tone,
   compact,
+  short,
   onClick,
 }: {
   testId: string;
@@ -430,6 +441,8 @@ function BarButton({
   icon: React.ReactNode;
   tone: "accent" | "respond";
   compact?: boolean;
+  /** A-7: short visible caption under the icon on compact (icon-only) buttons. */
+  short?: string;
   onClick: () => void;
 }) {
   return (
@@ -442,11 +455,16 @@ function BarButton({
       className={cn(
         "inline-flex h-12 min-w-12 shrink-0 select-none items-center justify-center gap-1 rounded-full px-3 text-sm font-bold shadow active:scale-95",
         tone === "respond" ? "bg-respond text-black" : "bg-accent text-accent-fg",
-        compact && "px-0",
+        compact && "flex-col gap-0 px-1",
       )}
     >
       {icon}
       {!compact && <span className="whitespace-nowrap">{label}</span>}
+      {compact && short && (
+        <span aria-hidden className="whitespace-nowrap text-[0.6rem] leading-none">
+          {short}
+        </span>
+      )}
     </button>
   );
 }

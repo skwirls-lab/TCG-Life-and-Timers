@@ -206,7 +206,8 @@ export const TIMER_ROWS: SettingDef[] = [
       },
     },
     {
-      visibleIf: (_p, _g, ctx) => on(ctx),
+      // A-3 (TMR-032): a round timer works with any per-seat mode, Off included.
+      visibleIf: () => true,
       get: (ctx) => {
         const ms = cfgOf(ctx).match?.totalMs ?? 0;
         return MATCH_MINUTES.some((m) => m * MIN === ms) ? ms / MIN : CUSTOM;
@@ -229,7 +230,7 @@ export const TIMER_ROWS: SettingDef[] = [
       options: () => Array.from({ length: 11 }, (_, i) => ({ value: i, label: String(i) })),
     },
     {
-      visibleIf: (_p, _g, ctx) => on(ctx) && cfgOf(ctx).match !== undefined,
+      visibleIf: (_p, _g, ctx) => cfgOf(ctx).match !== undefined,
       get: (ctx) => cfgOf(ctx).match?.extraTurns ?? 0,
       set: patchSet((v, ctx) => {
         const m = cfgOf(ctx).match;

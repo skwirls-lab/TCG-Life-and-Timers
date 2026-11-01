@@ -134,6 +134,10 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 7. Refunds and disputes: the extension doesn't mirror refunds. When you refund a lifetime purchase or lose a dispute, set that `customers/{uid}/payments/{id}` doc's `status` to `"refunded"` (or add `revoked: true`). Pro is recomputed automatically.
 8. Test with Stripe test card `4242 4242 4242 4242`. The account shows Pro within seconds, and **Manage subscription** opens the Stripe portal. Then switch Stripe to Live mode and replace the price ids and key.
 9. Legal: before charging money, have someone review `/terms`, `/privacy`, the trademark disclaimer, and WotC's Fan Content Policy (PRD §17.1, Q7). Pro features are deliberately game-agnostic, and Scryfall art is never paywalled.
+   - **Placeholder banners to remove after review** (they are shown to users on purpose until then):
+     - `/privacy` and `/terms`: "Draft — requires owner/legal review" (`legal.draft` in `src/i18n/en/legal.json`, rendered by `src/features/legal/LegalDocument.tsx`; texts in `src/features/legal/content/en.json`).
+     - `/about`: "Draft legal text, pending review" (`art.about.draft` in `src/i18n/en/art.json`, rendered by `src/features/art/AboutScreen.tsx`).
+   - Rule values marked `verify` (docs/RULES-TO-VERIFY.md) show a "needs checking" hint only in dev/test builds; set `NEXT_PUBLIC_SHOW_VERIFY=1` to see them in a production build while you check.
 
 ## Part 8 (optional): Error reporting and analytics
 - **Sentry**: create a project (platform: JavaScript/Browser) → copy the DSN → `NEXT_PUBLIC_SENTRY_DSN` in `apphosting.yaml`. Sentry loads only when this is set.

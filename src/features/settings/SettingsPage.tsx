@@ -17,6 +17,19 @@ import {
   type SubPageId,
 } from "./registry";
 import { SettingRow, type RowHandlers } from "./SettingRow";
+import { ImageCacheSheet } from "./ImageCacheSheet";
+import { useSnackbar } from "@/components/ui/Snackbar";
+import { shareApp, type ShareResult } from "@/lib/feedback/share";
+
+const SHARE_MESSAGES: Record<
+  ShareResult,
+  "account.feedback.shared" | "account.feedback.copied" | "account.feedback.shareFailed" | null
+> = {
+  shared: "account.feedback.shared",
+  copied: "account.feedback.copied",
+  failed: "account.feedback.shareFailed",
+  cancelled: null,
+};
 import { SettingsSubPage } from "./SubPages";
 import { useSettingsModel } from "./useSettingsModel";
 // TIMER-UI (W3): section C rows (registers on import) + SET-013 auto-pause, restart confirm, keypad.
@@ -30,9 +43,21 @@ export function SettingsPage() {
   const [presetPicker, setPresetPicker] = useState(false);
   const [sub, setSub] = useState<SubPageId | null>(null);
 
+  const [cacheSheet, setCacheSheet] = useState(false);
   const runAction = (action: ActionId) => {
     if (action === "saveDefaults") void model.saveDefaults();
     else if (action === "restoreDefaults") void model.restoreDefaults();
+    else if (action === "clearImageCache") setCacheSheet(true);
+    else if (action === "share") {
+      // SET-040 (A-11e): Web Share, else copy the link.
+      void shareApp({
+        title: t("account.feedback.shareTitle"),
+        text: t("account.feedback.shareText"),
+      }).then((r) => {
+        const key = SHARE_MESSAGES[r];
+        if (key) useSnackbar.getState().show({ message: t(key) });
+      });
+    }
   };
 
   const handlers: RowHandlers = {
@@ -78,6 +103,7 @@ export function SettingsPage() {
         );
       })}
 
+      <ImageCacheSheet open={cacheSheet} onClose={() => setCacheSheet(false)} />
       <Sheet
         open={presetPicker}
         onClose={() => setPresetPicker(false)}

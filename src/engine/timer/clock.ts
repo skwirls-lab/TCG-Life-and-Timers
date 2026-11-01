@@ -21,6 +21,14 @@ export function isLimited(mode: TimerMode): boolean {
   return mode !== "off" && mode !== "countup";
 }
 
+/**
+ * The timer runs at all: per-seat clocks, or a match (round) timer on its own (TMR-032: "can be
+ * combined with any per-seat mode", including Off — Pokémon / Yu-Gi-Oh! rounds).
+ */
+export function timerEngaged(t: Pick<TimerState, "mode" | "match">): boolean {
+  return t.mode !== "off" || t.match !== undefined;
+}
+
 /** The holder's clock is being charged right now (running, not frozen by a response — TMR-010). */
 export function isCharging(t: TimerState): boolean {
   return (
@@ -195,7 +203,7 @@ export function nextSignificantEvent(
   now: number,
 ): SignificantEvent | null {
   const t0 = game.timer;
-  if (t0.mode === "off" || game.status === "ended") return null;
+  if (!timerEngaged(t0) || game.status === "ended") return null;
   if (t0.status !== "running" && t0.status !== "paused") return null;
   const t = projectTimer(t0, now);
   const cfg = t.config;

@@ -3,11 +3,12 @@
  * read and parsed at build time (the route is static), so no markdown parser ships to the client.
  */
 import { PageShell } from "@/components/ui";
+import { appVersion } from "@/lib/feedback/version";
 import { t } from "@/lib/i18n";
 import type { ChangelogRelease } from "./changelog";
 
 export function WhatsNew({ releases }: { releases: ChangelogRelease[] }) {
-  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+  const version = appVersion();
   return (
     <PageShell title={t("whatsnew.title")} backHref="/settings" testId="whats-new">
       <div className="flex flex-col gap-4 pt-4">

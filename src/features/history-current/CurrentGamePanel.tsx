@@ -8,6 +8,7 @@ import { ChevronDown, History, Skull, Trophy } from "lucide-react";
 import { Segmented } from "@/components/ui";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { activeDuration, enabledCounters, primaryCounter, standings, type Game } from "@/engine";
+import { getDb } from "@/lib/db";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useGameStore } from "@/state/gameStore";
@@ -30,9 +31,27 @@ export function useNow(ms = 1000): number {
   return now;
 }
 
+/** A-11f (HIST-001): "Game N" = saved games on this device other than this one, + 1. */
+function useGameNumber(gameId: string): number | undefined {
+  const [n, setN] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    getDb()
+      .records.filter((r) => r.id !== gameId)
+      .count()
+      .then((c) => live && setN(c + 1))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [gameId]);
+  return n;
+}
+
 function HeaderCard({ game, now }: { game: Game; now: number }) {
   const [open, setOpen] = useState(false);
-  const h = headerView(game);
+  const number = useGameNumber(game.id);
+  const h = headerView(game, number);
   const primary = primaryCounter(game.preset);
   const elapsed = activeDuration(game, game.status === "ended" ? (game.endedAt ?? now) : now);
   const rules = enabledCounters(game).filter((c) => c.threshold);

@@ -56,6 +56,8 @@ export interface LayoutInput {
   onePlayer?: boolean;
   /** LAY-004 per-seat manual rotation (Seat.rotationOverride), by seat index. */
   overrides?: readonly (Rotation | undefined)[];
+  /** Toolbar strip thickness, px (default TOOLBAR_PX; thicker when a shared track sits in it). */
+  toolbarPx?: number;
 }
 
 /** Toolbar strip thickness in CSS px (≥ 48 px touch targets + padding). */
@@ -139,12 +141,13 @@ interface Cell {
   rotation: Rotation;
 }
 
-function toolbarFraction(px: number): number {
-  return Math.min(0.2, TOOLBAR_PX / Math.max(1, px));
+function toolbarFraction(px: number, size = TOOLBAR_PX): number {
+  const cap = size > TOOLBAR_PX ? 0.25 : 0.2;
+  return Math.min(cap, Math.max(size, TOOLBAR_PX) / Math.max(1, px));
 }
 
-function buildBands(spec: BandsLayout, h: number): { cells: Cell[]; toolbar: Rect } {
-  const tb = toolbarFraction(h);
+function buildBands(spec: BandsLayout, h: number, size?: number): { cells: Cell[]; toolbar: Rect } {
+  const tb = toolbarFraction(h, size);
   const total = spec.bands.reduce((s, b) => s + (b.kind === "band" ? b.weight : 0), 0);
   const unit = (1 - tb) / total;
   const cells: Cell[] = [];
@@ -166,8 +169,12 @@ function buildBands(spec: BandsLayout, h: number): { cells: Cell[]; toolbar: Rec
   return { cells, toolbar };
 }
 
-function buildColumns(spec: ColumnsLayout, w: number): { cells: Cell[]; toolbar: Rect } {
-  const tb = toolbarFraction(w);
+function buildColumns(
+  spec: ColumnsLayout,
+  w: number,
+  size?: number,
+): { cells: Cell[]; toolbar: Rect } {
+  const tb = toolbarFraction(w, size);
   const cw = (1 - tb) / 2;
   const cells: Cell[] = [];
   const column = (count: number, x: number, rotation: Rotation) => {
@@ -222,7 +229,10 @@ export function getLayout(input: LayoutInput): BoardLayout {
   const pw = landscape ? viewport.h : viewport.w;
   const ph = landscape ? viewport.w : viewport.h;
 
-  const built = spec.type === "bands" ? buildBands(spec, ph) : buildColumns(spec, pw);
+  const built =
+    spec.type === "bands"
+      ? buildBands(spec, ph, input.toolbarPx)
+      : buildColumns(spec, pw, input.toolbarPx);
   let cells = clockwise(built.cells);
   let toolbarRect = built.toolbar;
   let orientation: ToolbarOrientation = spec.type === "bands" ? "horizontal" : "vertical";

@@ -4,6 +4,7 @@
  * Each row shows the rules quick-ref line, a "verify" hint when a rule value is unverified, and a
  * link to the official rules. Recent / favorites are device-level (Dexie kv).
  */
+import { SHOW_VERIFY_HINTS } from "@/lib/presets/verifyHints";
 import { Check, ExternalLink, Search, Star, TriangleAlert } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { Preset } from "@/engine";
@@ -132,7 +133,7 @@ interface RowProps {
 
 function PresetRow({ preset: p, selected, favorite, onSelect, onToggleFavorite }: RowProps) {
   const primary = p.counters.find((c) => c.isPrimary);
-  const unverified = hasUnverifiedValues(p);
+  const unverified = SHOW_VERIFY_HINTS && hasUnverifiedValues(p);
   const players =
     p.minPlayers === p.maxPlayers
       ? t("presets.picker.playersFixed", { min: p.minPlayers })

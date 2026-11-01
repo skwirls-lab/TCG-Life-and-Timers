@@ -5,14 +5,17 @@
  * board-level settings change — never on counter changes (PERF-002).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getLayout, miniGrid, seatFrameSize, type MiniGrid } from "@/engine/layout";
+import { getLayout, miniGrid, seatFrameSize, TOOLBAR_PX, type MiniGrid } from "@/engine/layout";
 import type { Rotation } from "@/lib/ui/rotation";
 import { useGameValue } from "@/state/gameStore";
 import { useSetting } from "@/state/settingsStore";
-import { hasCommanderDamage } from "./boardHelpers";
+import { hasCommanderDamage, trackGlobals } from "./boardHelpers";
 import { SeatTile } from "./SeatTile";
 import { Toolbar } from "./Toolbar";
 import { useSeatLooks } from "./useSeatLooks";
+
+/** Extra toolbar thickness for a shared track row, px (A-4). */
+const TRACK_PX = 56;
 
 /** Gutter between tiles, px (half on each side of a tile). */
 const GAP = 3;
@@ -45,6 +48,8 @@ export function Board() {
   const overrides = useGameValue((g) => g.seats.map((s) => s.rotationOverride ?? -1)) ?? [];
   const layoutId = useGameValue((g) => g.layoutId);
   const showMiniGrid = useGameValue(hasCommanderDamage) ?? false;
+  // A-4: a shared track (Digimon memory) gets a thicker toolbar strip.
+  const hasTrack = useGameValue((g) => trackGlobals(g).length > 0) ?? false;
   const cameraMode = useSetting("cameraMode");
   const onePlayer = useSetting("onePlayerMode");
   const looks = useSeatLooks();
@@ -56,14 +61,21 @@ export function Board() {
     const ov = overridesKey
       .split(",")
       .map((v) => (v === "-1" ? undefined : (Number(v) as Rotation)));
-    const input = { players, variantId: layoutId, viewport: size, cameraMode, overrides: ov };
+    const input = {
+      players,
+      variantId: layoutId,
+      viewport: size,
+      cameraMode,
+      overrides: ov,
+      ...(hasTrack ? { toolbarPx: TOOLBAR_PX + TRACK_PX } : {}),
+    };
     const layout = getLayout({ ...input, onePlayer });
     // One-player mode keeps the whole table's arrangement for the commander grid (SET-032).
     const tableLayout = onePlayer ? getLayout(input) : layout;
     const grids = new Map<number, MiniGrid>();
     for (const s of layout.seats) grids.set(s.index, miniGrid(tableLayout, s.index));
     return { layout, grids };
-  }, [size, players, layoutId, cameraMode, onePlayer, overridesKey]);
+  }, [size, players, layoutId, cameraMode, onePlayer, overridesKey, hasTrack]);
 
   return (
     <div ref={ref} className="relative size-full" data-testid="board">
@@ -102,6 +114,7 @@ export function Board() {
           <Toolbar
             rect={computed.layout.toolbar.rect}
             orientation={computed.layout.toolbar.orientation}
+            seatRotations={computed.layout.seats.map((s) => s.rotation)}
           />
         </>
       )}

@@ -4,7 +4,7 @@
  * Cells are placed spatially like the board as seen by the tile's player (`miniGrid` from the
  * layout engine); each cell is tinted with the source seat's art/colour when colorizeMiniGrids.
  */
-import { memo, useMemo, type CSSProperties } from "react";
+import { Fragment, memo, useMemo, type CSSProperties } from "react";
 import { ArtBackground } from "@/features/art/ArtBackground";
 import { artToCss } from "@/features/backgrounds/gradients";
 import { isImageArt } from "@/lib/art/resolve";
@@ -54,16 +54,21 @@ const CellArt = memo(function CellArt({
   return <ArtBackground art={flat} fallbackColor={look.color} className="absolute inset-0" />;
 });
 
-function cellText(d: DamageSummary | undefined): string {
-  if (!d) return "";
-  if (d.values.length > 1) return d.values.some((v) => v > 0) ? d.values.join("|") : "";
+/**
+ * Text per commander in a mini-grid cell: one entry, or one per partner (CMD-003) when any of
+ * them has damage. Empty when there is nothing to show.
+ */
+export function cellValues(d: DamageSummary | undefined): string[] {
+  if (!d) return [];
+  if (d.values.length > 1) return d.values.some((v) => v > 0) ? d.values.map(String) : [];
   const v = d.values[0] ?? 0;
-  return v > 0 ? String(v) : "";
+  return v > 0 ? [String(v)] : [];
 }
 
-function gridStyle(grid: MiniGridPlacement): CSSProperties {
+function gridStyle(grid: MiniGridPlacement, auto = false): CSSProperties {
   return {
-    gridTemplateColumns: `repeat(${grid.cols}, 1fr)`,
+    // Split partner cells grow to fit both values ("14 | 12"), so columns size to content.
+    gridTemplateColumns: `repeat(${grid.cols}, ${auto ? "auto" : "1fr"})`,
     gridTemplateRows: `repeat(${grid.rows}, 1fr)`,
   };
 }
@@ -80,40 +85,63 @@ export function TileMiniGrid({
   const damage = useDamage(seatId);
   const colorize = useSetting("colorizeMiniGrids");
   const cell = `${cellPx}px`;
+  const fontPx = Math.max(7, Math.round(cellPx * 0.55));
   return (
     <button
       type="button"
       data-testid={`seat-${index}-cmdgrid`}
       onClick={onOpen}
       className="pointer-events-auto grid min-h-12 min-w-12 shrink-0 gap-0.5 rounded-lg bg-black/40 p-1"
-      style={{ ...gridStyle(grid), gridAutoRows: cell }}
+      style={{ ...gridStyle(grid, true), gridAutoRows: cell }}
     >
       <span className="sr-only">{t("board.cmd.open")}</span>
       {grid.cells.map((c) => {
         const look = looks[c.index];
         const d = look ? damage.get(look.id) : undefined;
         const self = look?.id === seatId;
-        const text = cellText(d);
+        const values = cellValues(d);
+        const split = values.length > 1;
         return (
           <span
             key={c.index}
             data-testid={`seat-${index}-cmd-${c.index}`}
             data-value={d ? d.values.reduce((a, b) => a + b, 0) : 0}
+            data-split={split || undefined}
             className="relative flex items-center justify-center overflow-hidden rounded-[0.3rem] font-bold leading-none tabular text-white"
             style={{
               ...cellBackground(look, colorize),
               gridColumn: c.col + 1,
               gridRow: c.row + 1,
-              fontSize: Math.max(7, Math.round(cellPx * 0.55)),
-              width: cell,
+              fontSize: fontPx,
+              // A-2: cells widen to show their values in full (partner "14 | 12", 3 digits).
+              minWidth: cell,
               height: cell,
             }}
           >
             <CellArt look={look} colorize={colorize} />
             <span aria-hidden className="absolute inset-0 bg-black/45" />
-            <span className="relative [text-shadow:0_1px_2px_#000]">
-              {self && !text ? t("board.cmd.me") : text}
-            </span>
+            {split ? (
+              <span className="relative flex items-center gap-[0.2em] px-[0.25em] [text-shadow:0_1px_2px_#000]">
+                {values.map((v, k) => (
+                  <Fragment key={k}>
+                    {k > 0 && <span aria-hidden className="h-[0.9em] w-px bg-white/70" />}
+                    <span
+                      data-testid={`seat-${index}-cmd-${c.index}-v${k}`}
+                      className="whitespace-nowrap"
+                    >
+                      {v}
+                    </span>
+                  </Fragment>
+                ))}
+              </span>
+            ) : (
+              <span
+                data-testid={`seat-${index}-cmd-${c.index}-v0`}
+                className="relative whitespace-nowrap [text-shadow:0_1px_2px_#000]"
+              >
+                {self && values.length === 0 ? t("board.cmd.me") : (values[0] ?? "")}
+              </span>
+            )}
           </span>
         );
       })}

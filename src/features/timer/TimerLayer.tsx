@@ -123,6 +123,12 @@ function PauseOverlay() {
     g.timer.status === "paused" && g.status !== "ended" ? (g.timer.pausedReason ?? "user") : null,
   );
   if (!paused || menuOpen) return null;
+  return <PausedDialog paused={paused} onResume={() => dispatch({ type: "TIMER_RESUME" })} />;
+}
+
+function PausedDialog({ paused, onResume }: { paused: string; onResume: () => void }) {
+  // A-8: snackbars ("Passed to … · Undo") must not sit on top of the PAUSED layer.
+  useEffect(() => useSnackbar.getState().suppress(), []);
   const reason =
     paused === "background"
       ? t("timer.paused.background")
@@ -146,7 +152,7 @@ function PauseOverlay() {
         type="button"
         data-testid="timer-resume"
         autoFocus
-        onClick={() => dispatch({ type: "TIMER_RESUME" })}
+        onClick={onResume}
         className="inline-flex min-h-16 min-w-48 items-center justify-center gap-3 rounded-full bg-success px-8 text-2xl font-extrabold uppercase text-black shadow-xl active:scale-95"
       >
         <Play aria-hidden size={28} />

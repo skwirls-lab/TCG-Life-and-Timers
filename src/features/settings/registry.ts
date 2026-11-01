@@ -795,13 +795,14 @@ const BASE_ROWS: SettingDef[] = [
   linkRow("myImages", "G", "/images"),
   linkRow("history", "G", "/history"),
   linkRow("exportData", "G", "/account"),
-  actionRow("clearImageCache", "G", "clearImageCache"),
+  // A-11e: clears the scryfall-* SW caches + offline Scryfall copies (with a size readout).
+  actionRow("clearImageCache", "G", "clearImageCache", { disabledIf: () => null }),
   linkRow("removeData", "G", "/account"),
   linkRow("deleteAccount", "G", "/account"),
 
   // ---- H. Support and about ---------------------------------------------------------------
   linkRow("support", "H", "/pro"), // PAY (T7.4): "Upgrade to Pro / Support the app" (PAY-004)
-  actionRow("share", "H", "share"),
+  actionRow("share", "H", "share", { disabledIf: () => null }), // SET-040 (A-11e)
   linkRow("feedback", "H", "/feedback"),
   linkRow("diagnostics", "H", "/feedback"),
   linkRow("whatsNew", "H", "/whats-new"), // HARDEN (T8.7, SET-043)

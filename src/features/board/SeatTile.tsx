@@ -11,6 +11,7 @@ import { Minus, Plus, Skull, Trophy } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { RotatedContainer } from "@/components/ui/RotatedContainer";
 import { counterValue, primaryCounter, type Game, type Seat } from "@/engine";
+import { thresholdFor } from "@/engine/thresholds";
 import type { MiniGrid as MiniGridPlacement } from "@/engine/layout";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
@@ -24,12 +25,15 @@ import { useSetting } from "@/state/settingsStore";
 import { shouldOpenCalculator } from "@/features/calculator/calc";
 import { ArtBackground } from "@/features/art/ArtBackground";
 import { Badges } from "./Badges";
-import { HOLD_REPEAT_MS, formatDelta, formatValue, tileMetrics } from "./boardHelpers";
+import { HOLD_REPEAT_MS, formatDelta, formatValue, pipLayout, tileMetrics } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
 import { reducedMotion, tapFeedback } from "./feedback";
 import { QuickCmdGrid, TileMiniGrid } from "./MiniGrid";
 import type { SeatLook } from "./useSeatLooks";
 import { useSwipe } from "./useSwipe";
+import { firstMarkerKey } from "@/features/game-flow/flow";
+import { useFlowUi } from "@/features/game-flow/flowUi";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 
 export interface SeatTileProps {
   index: number;
@@ -47,7 +51,16 @@ export interface SeatTileProps {
 
 function selectView(seat: Seat, game: Game) {
   const primary = primaryCounter(game.preset);
+  const rule = thresholdFor(game, primary, seat.id);
+  const pips =
+    primary.display === "pips" && typeof primary.max === "number" && Number.isFinite(primary.max)
+      ? primary.max
+      : 0;
   return {
+    pips,
+    // A-10 (PRE-013): a labelled limit ("Base HP 28") is shown under the number.
+    limitLabel: rule?.label ?? "",
+    limitValue: rule?.value ?? 0,
     name: seat.name,
     color: seat.color,
     art: seat.art,
@@ -86,6 +99,7 @@ export const SeatTile = memo(function SeatTile({
   const bubbleMs = useSetting("bubbleMs");
   const swipeOn = useSetting("swipe");
   const timerOn = useGameValue(timerBarActive) ?? false;
+  const firstMarker = useFirstMarker(seatId);
   // INP-007: tapping the number opens the calculator for high-total presets (Yu-Gi-Oh! LP).
   const calcOn = useGameValue((g) => shouldOpenCalculator(g.preset, g.options)) ?? false;
   const openCalc = useBoardUi((s) => s.openCalc);
@@ -146,6 +160,10 @@ export const SeatTile = memo(function SeatTile({
     ? timerTileMetrics({ w: frameW, h: frameH }, (f) => tileMetrics(f, metricOpts))
     : null;
   const m = timerM ? timerM.tile : tileMetrics({ w: frameW, h: frameH }, metricOpts);
+
+  const pipW = wide ? frameW - 2 * (m.glyph + 16) - 16 : frameW * 0.84;
+  const limitFont =
+    view && view.limitLabel ? Math.round(Math.max(12, Math.min(20, m.numberH * 0.12))) : 0;
 
   // INP-005: a vertical swipe (in this player's frame) between the name pill and the bottom row.
   const swipe = useSwipe({
@@ -259,7 +277,7 @@ export const SeatTile = memo(function SeatTile({
       className={cn(
         "size-full rounded-tile bg-surface",
         "focus-visible:outline-solid focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-white",
-        view.active && "ring-4 ring-accent",
+        (view.active || firstMarker) && "ring-4 ring-accent",
       )}
       tabIndex={0}
       role="group"
@@ -330,8 +348,12 @@ export const SeatTile = memo(function SeatTile({
               {glyph("minus")}
               {glyph("plus")}
               {/* Name pill (opens the seat menu; INP-009 visually distinct from the +/− zones) */}
+              {/* A-9: tall tiles have nothing beside the pill, so the name may use the width. */}
               <div
-                className="absolute inset-x-0 top-0 flex items-center justify-center px-14"
+                className={cn(
+                  "absolute inset-x-0 top-0 flex items-center justify-center",
+                  wide ? "px-14" : "px-2",
+                )}
                 style={{ height: m.topH }}
               >
                 <button
@@ -350,6 +372,23 @@ export const SeatTile = memo(function SeatTile({
                     {view.name}
                   </span>
                 </button>
+                {firstMarker && (
+                  <span
+                    data-testid={`seat-${index}-first`}
+                    role="status"
+                    className="ml-1 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-fg shadow"
+                  >
+                    <span className="sr-only">
+                      {t("board.seat.goesFirstLabel", { name: view.name })}
+                    </span>
+                    <span aria-hidden>▶</span>
+                    <span aria-hidden>
+                      {frameW - (wide ? 112 : 16) < 260
+                        ? t("board.seat.goesFirstShort")
+                        : t("board.seat.goesFirst")}
+                    </span>
+                  </span>
+                )}
               </div>
               {/* Primary number (LIFE-001, LAY-008 auto-fit) + bubble (INP-006) */}
               <div
@@ -357,14 +396,38 @@ export const SeatTile = memo(function SeatTile({
                 style={{ top: m.numberTop, height: m.numberH }}
               >
                 <div className="relative flex flex-col items-center">
-                  <span
-                    ref={numberRef}
-                    data-testid={`seat-${index}-value`}
-                    className="block font-bold leading-none tabular tracking-tight [text-shadow:0_2px_10px_rgb(0_0_0/0.45)]"
-                    style={{ fontSize: m.fontPx }}
-                  >
-                    {valueText}
-                  </span>
+                  {view.pips > 0 ? (
+                    <Pips
+                      index={index}
+                      value={view.value}
+                      max={view.pips}
+                      name={view.primaryName}
+                      w={pipW}
+                      h={m.numberH}
+                      numberRef={numberRef}
+                      valueText={valueText}
+                    />
+                  ) : (
+                    <span
+                      ref={numberRef}
+                      data-testid={`seat-${index}-value`}
+                      className="block font-bold leading-none tabular tracking-tight [text-shadow:0_2px_10px_rgb(0_0_0/0.45)]"
+                      style={{
+                        fontSize: limitFont ? Math.min(m.fontPx, m.numberH * 0.78) : m.fontPx,
+                      }}
+                    >
+                      {valueText}
+                    </span>
+                  )}
+                  {limitFont > 0 && (
+                    <span
+                      data-testid={`seat-${index}-limit`}
+                      className="mt-0.5 whitespace-nowrap rounded-full bg-black/55 px-2.5 font-semibold leading-snug"
+                      style={{ fontSize: limitFont }}
+                    >
+                      {t("board.seat.limit", { label: view.limitLabel, value: view.limitValue })}
+                    </span>
+                  )}
                   {calcOn && (
                     <button
                       type="button"
@@ -459,4 +522,97 @@ function WinnerOverlay({ index }: { index: number }) {
       </div>
     </div>
   );
+}
+
+/**
+ * §10.5 pips display (`display: "pips"`, e.g. FFTCG damage): `max` slots that fill up, with the
+ * count underneath. The whole group reads "Damage 3 of 7" to assistive tech.
+ */
+function Pips({
+  index,
+  value,
+  max,
+  name,
+  w,
+  h,
+  numberRef,
+  valueText,
+}: {
+  index: number;
+  value: number;
+  max: number;
+  name: string;
+  w: number;
+  h: number;
+  numberRef: React.RefObject<HTMLSpanElement | null>;
+  valueText: string;
+}) {
+  const countPx = Math.round(Math.max(14, Math.min(40, h * 0.2)));
+  const pl = pipLayout(max, Math.max(16, w), Math.max(16, h - countPx * 1.3));
+  const filled = Math.max(0, Math.min(max, value));
+  return (
+    <div
+      role="img"
+      aria-label={t("board.seat.pips", { name, value, max })}
+      data-testid={`seat-${index}-pips`}
+      data-value={value}
+      data-max={max}
+      className="flex flex-col items-center"
+      style={{ gap: Math.round(countPx * 0.3) }}
+    >
+      <div
+        aria-hidden
+        className="grid justify-center"
+        style={{
+          gridTemplateColumns: `repeat(${pl.cols}, ${pl.d}px)`,
+          gap: pl.gap,
+        }}
+      >
+        {Array.from({ length: max }, (_, k) => (
+          <span
+            key={k}
+            data-testid={`seat-${index}-pip-${k}`}
+            data-filled={k < filled ? "1" : "0"}
+            className={cn(
+              "block rounded-full border-[3px] shadow",
+              k < filled ? "border-white bg-white" : "border-white/70 bg-black/30",
+            )}
+            style={{ width: pl.d, height: pl.d }}
+          />
+        ))}
+      </div>
+      <span aria-hidden className="font-bold leading-none tabular" style={{ fontSize: countPx }}>
+        <span ref={numberRef} data-testid={`seat-${index}-value`}>
+          {valueText}
+        </span>
+        <span className="opacity-70">{` / ${max}`}</span>
+      </span>
+    </div>
+  );
+}
+
+const FIRST_MARKER_MS = 10_000;
+
+/**
+ * A-1 (GAME-011, LIFE-006): the starter's tile says "goes first" (even with turn tracking off)
+ * until anyone changes a counter, the turn passes, or 10 s after the announcement closed.
+ */
+function useFirstMarker(seatId: string): boolean {
+  const raw = useSeat(seatId, (_s, g) => firstMarkerKey(g, seatId)) ?? "";
+  const [key, announcing] = raw.split("|");
+  const testSkip =
+    TEST_HOOKS_ENABLED &&
+    typeof window !== "undefined" &&
+    !!key &&
+    window.__tcgSkipAnnounceGame === key.split(":")[0];
+  const overlayUp = useFlowUi((s) => !!key && announcing === "1" && !s.announced.includes(key));
+  const waiting = overlayUp && !testSkip;
+  const done = useFlowUi((s) => !!key && s.markersDone.includes(key));
+  const markerDone = useFlowUi((s) => s.markerDone);
+  useEffect(() => {
+    if (!key || done || waiting) return;
+    const timer = setTimeout(() => markerDone(key), FIRST_MARKER_MS);
+    return () => clearTimeout(timer);
+  }, [key, done, waiting, markerDone]);
+  return !!key && !done;
 }

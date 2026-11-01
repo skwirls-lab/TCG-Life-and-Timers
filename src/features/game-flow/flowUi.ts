@@ -9,6 +9,9 @@ interface FlowUiState {
   closedGameOver: string[];
   /** Game ids whose first-turn reminder (PRD §10.3) was dismissed: shown once per game. */
   hintsDismissed: string[];
+  /** First-player tile markers (A-1) that timed out, by announcement key. */
+  markersDone: string[];
+  markerDone: (key: string) => void;
   markAnnounced: (key: string) => void;
   closeGameOver: (key: string) => void;
   dismissHint: (gameId: string) => void;
@@ -18,6 +21,8 @@ export const useFlowUi = create<FlowUiState>((set) => ({
   announced: [],
   closedGameOver: [],
   hintsDismissed: [],
+  markersDone: [],
+  markerDone: (key) => set((s) => ({ markersDone: [...s.markersDone.slice(-20), key] })),
   markAnnounced: (key) => set((s) => ({ announced: [...s.announced.slice(-20), key] })),
   closeGameOver: (key) => set((s) => ({ closedGameOver: [...s.closedGameOver.slice(-20), key] })),
   dismissHint: (gameId) =>

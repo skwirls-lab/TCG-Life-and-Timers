@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import { GameIcon } from "@/components/icons/GameIcon";
-import type { Game, SeatId } from "@/engine";
+import { primaryCounter, type Game, type SeatId } from "@/engine";
+import { thresholdFor } from "@/engine/thresholds";
 import { t, tp } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch } from "@/state/gameStore";
@@ -81,8 +82,19 @@ export function CountersTab({ game, seatId, focusCounterId }: Props) {
     );
   }
 
+  // A-10 (PRE-013): the seat's own labelled limit (SWU base HP).
+  const limit = thresholdFor(game, primaryCounter(game.preset), seatId);
   return (
     <div className="@container flex flex-col gap-3">
+      {limit?.label && (
+        <p
+          data-testid="seat-limit"
+          className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 text-base"
+        >
+          <span>{limit.label}</span>
+          <span className="text-lg font-bold tabular">{limit.value}</span>
+        </p>
+      )}
       <p className="text-sm text-fg-muted">{t("seat.counters.help")}</p>
       <div ref={gridRef} className="grid grid-cols-2 gap-2 @md:grid-cols-3">
         {tiles.map((tile) => {
