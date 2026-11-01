@@ -88,11 +88,12 @@ export function clearFilterKey(f: RecordFilter, key: FilterChipKey): RecordFilte
   return Object.fromEntries(Object.entries(f).filter(([k]) => !drop.includes(k))) as RecordFilter;
 }
 
-/** Free tier (§17.2): only the date range applies. */
+/** Free tier (§17.2): only the date range applies (plus the HIST-033 default-names toggle). */
 export function freeTierFilter(f: RecordFilter): RecordFilter {
   const out: RecordFilter = {};
   if (f.from !== undefined) out.from = f.from;
   if (f.to !== undefined) out.to = f.to;
+  if (f.includeDefaultNames) out.includeDefaultNames = true;
   return out;
 }
 

@@ -330,7 +330,7 @@ describe("filter (HIST-024)", () => {
     expect(activeFilterKeys({ presetIds: [] })).toEqual([]);
     expect(clearFilterKey(f, "date")).not.toHaveProperty("from");
     expect(clearFilterKey(f, "timer")).not.toHaveProperty("timer");
-    expect(freeTierFilter(f)).toEqual({ from: 1, to: 2 });
+    expect(freeTierFilter(f)).toEqual({ from: 1, to: 2, includeDefaultNames: true });
     expect(freeTierFilter({ presetIds: ["x"] })).toEqual({});
   });
 
