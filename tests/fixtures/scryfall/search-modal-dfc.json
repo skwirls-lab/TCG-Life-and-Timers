@@ -1,0 +1,71 @@
+{
+  "object": "list",
+  "total_cards": 1,
+  "has_more": false,
+  "data": [
+    {
+      "object": "card",
+      "id": "75886acf-8c40-48e4-9d95-9779e61ec0bc",
+      "oracle_id": "87a2b1be-7280-4a66-abf9-35942f92d8ac",
+      "multiverse_ids": [],
+      "name": "Agadeem's Awakening // Agadeem, the Undercrypt",
+      "lang": "en",
+      "released_at": "2020-09-25",
+      "uri": "https://api.scryfall.com/cards/75886acf-8c40-48e4-9d95-9779e61ec0bc",
+      "scryfall_uri": "https://scryfall.com/card/znr/90/agadeems-awakening-agadeem-the-undercrypt?utm_source=api",
+      "layout": "modal_dfc",
+      "highres_image": true,
+      "image_status": "highres_scan",
+      "cmc": 3,
+      "type_line": "Sorcery // Land",
+      "color_identity": ["B"],
+      "card_faces": [
+        {
+          "object": "card_face",
+          "name": "Agadeem's Awakening",
+          "mana_cost": "{X}{B}{B}{B}",
+          "type_line": "Sorcery",
+          "oracle_text": "Return from your graveyard to the battlefield any number of target creature cards that each have a different mana value X or less.",
+          "colors": ["B"],
+          "artist": "Front Artist",
+          "artist_id": "341ae51a-4ea8-42bd-bbdf-b67b3f2b47ef",
+          "illustration_id": "4be5f6ef-7378-419b-af92-0011ab9764db",
+          "image_uris": {
+            "small": "https://cards.scryfall.io/small/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "normal": "https://cards.scryfall.io/normal/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "large": "https://cards.scryfall.io/large/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "png": "https://cards.scryfall.io/png/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.png?1700000000",
+            "art_crop": "https://cards.scryfall.io/art_crop/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "border_crop": "https://cards.scryfall.io/border_crop/front/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000"
+          }
+        },
+        {
+          "object": "card_face",
+          "name": "Agadeem, the Undercrypt",
+          "mana_cost": "",
+          "type_line": "Land",
+          "oracle_text": "As Agadeem, the Undercrypt enters, you may pay 3 life. If you don't, it enters tapped.\n{T}: Add {B}.",
+          "colors": [],
+          "artist": "Back Artist",
+          "artist_id": "c9ae8945-6c3e-4324-904f-2e66f71e2c86",
+          "illustration_id": "b32fb930-c0ef-416e-9207-19a0182b4dc0",
+          "image_uris": {
+            "small": "https://cards.scryfall.io/small/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "normal": "https://cards.scryfall.io/normal/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "large": "https://cards.scryfall.io/large/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "png": "https://cards.scryfall.io/png/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.png?1700000000",
+            "art_crop": "https://cards.scryfall.io/art_crop/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000",
+            "border_crop": "https://cards.scryfall.io/border_crop/back/7/5/75886acf-8c40-48e4-9d95-9779e61ec0bc.jpg?1700000000"
+          }
+        }
+      ],
+      "set": "znr",
+      "set_name": "Zendikar Rising",
+      "set_type": "expansion",
+      "collector_number": "90",
+      "rarity": "mythic",
+      "artist": "Front Artist & Back Artist",
+      "artist_ids": ["8c8b9dd6-f1e5-4720-8bd2-1d2f3b9944e3"]
+    }
+  ]
+}

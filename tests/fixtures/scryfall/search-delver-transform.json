@@ -1,0 +1,75 @@
+{
+  "object": "list",
+  "total_cards": 1,
+  "has_more": false,
+  "data": [
+    {
+      "object": "card",
+      "id": "3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908",
+      "oracle_id": "4fa18247-023d-4e1f-886e-550aeae176c0",
+      "multiverse_ids": [],
+      "name": "Delver of Secrets // Insectile Aberration",
+      "lang": "en",
+      "released_at": "2011-09-30",
+      "uri": "https://api.scryfall.com/cards/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908",
+      "scryfall_uri": "https://scryfall.com/card/isd/51/delver-of-secrets-insectile-aberration?utm_source=api",
+      "layout": "transform",
+      "highres_image": true,
+      "image_status": "highres_scan",
+      "cmc": 1,
+      "type_line": "Creature — Human Wizard // Creature — Human Insect",
+      "color_identity": ["U"],
+      "card_faces": [
+        {
+          "object": "card_face",
+          "name": "Delver of Secrets",
+          "mana_cost": "{U}",
+          "type_line": "Creature — Human Wizard",
+          "oracle_text": "At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.",
+          "colors": ["U"],
+          "power": "1",
+          "toughness": "1",
+          "artist": "Matt Stewart",
+          "artist_id": "a3d10db7-a7e7-4856-bcdd-51c1b322cf88",
+          "illustration_id": "d235d32e-a134-45a1-a341-928efb36d241",
+          "image_uris": {
+            "small": "https://cards.scryfall.io/small/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "normal": "https://cards.scryfall.io/normal/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "large": "https://cards.scryfall.io/large/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "png": "https://cards.scryfall.io/png/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.png?1700000000",
+            "art_crop": "https://cards.scryfall.io/art_crop/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "border_crop": "https://cards.scryfall.io/border_crop/front/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000"
+          }
+        },
+        {
+          "object": "card_face",
+          "name": "Insectile Aberration",
+          "mana_cost": "",
+          "type_line": "Creature — Human Insect",
+          "oracle_text": "Flying",
+          "colors": ["U"],
+          "power": "3",
+          "toughness": "2",
+          "artist": "Matt Stewart",
+          "artist_id": "4460739f-55b8-4dff-af1b-4ae540c2e326",
+          "illustration_id": "f3b20a82-b970-4f14-9ae1-6310891178a3",
+          "image_uris": {
+            "small": "https://cards.scryfall.io/small/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "normal": "https://cards.scryfall.io/normal/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "large": "https://cards.scryfall.io/large/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "png": "https://cards.scryfall.io/png/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.png?1700000000",
+            "art_crop": "https://cards.scryfall.io/art_crop/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000",
+            "border_crop": "https://cards.scryfall.io/border_crop/back/3/e/3ee74b3f-1e4f-42ed-ae71-c0f2f6e4d908.jpg?1700000000"
+          }
+        }
+      ],
+      "set": "isd",
+      "set_name": "Innistrad",
+      "set_type": "expansion",
+      "collector_number": "51",
+      "rarity": "common",
+      "artist": "Matt Stewart",
+      "artist_ids": ["fa29722a-8d38-45f3-9a88-f8e7cdeea823"]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "object": "list",
+  "total_cards": 3,
+  "has_more": false,
+  "data": [
+    {
+      "object": "card",
+      "id": "7b4f521b-4cae-480f-bc91-33700b14fad8",
+      "oracle_id": "39c9991b-9e3d-4e49-9c2c-70432d064e94",
+      "multiverse_ids": [],
+      "name": "Sol Ring",
+      "lang": "en",
+      "released_at": "1993-08-05",
+      "uri": "https://api.scryfall.com/cards/7b4f521b-4cae-480f-bc91-33700b14fad8",
+      "scryfall_uri": "https://scryfall.com/card/lea/270/sol-ring?utm_source=api",
+      "layout": "normal",
+      "highres_image": true,
+      "image_status": "highres_scan",
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.jpg?1700000000",
+        "normal": "https://cards.scryfall.io/normal/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.jpg?1700000000",
+        "large": "https://cards.scryfall.io/large/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.jpg?1700000000",
+        "png": "https://cards.scryfall.io/png/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.png?1700000000",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.jpg?1700000000",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/7/b/7b4f521b-4cae-480f-bc91-33700b14fad8.jpg?1700000000"
+      },
+      "mana_cost": "{1}",
+      "cmc": 1,
+      "type_line": "Artifact",
+      "oracle_text": "{T}: Add {C}{C}.",
+      "colors": [],
+      "color_identity": [],
+      "set": "lea",
+      "set_name": "Limited Edition Alpha",
+      "set_type": "core",
+      "collector_number": "270",
+      "rarity": "uncommon",
+      "artist": "Mark Tedin",
+      "artist_ids": ["0ac58474-600a-4978-865e-0351a69c5611"],
+      "illustration_id": "d8f5e46b-9d14-4d98-923b-8ebb8841f806"
+    }
+  ]
+}
