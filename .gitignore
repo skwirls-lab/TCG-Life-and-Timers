@@ -53,3 +53,6 @@ functions/node_modules/
 firebase-export-*/
 .next-test/
 .next-emu/
+
+# agent worktrees
+.claude/

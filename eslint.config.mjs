@@ -88,6 +88,7 @@ const eslintConfig = defineConfig([
     "functions/node_modules/**",
     "public/**",
     ".lighthouseci/**",
+    ".claude/**",
   ]),
 ]);
 

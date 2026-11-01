@@ -13,3 +13,4 @@ functions/package-lock.json
 *.md
 src/i18n/en.json
 .firebase
+.claude
