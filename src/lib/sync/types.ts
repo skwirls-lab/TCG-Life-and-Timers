@@ -58,6 +58,8 @@ export interface CollectionSpec {
   remote: RemoteAdapter;
   /** Write-once documents (game records, SYNC-003): only creates and tombstones are pushed. */
   writeOnce?: boolean;
+  /** Documents are never deleted (users/{uid}): a missing local item means "nothing to push". */
+  noDeletes?: boolean;
 }
 
 /** Minimal persisted key/value store (Dexie `kv` in production). */

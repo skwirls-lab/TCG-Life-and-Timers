@@ -13,6 +13,7 @@ import {
 import {
   artMapper,
   deckMapper,
+  isEmptySettingsItem,
   planSettingsApply,
   presetMapper,
   profileMapper,
@@ -82,7 +83,8 @@ export function settingsAdapter(
     async list() {
       const rows = await db.settings.toArray();
       const me = (await db.profiles.toArray()).find((p) => p.isMe === true);
-      return [settingsToItem(rows, me?.id, opts.log)];
+      const item = settingsToItem(rows, me?.id, opts.log);
+      return isEmptySettingsItem(item) ? [] : [item];
     },
     async apply(item) {
       if (item.deleted) return; // the user doc is never tombstoned

@@ -248,6 +248,43 @@ describe("userDocRemote", () => {
       .write({ id: "user", updatedAt: 1, deleted: false, data: {} });
     expect(fresh.fake.writes[0]?.data.createdAt).toBe(SERVER_TS);
   });
+
+  it("re-reads createdAt once when another device created the doc concurrently", async () => {
+    const { fake, ctx } = setup();
+    const api = fake.api();
+    const denied = Object.assign(new Error("denied"), { code: "permission-denied" });
+    let calls = 0;
+    const setDoc = api.setDoc;
+    const racing = {
+      ...api,
+      setDoc: (async (...args: Parameters<typeof setDoc>) => {
+        calls += 1;
+        if (calls === 1) {
+          // The other device's create lands first; our create (createdAt = now) is rejected.
+          fake.docs.set("users/u1", { displayName: "", createdAt: ts(3), updatedAt: ts(3) });
+          throw denied;
+        }
+        return setDoc(...args);
+      }) as typeof setDoc,
+    };
+    const r = remoteAdapters.settings({ ...ctx, fs: racing }, () => "");
+    await r.write({ id: "user", updatedAt: 1, deleted: false, data: {} });
+    expect(fake.writes[0]?.data.createdAt).toEqual(ts(3));
+    const other = {
+      ...racing,
+      setDoc: (async () => Promise.reject(new Error("x"))) as typeof setDoc,
+    };
+    await expect(
+      remoteAdapters
+        .settings({ ...ctx, fs: other }, () => "")
+        .write({
+          id: "user",
+          updatedAt: 1,
+          deleted: false,
+          data: {},
+        }),
+    ).rejects.toThrow("x");
+  });
 });
 
 describe("fetchRemoteItems", () => {

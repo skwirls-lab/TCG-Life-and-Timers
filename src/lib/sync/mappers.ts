@@ -319,7 +319,9 @@ export function settingsToItem(
   let updatedAt = 0;
   for (const r of rows) {
     if (!isSyncedSettingKey(r.key)) continue;
-    settings[r.key] = r.key === APP_KEY ? syncedAppSettings(r.value) : r.value;
+    const value = r.key === APP_KEY ? syncedAppSettings(r.value) : r.value;
+    if (r.key === APP_KEY && Object.keys(value as object).length === 0) continue; // device-only
+    settings[r.key] = value;
     updatedAt = Math.max(updatedAt, num(r.updatedAt));
   }
   const candidate = { displayName: "", settings, meProfileId };
@@ -330,33 +332,47 @@ export function settingsToItem(
   return { id: SETTINGS_ITEM_ID, updatedAt, deleted: false, data };
 }
 
+/** No synced settings and no "me" profile: nothing worth creating a user doc for. */
+export function isEmptySettingsItem(item: SyncItem): boolean {
+  const settings = item.data.settings;
+  return (
+    item.data.meProfileId === undefined &&
+    (!settings || (typeof settings === "object" && Object.keys(settings).length === 0))
+  );
+}
+
 export interface SettingsPlan {
   put: SettingsRowLike[];
   delete: string[];
   meProfileId: string | undefined;
 }
 
-/** Local writes that make the settings rows match a remote settings item. */
+/**
+ * Local writes that make the synced settings rows match a remote settings item exactly (so the
+ * result maps back to the same item and is never pushed again). Device-only values stay.
+ */
 export function planSettingsApply(item: SyncItem, rows: SettingsRowLike[]): SettingsPlan {
   const remote = (item.data.settings ?? {}) as Record<string, unknown>;
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const put: SettingsRowLike[] = [];
   const del: string[] = [];
+  const localApp = byKey.get(APP_KEY)?.value;
+  const device =
+    localApp && typeof localApp === "object"
+      ? Object.fromEntries(Object.entries(localApp).filter(([k]) => isDeviceOnlySetting(k)))
+      : {};
   for (const [key, value] of Object.entries(remote)) {
     if (!isSyncedSettingKey(key)) continue;
-    if (key === APP_KEY) {
-      const local = byKey.get(APP_KEY)?.value;
-      const device =
-        local && typeof local === "object"
-          ? Object.fromEntries(Object.entries(local).filter(([k]) => isDeviceOnlySetting(k)))
-          : {};
+    if (key === APP_KEY)
       put.push({
         key,
         value: { ...syncedAppSettings(value), ...device },
         updatedAt: item.updatedAt,
       });
-    } else put.push({ key, value, updatedAt: item.updatedAt });
+    else put.push({ key, value, updatedAt: item.updatedAt });
   }
+  if (!(APP_KEY in remote) && Object.keys(syncedAppSettings(localApp)).length > 0)
+    put.push({ key: APP_KEY, value: device, updatedAt: item.updatedAt });
   for (const r of rows)
     if (r.key.startsWith(PRESET_DEFAULTS_PREFIX) && !(r.key in remote)) del.push(r.key);
   const me = item.data.meProfileId;

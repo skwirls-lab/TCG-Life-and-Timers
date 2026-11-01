@@ -72,6 +72,7 @@ export function buildCollections(
       name: "settings",
       local: settingsAdapter(db, { log: warn, onApplied: deps.onSettingsApplied }),
       remote: remoteAdapters.settings(ctx, () => user.displayName ?? ""),
+      noDeletes: true,
     },
     { name: "art", local: localAdapters.art(db, warn), remote: remoteAdapters.art(ctx) },
   ];

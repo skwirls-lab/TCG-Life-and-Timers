@@ -5,6 +5,7 @@ import {
   artMapper,
   deckMapper,
   isDeviceOnlySetting,
+  isEmptySettingsItem,
   NO_PRESET,
   planSettingsApply,
   presetMapper,
@@ -262,6 +263,15 @@ describe("settings mapping", () => {
       meProfileId: "p1",
     });
     expect(settingsToItem([], undefined).data).toEqual({ settings: {} });
+    expect(isEmptySettingsItem(settingsToItem([], undefined))).toBe(true);
+    // An app row holding only device-only values is not synced at all.
+    const deviceOnly = settingsToItem(
+      [{ key: "app", value: { haptics: true }, updatedAt: 9 }],
+      undefined,
+    );
+    expect(deviceOnly).toMatchObject({ updatedAt: 0, data: { settings: {} } });
+    expect(isEmptySettingsItem(settingsToItem([], "p1"))).toBe(false);
+    expect(isEmptySettingsItem(item)).toBe(false);
   });
 
   it("falls back to empty settings when invalid", () => {

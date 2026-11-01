@@ -16,7 +16,13 @@ interface Device {
 
 function device(
   remote: MemoryRemote,
-  opts: { writeOnce?: boolean; kv?: MemoryKv; local?: MemoryLocal; net?: MemoryNetwork } = {},
+  opts: {
+    writeOnce?: boolean;
+    noDeletes?: boolean;
+    kv?: MemoryKv;
+    local?: MemoryLocal;
+    net?: MemoryNetwork;
+  } = {},
 ): Device {
   const local = opts.local ?? new MemoryLocal();
   const kv = opts.kv ?? new MemoryKv();
@@ -25,7 +31,9 @@ function device(
   const logs: string[] = [];
   const engine = createSyncEngine({
     scope: "u1",
-    collections: [{ name: "profiles", local, remote, writeOnce: opts.writeOnce }],
+    collections: [
+      { name: "profiles", local, remote, writeOnce: opts.writeOnce, noDeletes: opts.noDeletes },
+    ],
     kv,
     network: net,
     debounceMs: 0,
@@ -330,6 +338,22 @@ describe("sync engine", () => {
     await b.engine.whenIdle();
     expect(b.local.rows.get("g2")?.data).toEqual({ name: "cloud" });
     b.engine.stop();
+  });
+
+  it("noDeletes collections never push tombstones for missing local items", async () => {
+    const remote = new MemoryRemote();
+    const a = device(remote, { noDeletes: true });
+    await a.engine.start();
+    a.local.put(item("user", "x", 1));
+    await a.engine.whenIdle();
+    expect(remote.writes).toHaveLength(1);
+    a.local.remove("user");
+    await a.engine.whenIdle();
+    expect(remote.writes).toHaveLength(1);
+    remote.serverWrite({ id: "user", deleted: false, data: { name: "y" } });
+    await a.engine.whenIdle();
+    expect(a.local.rows.get("user")?.data).toEqual({ name: "y" });
+    a.engine.stop();
   });
 
   it("start is idempotent and flush is a no-op when stopped", async () => {

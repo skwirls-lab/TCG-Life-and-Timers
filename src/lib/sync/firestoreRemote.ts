@@ -250,20 +250,30 @@ export function userDocRemote(ctx: RemoteContext, displayName: () => string): Re
       );
     },
     async write(item) {
-      if (createdAt === null) {
-        const existing = await fs.getDoc(ref());
-        createdAt = existing.exists() ? (existing.data().createdAt ?? null) : null;
-      }
       const data = userDataSchema.parse({
         displayName: displayName().slice(0, 100),
         settings: item.data.settings ?? {},
         meProfileId: item.data.meProfileId,
       });
-      await fs.setDoc(ref(), {
-        ...toJsonObject(data),
-        createdAt: createdAt ?? fs.serverTimestamp(),
-        updatedAt: fs.serverTimestamp(),
-      });
+      const attempt = async () => {
+        if (createdAt === null) {
+          const existing = await fs.getDoc(ref());
+          createdAt = existing.exists() ? (existing.data().createdAt ?? null) : null;
+        }
+        await fs.setDoc(ref(), {
+          ...toJsonObject(data),
+          createdAt: createdAt ?? fs.serverTimestamp(),
+          updatedAt: fs.serverTimestamp(),
+        });
+      };
+      try {
+        await attempt();
+      } catch (err) {
+        // Another device created the doc meanwhile: createdAt is immutable, so re-read it once.
+        if ((err as { code?: unknown }).code !== "permission-denied") throw err;
+        createdAt = null;
+        await attempt();
+      }
     },
   };
 }

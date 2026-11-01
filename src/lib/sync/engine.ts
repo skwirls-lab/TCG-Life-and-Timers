@@ -189,6 +189,7 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
       for (const id of ids) {
         const d = decide(id, local.get(id), remote.get(id), shadow.get(id), {
           writeOnce: spec.writeOnce,
+          noDeletes: spec.noDeletes,
           now: t,
         });
         const k = opKey(c, id);

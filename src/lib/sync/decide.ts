@@ -46,7 +46,7 @@ export function decide(
   local: SyncItem | undefined,
   remote: SyncItem | undefined,
   shadow: ShadowEntry | undefined,
-  opts: { writeOnce?: boolean; now: number },
+  opts: { writeOnce?: boolean; noDeletes?: boolean; now: number },
 ): Decision {
   const gone = !remote && shadow !== undefined && shadow.remote > 0;
   const r: SyncItem | undefined =
@@ -61,11 +61,14 @@ export function decide(
         }
       : undefined);
 
-  const localChanged = shadow
-    ? local
-      ? !sameDoc({ ...local, deleted: false }, shadow)
-      : !shadow.deleted
-    : local !== undefined;
+  const localChanged =
+    !local && opts.noDeletes
+      ? false
+      : shadow
+        ? local
+          ? !sameDoc({ ...local, deleted: false }, shadow)
+          : !shadow.deleted
+        : local !== undefined;
   const remoteChanged = r
     ? shadow
       ? r.updatedAt > shadow.remote && !sameDoc(r, shadow)

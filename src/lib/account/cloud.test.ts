@@ -113,6 +113,7 @@ describe("startCloud", () => {
       updatedAt: 5,
     });
     await db.games.put({ id: "active", schemaVersion: 1, updatedAt: 1, game: {} as never });
+    await db.settings.put({ key: "app", value: { theme: "light" }, updatedAt: 1 });
     fake.docs.set("users/u1/profiles/r1", {
       name: "Cloud",
       normalizedName: "cloud",
