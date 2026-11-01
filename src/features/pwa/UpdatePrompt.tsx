@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActiveGameFlag } from "@/lib/app/activeGame";
 import { t } from "@/lib/i18n";
 
@@ -7,11 +7,10 @@ import { t } from "@/lib/i18n";
  * PWA-004: when a new service worker is waiting, offer a reload, but only while no game
  * is in progress. We never reload automatically.
  */
-let userRequestedUpdate = false;
-
 export function UpdatePrompt() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
   const inProgress = useActiveGameFlag((s) => s.inProgress);
+  const userRequested = useRef(false);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
@@ -28,7 +27,7 @@ export function UpdatePrompt() {
     });
     // Only reload when the user asked for the update; first-install clientsClaim must not reload.
     const onCtrl = () => {
-      if (userRequestedUpdate) window.location.reload();
+      if (userRequested.current) window.location.reload();
     };
     navigator.serviceWorker.addEventListener("controllerchange", onCtrl);
     return () => {
@@ -49,7 +48,7 @@ export function UpdatePrompt() {
         type="button"
         className="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-fg"
         onClick={() => {
-          userRequestedUpdate = true;
+          userRequested.current = true;
           waiting.postMessage({ type: "SKIP_WAITING" });
         }}
       >
