@@ -62,13 +62,14 @@ describe("createRequestQueue", () => {
     await expect(q.run(async () => 3, ac.signal)).resolves.toBe(3);
   });
 
-  it("throws synchronously-rejected AbortError for an already-aborted signal", () => {
+  it("rejects with AbortError for an already-aborted signal without running the task", async () => {
     const q = createRequestQueue();
     const ac = new AbortController();
     ac.abort();
-    expect(() => q.run(async () => 1, ac.signal)).toThrow(
-      expect.objectContaining({ name: "AbortError" }),
-    );
+    const task = vi.fn(async () => 1);
+    await expect(q.run(task, ac.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(task).not.toHaveBeenCalled();
+    expect(q.pending).toBe(0);
   });
 
   it("uses a custom abort reason when it is an AbortError", async () => {

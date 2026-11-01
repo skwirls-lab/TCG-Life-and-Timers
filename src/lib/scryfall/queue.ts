@@ -48,7 +48,7 @@ export function createRequestQueue(opts: RequestQueueOptions = {}): RequestQueue
   let pending = 0;
 
   function run<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-    throwIfAborted(signal);
+    if (signal?.aborted) return Promise.reject(abortError(signal));
     pending += 1;
     const turn = tail.then(async () => {
       try {
