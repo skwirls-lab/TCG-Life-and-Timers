@@ -47,6 +47,7 @@ async function seedUser(uid: string, shareCode: string) {
   w.set(db.doc(`customers/${uid}/subscriptions/s1`), { status: "active" });
   w.set(db.doc(`customers/${uid}/checkout_sessions/c1`), { price: "price_1" });
   w.set(db.doc(`sharedPresets/${shareCode}`), { code: shareCode, ownerUid: uid, name: "S" });
+  w.set(db.doc(`feedback/fb_${uid}`), { uid, email: `${uid}@example.com`, message: "hi" });
   await w.commit();
   const bucket = getStorage(app).bucket(BUCKET);
   await bucket.file(`users/${uid}/art/a1.webp`).save(Buffer.from("img"), {
@@ -69,6 +70,7 @@ const userPaths = (uid: string, code: string) => [
   `customers/${uid}/subscriptions/s1`,
   `customers/${uid}/checkout_sessions/c1`,
   `sharedPresets/${code}`,
+  `feedback/fb_${uid}`,
 ];
 
 async function existing(paths: string[]): Promise<string[]> {
@@ -109,7 +111,13 @@ describe("deleteUserData (AUTH-005)", () => {
   // @req AUTH-005
   it("deletes all of user A's Firestore, Storage and Auth data", async () => {
     const res = await deleteUserData(deps, A);
-    expect(res).toEqual({ uid: A, sharedPresetsDeleted: 1, authUserDeleted: true });
+    expect(res).toEqual({
+      uid: A,
+      sharedPresetsDeleted: 1,
+      authUserDeleted: true,
+      subscriptionsCanceled: 0,
+      feedbackDeleted: 1,
+    });
     expect(await existing(userPaths(A, "AAAAaaaa"))).toEqual([]);
     expect(await storageFiles(A)).toEqual([]);
     expect(await authExists(A)).toBe(false);
@@ -135,7 +143,13 @@ describe("deleteUserData (AUTH-005)", () => {
     expect(first.authUserDeleted).toBe(false);
     expect(await existing(userPaths(A, "AAAAaaaa"))).toEqual([]);
     const again = await deleteUserData(deps, A);
-    expect(again).toEqual({ uid: A, sharedPresetsDeleted: 0, authUserDeleted: false });
+    expect(again).toEqual({
+      uid: A,
+      sharedPresetsDeleted: 0,
+      authUserDeleted: false,
+      subscriptionsCanceled: 0,
+      feedbackDeleted: 0,
+    });
   });
 
   // @req AUTH-005
@@ -145,7 +159,7 @@ describe("deleteUserData (AUTH-005)", () => {
     await expect(deleteUserData(deps, "..")).rejects.toThrow(/invalid uid/);
     expect(isSafeUid("x".repeat(129))).toBe(false);
     expect(isSafeUid(A)).toBe(true);
-    expect(await existing(userPaths(B, "BBBBbbbb"))).toHaveLength(11);
+    expect(await existing(userPaths(B, "BBBBbbbb"))).toHaveLength(12);
   });
 
   // @req AUTH-005
@@ -165,5 +179,48 @@ describe("deleteUserData (AUTH-005)", () => {
       },
     };
     await expect(deleteUserData(storageFails, B)).resolves.toMatchObject({ authUserDeleted: true });
+  });
+
+  // @req AUTH-005
+  it("B-6: deletes the user's feedback docs (uid + email), not other users'", async () => {
+    await db.doc("feedback/anon").set({ message: "no uid" });
+    await deleteUserData(deps, A);
+    expect(await existing([`feedback/fb_${A}`])).toEqual([]);
+    expect(await existing([`feedback/fb_${B}`, "feedback/anon"])).toHaveLength(2);
+  });
+
+  // @req AUTH-005 @req PAY-003
+  it("B-3: cancels every still-billable Stripe subscription before deleting", async () => {
+    await db.doc(`customers/${A}/subscriptions/sub_old`).set({ status: "canceled" });
+    await db.doc(`customers/${A}/subscriptions/sub_due`).set({ status: "past_due" });
+    await db.doc(`customers/${A}/subscriptions/sub_act`).set({ status: "active" });
+    const canceled: string[] = [];
+    const stripe = {
+      cancelSubscription: async (id: string) => {
+        // The customer docs must still exist while Stripe is called.
+        expect((await db.doc(`customers/${A}/subscriptions/${id}`).get()).exists).toBe(true);
+        canceled.push(id);
+      },
+    };
+    // Stripe ids are the doc ids; the seeded active "s1" is not a Stripe id and is never sent.
+    const res = await deleteUserData({ ...deps, stripe }, A);
+    expect(canceled.sort()).toEqual(["sub_act", "sub_due"]);
+    expect(res.subscriptionsCanceled).toBe(2);
+    expect(await existing(userPaths(A, "AAAAaaaa"))).toEqual([]);
+  });
+
+  // @req AUTH-005
+  it("B-3: a Stripe failure aborts before anything is deleted (retryable)", async () => {
+    const stripe = {
+      cancelSubscription: () => Promise.reject(new Error("stripe down")),
+    };
+    await db.doc(`customers/${A}/subscriptions/sub_x`).set({ status: "active" });
+    await expect(deleteUserData({ ...deps, stripe }, A)).rejects.toThrow("stripe down");
+    expect(await existing(userPaths(A, "AAAAaaaa"))).toHaveLength(12);
+    expect(await authExists(A)).toBe(true);
+    // Without a Stripe client (not configured) deletion proceeds as before.
+    await expect(deleteUserData({ ...deps, stripe: null }, A)).resolves.toMatchObject({
+      subscriptionsCanceled: 0,
+    });
   });
 });

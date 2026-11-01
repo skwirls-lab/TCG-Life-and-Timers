@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   entitlementsFromSubscriptions,
   isLifetimePayment,
+  isRevokedPayment,
   parseLifetimePriceIds,
   paymentPriceIds,
 } from "../../functions/src/logic/entitlements";
@@ -94,5 +95,32 @@ describe("entitlementsFromSubscriptions (SEC-002)", () => {
     ).toEqual(["a", "b", "c", "d"]);
     expect([...parseLifetimePriceIds(undefined)]).toEqual([]);
     expect([...parseLifetimePriceIds(" x,,y \n z ")]).toEqual(["x", "y", "z"]);
+  });
+
+  // @req PAY-003
+  it("B-8: refunded, disputed or revoked lifetime payments stop granting pro", () => {
+    const ids = new Set(["price_life"]);
+    const ok = { status: "succeeded", price: "price_life", amount: 2999, amount_received: 2999 };
+    expect(entitlementsFromSubscriptions([], [ok], ids)).toEqual({ pro: true, source: "lifetime" });
+    for (const p of [
+      { ...ok, status: "refunded" },
+      { ...ok, status: "canceled" },
+      { ...ok, status: "disputed" },
+      { ...ok, refunded: true },
+      { ...ok, amount_refunded: 2999 },
+      { ...ok, dispute: { id: "dp_1" } },
+      { ...ok, disputed: true },
+      { ...ok, revoked: true },
+      { status: "succeeded", price: "price_life", amount_refunded: 5 },
+    ]) {
+      expect(isRevokedPayment(p) || p.status !== "succeeded").toBe(true);
+      expect(entitlementsFromSubscriptions([], [p], ids)).toEqual({ pro: false, source: "none" });
+    }
+    // A partial goodwill refund keeps lifetime; another valid grant keeps pro.
+    expect(isRevokedPayment({ ...ok, amount_refunded: 500 })).toBe(false);
+    expect(isRevokedPayment({ ...ok, dispute: null })).toBe(false);
+    expect(
+      entitlementsFromSubscriptions([{ status: "active" }], [{ ...ok, refunded: true }], ids),
+    ).toEqual({ pro: true, source: "subscription" });
   });
 });

@@ -17,6 +17,7 @@ import { useEffect, useId, useState } from "react";
 import { Button, ListRow, PageShell, SectionHeader } from "@/components/ui";
 import { resolveMerge, startCloud, useCloud, deleteMyAccount } from "@/lib/account/cloud";
 import { downloadExport } from "@/lib/account/export";
+import { useEntitlements } from "@/lib/entitlements/store";
 import { signInWithGoogle, signOut, useAuth } from "@/lib/auth/store";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
@@ -201,6 +202,31 @@ function SignedIn({ email, displayName }: { email: string | null; displayName: s
   );
 }
 
+/** B-3: a Pro user is told to cancel the subscription first, with a link to the portal. */
+export function SubscriptionWarning() {
+  const pro = useEntitlements((s) => s.pro);
+  if (!pro) return null;
+  return (
+    <div
+      role="note"
+      className="flex flex-col gap-2 rounded-xl border border-warning/50 p-3"
+      data-testid="account-delete-subscription"
+    >
+      <p className="text-sm">{t("account.delete.subscription")}</p>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          void import("@/lib/entitlements/checkout").then((m) => m.openBillingPortal());
+        }}
+        data-testid="account-delete-manage"
+      >
+        {t("account.delete.manage")}
+      </Button>
+    </div>
+  );
+}
+
 function DeleteAccount() {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -228,6 +254,7 @@ function DeleteAccount() {
           data-testid="account-delete-panel"
         >
           <p className="text-fg">{t("account.delete.hint")}</p>
+          <SubscriptionWarning />
           <label htmlFor={inputId} className="text-sm text-fg-muted">
             {t("account.delete.typeToConfirm")}
           </label>

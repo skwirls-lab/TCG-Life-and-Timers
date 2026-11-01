@@ -8,7 +8,11 @@ import {
   snapshotLocal,
   type DataSnapshot,
 } from "./localData";
-import { executeMerge, planMerge } from "./merge";
+import { executeMerge, planMerge, renameInRecord, renameProfilesInGame } from "./merge";
+import { createSession } from "@/engine";
+import { newGame } from "../../../tests/unit/helpers/engine";
+import { useGameStore } from "@/state/gameStore";
+import { applyProfileRenamesToOpenGame } from "./cloud";
 
 const prof = (id: string, name: string, updatedAt: number, deleted = false): SyncItem => ({
   id,
@@ -162,5 +166,79 @@ describe("executeMerge / clearLocalAccountData", () => {
     expect(await db.records.count()).toBe(0);
     expect(await db.settings.get("app")).toBeUndefined();
     expect(await db.games.count()).toBe(1);
+  });
+
+  // @req AUTH-003 @req HIST-033
+  it("B-7: records and stored games follow a name-matched profile id", async () => {
+    await db.records.put({
+      id: "g2",
+      schemaVersion: 1,
+      endedAt: 2,
+      presetId: "x",
+      seats: [
+        { name: "Jean-Paul", profileId: "l2", winner: true },
+        { name: "B", winner: false },
+      ],
+      players: [
+        { seatId: "s1", name: "Jean-Paul", identity: "p:l2", profileId: "l2" },
+        { seatId: "s2", name: "B", identity: "n:b" },
+      ],
+    } as never);
+    const g = newGame();
+    const stored = {
+      ...g,
+      seats: g.seats.map((x, i) => (i === 0 ? { ...x, profileId: "l2" } : x)),
+    };
+    await db.games.put({ id: "game", schemaVersion: 1, updatedAt: 1, game: stored });
+    const plan = planMerge(
+      await snapshotLocal(db),
+      snap({ profiles: [prof("r2", "jean-paul", 40)] }),
+    );
+    await executeMerge(plan, "merge", { includeRecords: true, db });
+    const r = (await db.records.get("g2")) as unknown as {
+      seats: { profileId?: string }[];
+      players: { profileId?: string; identity: string }[];
+    };
+    expect(r.seats.map((x) => x.profileId)).toEqual(["r2", undefined]);
+    expect(r.players.map((p) => [p.profileId, p.identity])).toEqual([
+      ["r2", "p:r2"],
+      [undefined, "n:b"],
+    ]);
+    expect((await db.records.get("g1")) as unknown).toMatchObject({ id: "g1" }); // untouched
+    expect((await db.games.get("game"))!.game.seats[0]!.profileId).toBe("r2");
+  });
+
+  it("B-7: pure helpers return the same object when nothing references the ids", () => {
+    const renames = new Map([["a", "b"]]);
+    const g = newGame();
+    expect(renameProfilesInGame(g, renames)).toBe(g);
+    expect(renameInRecord({ id: "x" }, renames)).toBeNull();
+    expect(renameInRecord({ seats: [{ profileId: "z" }] }, renames)).toBeNull();
+  });
+
+  it("B-7: the open game and its undo snapshots follow the rename", () => {
+    const g = newGame();
+    const withP = { ...g, seats: g.seats.map((x, i) => (i === 1 ? { ...x, profileId: "l2" } : x)) };
+    useGameStore.setState({ session: { ...createSession(withP), past: [withP] } });
+    applyProfileRenamesToOpenGame({
+      ...planMerge(emptySnapshot(), emptySnapshot()),
+      profileRenames: [{ from: "l2", to: "r2" }],
+    });
+    const s = useGameStore.getState().session!;
+    expect(s.game.seats[1]!.profileId).toBe("r2");
+    expect(s.past[0]!.seats[1]!.profileId).toBe("r2");
+    const same = useGameStore.getState().session;
+    applyProfileRenamesToOpenGame({
+      ...planMerge(emptySnapshot(), emptySnapshot()),
+      profileRenames: [{ from: "l2", to: "r2" }],
+    });
+    expect(useGameStore.getState().session).toBe(same);
+    applyProfileRenamesToOpenGame(planMerge(emptySnapshot(), emptySnapshot()));
+    useGameStore.setState({ session: null });
+    applyProfileRenamesToOpenGame({
+      ...planMerge(emptySnapshot(), emptySnapshot()),
+      profileRenames: [{ from: "l2", to: "r2" }],
+    });
+    expect(useGameStore.getState().session).toBeNull();
   });
 });

@@ -7,6 +7,9 @@
  * (see index.ts). Reading ALL of the user's subscriptions and payments on each event makes it
  * order-independent and idempotent: a cancelled subscription next to an active one, or a
  * lifetime payment, always yields the same answer. Dependencies are structural (D-016).
+ *
+ * B-3: when the Auth user no longer exists (account deleted; a late Stripe webhook re-created
+ * customers/{uid}/**), nothing is written — a deleted uid never gets an entitlements doc again.
  */
 import { entitlementsFromSubscriptions, type Entitlements } from "./entitlements";
 import { isNotFound, isSafeUid } from "./deleteUserData";
@@ -39,6 +42,8 @@ export interface SyncEntitlementsResult extends Entitlements {
   /** false when the stored doc already matched (no write). */
   written: boolean;
   claimUpdated: boolean;
+  /** true when the Auth user is gone: nothing was written (B-3). */
+  userDeleted?: boolean;
 }
 
 async function docsData(fs: EntitlementsFirestoreLike, path: string) {
@@ -52,6 +57,23 @@ export async function syncEntitlements(
 ): Promise<SyncEntitlementsResult> {
   if (!isSafeUid(uid)) throw new Error(`invalid uid: ${JSON.stringify(uid)}`);
   const { firestore: fs } = deps;
+  // B-3: never (re)create data for a deleted account.
+  let user: { customClaims?: Record<string, unknown> | null } | null = null;
+  if (deps.auth) {
+    try {
+      user = await deps.auth.getUser(uid);
+    } catch (err) {
+      if (!isNotFound(err)) throw err;
+      return {
+        uid,
+        pro: false,
+        source: "none",
+        written: false,
+        claimUpdated: false,
+        userDeleted: true,
+      };
+    }
+  }
   const [subs, payments] = await Promise.all([
     docsData(fs, `customers/${uid}/subscriptions`),
     docsData(fs, `customers/${uid}/payments`),
@@ -68,17 +90,16 @@ export async function syncEntitlements(
   if (!same) await ref.set({ pro: ent.pro, source: ent.source, updatedAt: deps.serverTimestamp() });
 
   let claimUpdated = false;
-  if (deps.auth) {
-    try {
-      const user = await deps.auth.getUser(uid);
-      const claims = { ...(user.customClaims ?? {}) };
-      if (claims.pro !== ent.pro) {
-        claims.pro = ent.pro;
+  if (deps.auth && user) {
+    const claims = { ...(user.customClaims ?? {}) };
+    if (claims.pro !== ent.pro) {
+      claims.pro = ent.pro;
+      try {
         await deps.auth.setCustomUserClaims(uid, claims);
         claimUpdated = true;
+      } catch (err) {
+        if (!isNotFound(err)) throw err; // deleted between the check and now
       }
-    } catch (err) {
-      if (!isNotFound(err)) throw err; // the Auth user may already be gone (account deletion)
     }
   }
   return { uid, ...ent, written: !same, claimUpdated };

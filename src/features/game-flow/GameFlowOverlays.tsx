@@ -8,6 +8,7 @@
  * - game-over overlay with Rematch / New setup / Close (GAME-014)
  * - 5 s "Undo" snackbar after a reset or an elimination (GAME-015)
  * - the corrupt-save notice (REL-004)
+ * - the "open in another tab" notice with "Use here" (B-2; see src/lib/db/tabGuard.ts)
  */
 import { useEffect } from "react";
 import { Button, useSnackbar } from "@/components/ui";
@@ -87,6 +88,25 @@ function CorruptNotice() {
   );
 }
 
+/** B-2: another tab took over the game; this tab stopped saving. Non-destructive. */
+function StaleTabNotice() {
+  const stale = useGameStore((s) => s.staleTab);
+  const takeOverHere = useGameStore((s) => s.takeOverHere);
+  if (!stale) return null;
+  return (
+    <div
+      role="alert"
+      data-testid="stale-tab-notice"
+      className="fixed inset-x-0 top-0 z-[58] m-3 flex items-center gap-3 rounded-2xl border border-warning/50 bg-surface p-3 shadow-xl"
+    >
+      <p className="flex-1 text-sm">{t("engine.staleTab.body")}</p>
+      <Button size="sm" onClick={() => void takeOverHere()} data-testid="stale-tab-use-here">
+        {t("engine.staleTab.useHere")}
+      </Button>
+    </div>
+  );
+}
+
 export function GameFlowOverlays() {
   useUndoSnackbar();
   const game = useGameStore((s) => s.session?.game);
@@ -104,6 +124,7 @@ export function GameFlowOverlays() {
         </>
       )}
       <CorruptNotice />
+      <StaleTabNotice />
     </>
   );
 }

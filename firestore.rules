@@ -38,6 +38,25 @@ service cloud.firestore {
     }
     function optArt(m) { return !('art' in m) || isArt(m.art); }
 
+    // ---------- Pro enforcement (B-4, PRD §17.2) ----------
+    // The paywall ships DISABLED: unless an admin creates config/billing {paywallEnabled: true}
+    // everything stays allowed (ALL_FREE). When enabled, Pro-only cloud features require the
+    // server-written entitlements doc (users/{uid}/private/entitlements, SEC-002) to say pro.
+    // get() is used instead of the `pro` custom claim so a purchase applies without a token refresh.
+    function billingDoc() { return /databases/$(database)/documents/config/billing; }
+    function paywallOn() {
+      return exists(billingDoc()) && get(billingDoc()).data.get('paywallEnabled', false) == true;
+    }
+    function isPro(uid) {
+      let ent = /databases/$(database)/documents/users/$(uid)/private/entitlements;
+      return exists(ent) && get(ent).data.get('pro', false) == true;
+    }
+    function proOrFree(uid) { return !paywallOn() || isPro(uid); }
+    // A tombstone is final (SYNC-003, B-9): once deleted == true it can never flip back.
+    function notResurrected() {
+      return !(resource.data.get('deleted', false) == true && data().get('deleted', false) == false);
+    }
+
     // ---------- users/{uid}/** : owner only (SEC-001) ----------
     match /users/{uid} {
       function validUser() {
@@ -129,10 +148,13 @@ service cloud.firestore {
             && optBool(d, 'deleted') && stamped();
         }
         allow read, delete: if isOwner(uid);
-        allow create: if isOwner(uid) && pathIdOk(gameId) && validGame();
-        // Write-once (SYNC-003): re-sends and tombstones may only touch updatedAt / deleted.
+        // History sync is Pro when the paywall is enabled (B-4, PRD §17.2).
+        allow create: if isOwner(uid) && pathIdOk(gameId) && validGame() && proOrFree(uid);
+        // Write-once (SYNC-003): re-sends and tombstones may only touch updatedAt / deleted, and a
+        // tombstone is never resurrected (B-9).
         allow update: if isOwner(uid) && validGame()
-          && data().diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'deleted']);
+          && data().diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'deleted'])
+          && notResurrected();
       }
 
       match /art/{artId} {
@@ -153,6 +175,12 @@ service cloud.firestore {
 
       // Entitlements are written only by Cloud Functions / admin (SEC-002).
       match /private/entitlements {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // Cloud art quota counter, maintained by the artQuota functions (B-4, ART-024).
+      match /private/quota {
         allow read: if isOwner(uid);
         allow write: if false;
       }
@@ -196,16 +224,27 @@ service cloud.firestore {
           && isStr(d.name, 1, 60)
           && isStr(d.game, 0, 60)
           && isStr(d.payload, 0, 204800)
-          // No images in share links (LEG-005).
-          && !d.payload.matches('(?s).*(data:image/|firebasestorage[.]googleapis[.]com).*')
+          // The payload is a preset export envelope (B-5; exportPreset JSON, validated with zod
+          // again on import).
+          && d.payload.matches('(?s)[{]\\s*"format"\\s*:\\s*"tcg-life-preset"\\s*,.*[}]\\s*')
+          // No images in share links (LEG-005), case-insensitive (B-5).
+          && !d.payload.lower().matches('(?s).*(data:image/|firebasestorage[.]googleapis[.]com).*')
           && d.createdAt == request.time;
       }
       allow get: if true;
       // Listing is limited to the caller's own shares (no enumeration of everyone's codes).
       allow list: if signedIn() && resource.data.ownerUid == request.auth.uid;
-      allow create: if signedIn() && validShare();
+      // Share links are Pro when the paywall is enabled (B-4, presetShareLinks).
+      allow create: if signedIn() && validShare() && proOrFree(request.auth.uid);
       allow update: if false;
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------- config/billing : public read, admin-only write (B-4) ----------
+    // {paywallEnabled: bool}. Absent = paywall disabled (everything allowed).
+    match /config/billing {
+      allow read: if true;
+      allow write: if false;
     }
 
     // ---------- feedback/{id} : create-only (SET-041, SET-042) ----------

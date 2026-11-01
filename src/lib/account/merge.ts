@@ -7,7 +7,13 @@
  *
  * `planMerge` is pure. `executeMerge` only rewrites local ids (name matches) or clears local
  * tables; the sync engine then performs the per-id last-write-wins reconciliation.
+ *
+ * A name-matched profile id is rewritten everywhere it is referenced on the device, in the same
+ * transaction (B-7): decks, game records (players[].profileId + identity `p:<id>`, seats[]) and
+ * stored active games (seats[].profileId). The in-memory game (if one is open) is patched by the
+ * caller with `renameProfilesInGame` (src/lib/account/cloud.ts).
  */
+import type { Game } from "@/engine";
 import { getDb, type StoredDeck, type StoredProfile, type TcgDb } from "@/lib/db";
 import {
   MERGE_COLLECTIONS,
@@ -136,15 +142,64 @@ export async function executeMerge(
     return;
   }
   if (!plan.profileRenames.length) return;
-  await db.transaction("rw", db.profiles, db.decks, async () => {
+  const renames = new Map<string, string>();
+  await db.transaction("rw", [db.profiles, db.decks, db.records, db.games], async () => {
     for (const { from, to } of plan.profileRenames) {
       const row = await db.profiles.get(from);
       if (!row) continue;
+      renames.set(from, to);
       const next: StoredProfile = { ...row, id: to };
       await db.profiles.delete(from);
       await db.profiles.put(next);
       const decks = await db.decks.where("profileId").equals(from).toArray();
       for (const d of decks) await db.decks.put({ ...d, profileId: to } satisfies StoredDeck);
     }
+    if (!renames.size) return;
+    // B-7: records keep pointing at the merged profile (stats identity p:<profileId>).
+    for (const r of await db.records.toArray()) {
+      const next = renameInRecord(r as unknown as Record<string, unknown>, renames);
+      if (next) await db.records.put(next as unknown as typeof r);
+    }
+    for (const g of await db.games.toArray()) {
+      if (!g.game || !Array.isArray((g.game as Partial<Game>).seats)) continue;
+      const game = renameProfilesInGame(g.game, renames);
+      if (game !== g.game) await db.games.put({ ...g, game });
+    }
   });
+}
+
+type Renames = ReadonlyMap<string, string>;
+
+function renameList<T>(list: unknown, renames: Renames, extra?: (o: T, to: string) => T) {
+  if (!Array.isArray(list)) return null;
+  let changed = false;
+  const out = list.map((x: unknown) => {
+    const o = x as { profileId?: unknown };
+    const to = typeof o?.profileId === "string" ? renames.get(o.profileId) : undefined;
+    if (!to) return x;
+    changed = true;
+    const next = { ...(x as object), profileId: to } as T;
+    return extra ? extra(next, to) : next;
+  });
+  return changed ? out : null;
+}
+
+/** A record row with merged profile ids (null when it references none of them). */
+export function renameInRecord(
+  row: Record<string, unknown>,
+  renames: Renames,
+): Record<string, unknown> | null {
+  const players = renameList<{ identity?: string }>(row.players, renames, (p, to) => ({
+    ...p,
+    identity: `p:${to}`,
+  }));
+  const seats = renameList(row.seats, renames);
+  if (!players && !seats) return null;
+  return { ...row, ...(players ? { players } : {}), ...(seats ? { seats } : {}) };
+}
+
+/** The game with merged profile ids on its seats (the same object when unchanged). */
+export function renameProfilesInGame(game: Game, renames: Renames): Game {
+  const seats = renameList<Game["seats"][number]>(game.seats, renames);
+  return seats ? { ...game, seats: seats as Game["seats"] } : game;
 }

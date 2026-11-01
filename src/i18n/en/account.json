@@ -30,6 +30,8 @@
   "account.export.failed": "Export failed. Please try again.",
   "account.delete": "Delete account",
   "account.delete.hint": "Permanently deletes your account and all of its cloud data. This can't be undone.",
+  "account.delete.subscription": "If you have an active subscription, cancel it first in Manage subscription. Deleting the account can't stop billing on its own if the subscription can't be reached.",
+  "account.delete.manage": "Manage subscription",
   "account.delete.typeToConfirm": "Type DELETE to confirm",
   "account.delete.word": "DELETE",
   "account.delete.confirm": "Delete my account",

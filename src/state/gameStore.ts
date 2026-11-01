@@ -7,6 +7,9 @@
  * - Autosave (ARCH-006): every committed change is saved to IndexedDB, debounced 250 ms, and
  *   flushed on `visibilitychange` (hidden) / `pagehide`.
  * - Keeps `useActiveGameFlag` in sync (PWA-004).
+ * - Multi-tab guard (B-2): starting / loading a game announces it to other tabs (tabGuard); a tab
+ *   whose game was taken over by another tab becomes `staleTab`, stops autosaving and offers
+ *   "Use here" (re-load from IndexedDB and take over). Saves never delete another tab's game.
  * - Seat-scoped hooks (`useSeat`, `useGameValue`) compare selector output shallowly so a change on
  *   seat A doesn't re-render seat B (PERF-002).
  */
@@ -29,6 +32,7 @@ import {
 } from "@/engine";
 import { useActiveGameFlag } from "@/lib/app/activeGame";
 import { clearActive, getDb, loadActive, saveActive, type TcgDb } from "@/lib/db";
+import { createTabGuard, type ChannelLike, type TabGuard } from "@/lib/db/tabGuard";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 /** A GameAction without `now` (the store injects it). */
@@ -40,6 +44,10 @@ export interface GameStoreState {
   loadState: "idle" | "loading" | "loaded";
   /** Set when the stored game was corrupt and was backed up (show a notice). */
   notice: "corrupt" | null;
+  /** B-2: another tab took over the active game; this tab no longer autosaves. */
+  staleTab: boolean;
+  /** B-2 "Use here": re-load the active game from IndexedDB and take it over in this tab. */
+  takeOverHere: () => Promise<boolean>;
   dispatch: (action: ActionInput) => void;
   newGame: (config: NewGameConfig) => Game;
   /** Load the active game from IndexedDB. Resolves true when a game was restored. */
@@ -54,21 +62,48 @@ interface StoreEnv {
   rng: Rng;
   db: () => TcgDb;
   autosaveMs: number;
+  /** Cross-tab channel (B-2); null disables the guard. Default: BroadcastChannel in browsers. */
+  channel: () => ChannelLike | null;
 }
+
+const isVitest = () =>
+  typeof process !== "undefined" && typeof process.env === "object" && !!process.env.VITEST;
+
+const defaultChannel = (): ChannelLike | null =>
+  typeof window === "undefined" || typeof BroadcastChannel === "undefined" || isVitest()
+    ? null
+    : (new BroadcastChannel("tcg-life-active") as unknown as ChannelLike);
 
 const defaultEnv = (): StoreEnv => ({
   now: () => Date.now(),
   rng: cryptoRng(),
   db: getDb,
   autosaveMs: 250,
+  channel: defaultChannel,
 });
 
 let env: StoreEnv = defaultEnv();
+let guard: TabGuard | null = null;
+/** The next save takes over the shared active-game pointer (a new game in this tab). */
+let takeOverNext = false;
+
+function tabGuard(): TabGuard {
+  guard ??= createTabGuard({
+    channel: env.channel,
+    onStale: () => {
+      if (!useGameStore.getState().session) return;
+      cancelPendingSave();
+      useGameStore.setState({ staleTab: true });
+    },
+  });
+  return guard;
+}
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   session: null,
   loadState: "idle",
   notice: null,
+  staleTab: false,
   dispatch: (action) => {
     const s = get().session;
     if (!s) return;
@@ -79,16 +114,29 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   newGame: (config) => {
     startAutosave();
     const game = createGame(config, env.rng, env.now());
-    set({ session: createSession(game), loadState: "loaded" });
+    takeOverNext = true;
+    set({ session: createSession(game), loadState: "loaded", staleTab: false });
+    tabGuard().claim(game.id);
     return game;
   },
   resume: async () => {
     startAutosave();
+    if (get().staleTab) cancelPendingSave();
+    else await flushAutosave();
     set({ loadState: "loading" });
     const r = await loadActive(env.db(), env.now());
-    set({ session: r.session, loadState: "loaded", notice: r.corrupt ? "corrupt" : get().notice });
+    lastSaved = r.session?.game ?? null;
+    takeOverNext = false;
+    set({
+      session: r.session,
+      loadState: "loaded",
+      staleTab: false,
+      notice: r.corrupt ? "corrupt" : get().notice,
+    });
+    if (r.session) tabGuard().claim(r.session.game.id);
     return r.session !== null;
   },
+  takeOverHere: () => get().resume(),
   clear: async () => {
     cancelPendingSave();
     set({ session: null });
@@ -121,9 +169,14 @@ function cancelPendingSave() {
 
 async function save(session: GameSession) {
   if (session.game === lastSaved) return;
+  // B-2: a stale tab never writes (the other tab owns the newer state).
+  if (useGameStore.getState().staleTab) return;
   lastSaved = session.game;
+  const takeOver = takeOverNext;
   try {
-    await saveActive(session, env.db());
+    const r = await saveActive(session, env.db(), { takeOver });
+    if (takeOver) takeOverNext = false;
+    if (r === "conflict") useGameStore.setState({ staleTab: true });
   } catch (e) {
     lastSaved = null;
     console.warn("[gameStore] autosave failed", e);
@@ -175,6 +228,8 @@ export function stopAutosave(): void {
   unsubscribe?.();
   unsubscribe = null;
   cancelPendingSave();
+  guard?.close();
+  guard = null;
 }
 
 /** Test hook: inject clock / rng / db / debounce. Call with no args to restore defaults. */
@@ -186,8 +241,9 @@ export function configureGameStore(overrides?: Partial<StoreEnv>): void {
 export function resetGameStore(): void {
   stopAutosave();
   lastSaved = null;
+  takeOverNext = false;
   env = defaultEnv();
-  useGameStore.setState({ session: null, loadState: "idle", notice: null });
+  useGameStore.setState({ session: null, loadState: "idle", notice: null, staleTab: false });
   useActiveGameFlag.getState().setInProgress(false);
 }
 

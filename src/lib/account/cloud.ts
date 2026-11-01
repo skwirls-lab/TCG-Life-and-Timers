@@ -25,10 +25,31 @@ import { dexieKv } from "@/lib/sync/dexieLocal";
 import type { SyncEngine } from "@/lib/sync/engine";
 import type { FirestoreApi } from "@/lib/sync/firestoreRemote";
 import { useSyncStatus } from "@/lib/sync/status";
+import { useGameStore } from "@/state/gameStore";
 import { useSettingsStore } from "@/state/settingsStore";
 import { deleteAccount as deleteAccountCore } from "./export";
 import { clearLocalAccountData, snapshotLocal } from "./localData";
-import { executeMerge, planMerge, type MergeChoice, type MergePlan } from "./merge";
+import {
+  executeMerge,
+  planMerge,
+  renameProfilesInGame,
+  type MergeChoice,
+  type MergePlan,
+} from "./merge";
+
+/** B-7: the open game (and its undo snapshots) follows merged profile ids. */
+export function applyProfileRenamesToOpenGame(plan: MergePlan): void {
+  if (!plan.profileRenames.length) return;
+  const renames = new Map(plan.profileRenames.map((r) => [r.from, r.to]));
+  const s = useGameStore.getState().session;
+  if (!s) return;
+  const game = renameProfilesInGame(s.game, renames);
+  if (game === s.game) return;
+  const patch = (g: typeof game) => renameProfilesInGame(g, renames);
+  useGameStore.setState({
+    session: { ...s, game, past: s.past.map(patch), future: s.future.map(patch) },
+  });
+}
 
 /** kv key: the uid whose first-sign-in merge already ran on this device. */
 export const LINKED_UID_KEY = "account:linkedUid";
@@ -119,6 +140,7 @@ async function runAccountFlow(user: AuthUser): Promise<void> {
     const choice = plan.needsChoice ? await askChoice(plan) : "merge";
     if (choice === null || useAuth.getState().user?.uid !== user.uid) return;
     await executeMerge(plan, choice, { includeRecords: historySync, db });
+    if (choice === "merge") applyProfileRenamesToOpenGame(plan);
     if (choice === "cloudOnly") await deps.reloadSettings();
     await kv.set(LINKED_UID_KEY, user.uid);
   }
