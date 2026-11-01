@@ -4,8 +4,9 @@
  */
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";
+import board from "@/i18n/en/board.json";
 
-const dictionaries = [common, engine] as const;
+const dictionaries = [common, engine, board] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>
