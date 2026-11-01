@@ -88,7 +88,7 @@ export const speedDuel = ygoPreset({
   game: GAME,
   format: "Speed Duel",
   description: "Faster Yu-Gi-Oh! with 4000 Life Points and a smaller field.",
-  rulesSummary: "Lose at 0 LP (4000 to start, ⚠ verify) or when you must draw from an empty Deck.",
+  rulesSummary: "Lose at 0 LP (4000 to start) or when you must draw from an empty Deck.",
   rulesUrl: SPEED_RULES_URL,
   counters: [lifePoints(4000, { verify: true }), spellCounters()],
   defaults: { timer: timer(), firstPlayerRule: "random", options: CALC_OPTIONS },

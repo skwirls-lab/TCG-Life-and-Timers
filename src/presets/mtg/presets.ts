@@ -127,7 +127,7 @@ export const brawl: Preset = {
   format: "Brawl",
   description: "Commander-style singleton with a smaller deck. No commander damage.",
   rulesSummary:
-    "Lose at 0 life or 10 poison. Commander tax applies; commander damage does not count. ⚠ Starting life 25 (verify for your group).",
+    "Lose at 0 life or 10 poison. Commander tax applies; commander damage does not count. Starting life 25.",
   rulesUrl: RULES_URL,
   minPlayers: 2,
   maxPlayers: 6,

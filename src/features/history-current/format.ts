@@ -405,11 +405,15 @@ export interface HeaderView {
   startedAt: number;
 }
 
-export function headerView(game: Game): HeaderView {
+/**
+ * `number` (A-11f, HIST-001 "Game 8"): this game's position in the device's history (earlier
+ * saved games + 1). Without it the title falls back to a short id.
+ */
+export function headerView(game: Game, number?: number): HeaderView {
   const primary = primaryCounter(game.preset);
   const sv = startValue(game, primary, game.seats[0]?.id);
   return {
-    title: t("history.gameNumber", { id: shortGameId(game.id) }),
+    title: t("history.gameNumber", { id: number ? String(number) : shortGameId(game.id) }),
     players: tp("history.players", game.seats.length),
     startValue: t("history.startValue", { name: primary.name, value: sv }),
     presetName: game.preset.name,

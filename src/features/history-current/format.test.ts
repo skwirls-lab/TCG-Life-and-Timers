@@ -249,6 +249,8 @@ describe("header and time formatting", () => {
     expect(h.presetName).toBe(commander.name);
     expect(h.startedAt).toBe(T0);
     expect(shortGameId("abc-def12")).toBe("EF12");
+    // A-11f (HIST-001): "Game 8" when the device's history position is known.
+    expect(headerView(s.game, 8).title).toBe("Game 8");
   });
   it("durations and relative dates", () => {
     expect(formatDuration(0)).toBe("0:00");

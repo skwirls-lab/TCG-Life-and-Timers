@@ -11,6 +11,7 @@ import { PageShell } from "@/components/ui";
 import type { ArtRef } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
 import { creditsFromArt } from "@/lib/art/picker";
+import { appVersion } from "@/lib/feedback/version";
 import { t } from "@/lib/i18n";
 import { listDecks, listProfiles } from "@/lib/profiles/repo";
 import { scryfallAttribution } from "@/lib/scryfall";
@@ -55,7 +56,7 @@ export function AboutScreen() {
   }, []);
   const credits = creditsFromArt([...gameArt, ...saved]);
   const sf = scryfallAttribution(t("art.about.scryfall"));
-  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+  const version = appVersion();
 
   return (
     <PageShell title={t("art.about.title")} backHref="/settings" testId="about-page">
