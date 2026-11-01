@@ -20,6 +20,32 @@ const warnings = (page: Page) =>
     return { warningsMs: c.warningsMs, warnings: c.warnings ?? null };
   });
 
+/** warningsMs of the active game as persisted in IndexedDB (autosave is async). */
+const storedWarnings = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number[] | null>((resolve) => {
+        const req = indexedDB.open("tcg-life");
+        req.onerror = () => resolve(null);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction(["kv", "games"], "readonly");
+          const ptr = tx.objectStore("kv").get("activeGameId");
+          ptr.onsuccess = () => {
+            const id = (ptr.result as { value?: string } | undefined)?.value;
+            if (!id) return resolve(null);
+            const row = tx.objectStore("games").get(id);
+            row.onsuccess = () => {
+              const g = row.result as
+                { game?: { timer?: { config?: { warningsMs?: number[] } } } } | undefined;
+              resolve(g?.game?.timer?.config?.warningsMs ?? null);
+              db.close();
+            };
+          };
+        };
+      }),
+  );
+
 // @req TMR-031
 test("edit thresholds on the sub-page; a threshold with flash off doesn't flash", async ({
   page,
@@ -53,6 +79,8 @@ test("edit thresholds on the sub-page; a threshold with flash off doesn't flash"
 
   // Back on the board (the saved game, not the URL's quick start): 2:00 flashes, 1:00 doesn't.
   await page.clock.runFor(1_000); // autosave
+  // The IndexedDB write itself is async: wait until it landed before leaving the page.
+  await expect.poll(() => storedWarnings(page)).toEqual([120_000, 60_000]);
   await page.goto("/play");
   await expect(page.getByTestId("timer-start")).toBeVisible();
   expect((await warnings(page)).warningsMs).toEqual([120_000, 60_000]);

@@ -74,6 +74,14 @@ test("a11y: builder list, editor and counter sheet have no serious violations", 
   await expect(page.getByTestId("counter-form")).toBeVisible();
   await expectNoSeriousA11yViolations(page);
   await page.getByTestId("counter-done").click();
+  // The sheet closes through history.back() (useBackClose); let that navigation settle first,
+  // otherwise it races page.goto and aborts it (net::ERR_ABORTED).
+  await expect(page.getByTestId("counter-form")).toBeHidden();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (history.state as { overlay?: unknown } | null)?.overlay ?? null),
+    )
+    .toBeNull();
   await page.goto("/builder");
   await expect(page.getByTestId("builder-empty")).toBeVisible();
   await expectNoSeriousA11yViolations(page);
