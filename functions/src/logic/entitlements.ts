@@ -9,6 +9,13 @@
  *     written by the browser, so metadata could be forged (D-062).
  *
  * Lifetime wins over a subscription because it never lapses. Pure; the PAY lane wires triggers.
+ *
+ * Revocation (B-8): only a payment whose status is still "succeeded" grants lifetime. A payment
+ * that was refunded or disputed stops granting: status "refunded" / "canceled" / "disputed" (an
+ * owner, a webhook or a Stripe-sync job rewrites the same payment doc), `refunded: true`,
+ * `amount_refunded` ≥ the amount paid, a `dispute` / `disputed: true` marker, or `revoked: true`.
+ * Rewriting the payment doc fires syncEntitlementsOnPayment, which recomputes → pro false unless
+ * another valid grant (subscription, other payment, manual comp) remains.
  */
 
 export type EntitlementSource = "none" | "subscription" | "lifetime" | "manual";
@@ -23,6 +30,13 @@ export interface SubscriptionLike {
 type PriceRef = string | { id?: unknown } | null | undefined;
 export interface PaymentLike {
   status?: unknown;
+  refunded?: unknown;
+  amount?: unknown;
+  amount_received?: unknown;
+  amount_refunded?: unknown;
+  disputed?: unknown;
+  dispute?: unknown;
+  revoked?: unknown;
   metadata?: Record<string, unknown> | null;
   price?: PriceRef;
   prices?: ReadonlyArray<PriceRef> | null;
@@ -48,8 +62,22 @@ export function paymentPriceIds(p: PaymentLike): string[] {
   return refs.map(priceId).filter((x): x is string => x !== null);
 }
 
+/** B-8: the payment was (fully) refunded, disputed or revoked by the owner. */
+export function isRevokedPayment(p: PaymentLike): boolean {
+  if (p.refunded === true || p.disputed === true || p.revoked === true) return true;
+  if (p.dispute !== undefined && p.dispute !== null && p.dispute !== false) return true;
+  const refunded = typeof p.amount_refunded === "number" ? p.amount_refunded : 0;
+  const paid =
+    typeof p.amount_received === "number"
+      ? p.amount_received
+      : typeof p.amount === "number"
+        ? p.amount
+        : null;
+  return refunded > 0 && (paid === null || refunded >= paid);
+}
+
 export function isLifetimePayment(p: PaymentLike, lifetimePriceIds: ReadonlySet<string>): boolean {
-  if (p.status !== "succeeded") return false;
+  if (p.status !== "succeeded" || isRevokedPayment(p)) return false;
   return paymentPriceIds(p).some((id) => lifetimePriceIds.has(id));
 }
 
