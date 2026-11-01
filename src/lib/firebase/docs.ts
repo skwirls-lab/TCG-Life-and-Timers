@@ -226,16 +226,17 @@ export type EntitlementsDoc = z.infer<typeof entitlementsDocSchema>;
 // sharedPresets/{code}: public read, immutable (SEC-005, CUS-007)
 export const SHARE_CODE_RE = /^[A-Za-z0-9]{8}$/;
 /** Share payloads carry no images (LEG-005); rules reject inline data: images and Storage URLs. */
-const NO_IMAGES_RE = /data:image\/|firebasestorage\.googleapis\.com/;
+const NO_IMAGES_RE = /data:image\/|firebasestorage\.googleapis\.com/i;
+/** Share payloads are preset export envelopes (B-5; rules check the same prefix). */
+const PRESET_ENVELOPE_RE = /^\{\s*"format"\s*:\s*"tcg-life-preset"\s*,[\s\S]*\}\s*$/;
 export const sharedPresetDataSchema = z.strictObject({
   code: z.string().regex(SHARE_CODE_RE),
   ownerUid: z.string().min(1).max(128),
   name: z.string().min(1).max(LIMITS.presetNameMax),
   game: z.string().max(LIMITS.gameNameMax),
-  payload: jsonString(LIMITS.presetPayloadMax).refine(
-    (s) => !NO_IMAGES_RE.test(s),
-    "share payloads may not embed images",
-  ),
+  payload: jsonString(LIMITS.presetPayloadMax)
+    .refine((s) => PRESET_ENVELOPE_RE.test(s), "share payloads must be preset exports")
+    .refine((s) => !NO_IMAGES_RE.test(s), "share payloads may not embed images"),
 });
 export const sharedPresetDocSchema = sharedPresetDataSchema.extend({ createdAt: timestampSchema });
 export type SharedPresetData = z.infer<typeof sharedPresetDataSchema>;

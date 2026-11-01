@@ -48,6 +48,7 @@ function harness(
   let state = auth;
   const subs = new Set<() => void>();
   const pro = { value: false };
+  const refreshes = { n: 0 };
   let now = T0;
   const session = startPayments({
     remote,
@@ -59,6 +60,9 @@ function harness(
       return () => subs.delete(cb);
     },
     setPro: (p) => (pro.value = p),
+    refreshToken: async () => {
+      refreshes.n++;
+    },
   });
   return {
     remote,
@@ -71,6 +75,7 @@ function harness(
     },
     advance: (ms: number) => (now += ms),
     subs,
+    refreshes,
   };
 }
 
@@ -181,6 +186,22 @@ describe("startPayments (T7.2)", () => {
     h.setAuth({ uid: null, initialized: true });
     expect(h.pro.value).toBe(false);
     expect(h.remote.listeners).toHaveLength(0);
+  });
+
+  // @req PAY-003
+  it("B-4: force-refreshes the ID token when the server flips pro (claims apply at once)", async () => {
+    const h = harness(null, { uid: "u1", initialized: true });
+    await h.session.ready;
+    h.remote.serverWrite(entPath("u1"), { pro: false, source: "none" });
+    expect(h.refreshes.n).toBe(0); // first snapshot, not pro: nothing changed
+    h.remote.serverWrite(entPath("u1"), { pro: true, source: "subscription" });
+    expect(h.refreshes.n).toBe(1);
+    h.remote.serverWrite(entPath("u1"), { pro: true, source: "subscription" });
+    expect(h.refreshes.n).toBe(1);
+    h.remote.serverWrite(entPath("u1"), { pro: false, source: "none" }, true); // cached: ignored
+    expect(h.refreshes.n).toBe(1);
+    h.remote.serverWrite(entPath("u1"), { pro: false, source: "none" });
+    expect(h.refreshes.n).toBe(2);
   });
 
   it("is idempotent and stoppable", async () => {

@@ -6,6 +6,10 @@
  * the cached Pro stays valid for 14 days after the last verification (GRACE_MS).
  *
  * `startPayments()` is idempotent; the cloud start-up (startCloud) and PaywallHost call it.
+ *
+ * When the server flips `pro`, the ID token is force-refreshed (B-4): syncEntitlements mirrors
+ * `pro` into a custom claim and the art quota function clears / sets `artQuotaFull`, which
+ * storage.rules reads from the token; a refresh makes the new limit apply immediately.
  */
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth/store";
@@ -32,6 +36,14 @@ export interface PaymentsDeps {
   authState: () => AuthView;
   subscribeAuth: (cb: () => void) => () => void;
   setPro: (pro: boolean) => void;
+  /** Force-refresh the signed-in user's ID token (new custom claims). */
+  refreshToken: () => Promise<void>;
+}
+
+async function refreshIdToken(): Promise<void> {
+  const { getFirebaseAuth } = await import("@/lib/firebase/client");
+  const auth = await getFirebaseAuth();
+  await auth?.currentUser?.getIdToken(true);
 }
 
 const defaultDeps = (): PaymentsDeps => ({
@@ -44,6 +56,7 @@ const defaultDeps = (): PaymentsDeps => ({
   },
   subscribeAuth: (cb) => useAuth.subscribe(cb),
   setPro: (pro) => useEntitlements.getState().setPro(pro),
+  refreshToken: refreshIdToken,
 });
 
 const warn = (msg: string, err?: unknown) => {
@@ -93,6 +106,8 @@ export function startPayments(overrides: Partial<PaymentsDeps> = {}): Session {
     if (listenUid === uid) return;
     stopDoc();
     listenUid = uid;
+    // The last server-confirmed value for this user (from the cache, if it is theirs).
+    let lastPro: boolean | null = cache?.uid === uid ? cache.pro : null;
     deps.setPro(proFromCache(cache, deps.now(), uid));
     unsubDoc = deps.remote.onDoc(
       paths.entitlements(uid),
@@ -100,6 +115,9 @@ export function startPayments(overrides: Partial<PaymentsDeps> = {}): Session {
         if (snap.fromCache || listenUid !== uid) return; // only server-confirmed reads verify
         const pro = proFromDoc(snap.data);
         deps.setPro(pro);
+        if (lastPro === null ? pro : lastPro !== pro)
+          deps.refreshToken().catch((e: unknown) => warn("pay: token refresh failed", e));
+        lastPro = pro;
         cache = { uid, pro, verifiedAt: deps.now() };
         deps.cache.write(cache).catch((e: unknown) => warn("pay: cache write failed", e));
       },

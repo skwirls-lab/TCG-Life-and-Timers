@@ -136,13 +136,22 @@ describe("firestore doc schemas (SEC-003)", () => {
   // @req CUS-007
   // @req LEG-005
   it("validates shared presets: 8-char code and no embedded images", () => {
-    const s = { code: "Ab3dEf7h", ownerUid: "u1", name: "P", game: "G", payload: "{}" };
+    const env = (extra: object = {}) =>
+      JSON.stringify({ format: "tcg-life-preset", version: 1, preset: { id: "x", ...extra } });
+    const s = { code: "Ab3dEf7h", ownerUid: "u1", name: "P", game: "G", payload: env() };
     expect(sharedPresetDataSchema.safeParse(s).success).toBe(true);
     expect(sharedPresetDataSchema.safeParse({ ...s, code: "short" }).success).toBe(false);
+    // B-5: the payload must be a preset export envelope (rules check the same prefix).
+    expect(sharedPresetDataSchema.safeParse({ ...s, payload: "{}" }).success).toBe(false);
     expect(
-      sharedPresetDataSchema.safeParse({ ...s, payload: JSON.stringify({ a: "data:image/png" }) })
-        .success,
+      sharedPresetDataSchema.safeParse({ ...s, payload: JSON.stringify({ format: "x" }) }).success,
     ).toBe(false);
+    for (const art of [
+      "data:image/png",
+      "DATA:IMAGE/png",
+      "https://FIREBASESTORAGE.googleapis.com/x",
+    ])
+      expect(sharedPresetDataSchema.safeParse({ ...s, payload: env({ art }) }).success).toBe(false);
   });
 
   // @req SET-041

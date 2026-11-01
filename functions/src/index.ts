@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onObjectDeleted, onObjectFinalized } from "firebase-functions/v2/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as functionsV1 from "firebase-functions/v1";
 import { helloLogic } from "./logic/hello";
@@ -12,6 +13,7 @@ import {
 } from "./logic/deleteUserData";
 import { syncEntitlements as syncEntitlementsLogic } from "./logic/syncEntitlements";
 import { stripeFromEnv } from "./logic/stripe";
+import { artOwner, recomputeArtQuota } from "./logic/artQuota";
 
 /**
  * Lazily initialised admin dependencies (keeps cold-start and deploy analysis cheap). The Stripe
@@ -56,16 +58,41 @@ function entitlementDeps() {
   };
 }
 
+function quotaDeps() {
+  if (getApps().length === 0) initializeApp();
+  return { ...entitlementDeps(), bucket: getStorage().bucket() };
+}
+
+/** Recompute entitlements, then the art quota (its limit depends on pro, B-4). */
+async function syncAll(uid: string) {
+  const r = await syncEntitlementsLogic(entitlementDeps(), uid);
+  if (!r.userDeleted && r.written) await recomputeArtQuota(quotaDeps(), uid);
+}
+
 export const syncEntitlementsOnSubscription = onDocumentWritten(
   "customers/{uid}/subscriptions/{subscriptionId}",
   async (event) => {
-    await syncEntitlementsLogic(entitlementDeps(), event.params.uid);
+    await syncAll(event.params.uid);
   },
 );
 
 export const syncEntitlementsOnPayment = onDocumentWritten(
   "customers/{uid}/payments/{paymentId}",
   async (event) => {
-    await syncEntitlementsLogic(entitlementDeps(), event.params.uid);
+    await syncAll(event.params.uid);
   },
 );
+
+/**
+ * B-4 / ART-024: server-side cloud art quota. Recount on every art object change; the backstop
+ * deletes a NEW object that went over the limit (only while config/billing.paywallEnabled).
+ */
+export const artQuotaOnFinalize = onObjectFinalized(async (event) => {
+  const uid = artOwner(event.data.name);
+  if (uid) await recomputeArtQuota(quotaDeps(), uid, { newObject: event.data.name });
+});
+
+export const artQuotaOnDelete = onObjectDeleted(async (event) => {
+  const uid = artOwner(event.data.name);
+  if (uid) await recomputeArtQuota(quotaDeps(), uid);
+});

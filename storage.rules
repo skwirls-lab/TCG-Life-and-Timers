@@ -1,12 +1,24 @@
 rules_version = '2';
 // TCG Life & Timers: Cloud Storage rules (SEC-004, ART-022, ART-025, LEG-005).
 // Uploaded art is private to its owner: images only, under 2 MB after client-side processing.
+// B-4: cloud art is for Google (non-anonymous) accounts only (D-059), and new objects are refused
+// while the `artQuotaFull` custom claim is set. The claim, the users/{uid}/private/quota counter
+// and a backstop that deletes over-quota objects are maintained by the artQuota functions; they
+// only enforce a limit when config/billing.paywallEnabled is true (free 10 / Pro 200, ART-024).
+// No cross-service (firestore.get) call is needed, so free-for-all deployments are unaffected.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/art/{file} {
       function isOwner() { return request.auth != null && request.auth.uid == uid; }
+      function notAnonymous() {
+        return request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous';
+      }
+      // Overwriting an existing object never grows the count.
+      function underQuota() {
+        return resource != null || request.auth.token.get('artQuotaFull', false) != true;
+      }
       allow read, delete: if isOwner();
-      allow create, update: if isOwner()
+      allow create, update: if isOwner() && notAnonymous() && underQuota()
         && file.matches('^[A-Za-z0-9_.-]{1,120}$')
         && request.resource.contentType.matches('image/.*')
         && request.resource.size < 2 * 1024 * 1024;

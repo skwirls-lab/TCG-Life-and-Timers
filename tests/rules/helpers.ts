@@ -17,6 +17,11 @@ export async function makeEnv(): Promise<RulesTestEnvironment> {
 
 const now = () => serverTimestamp();
 
+/** A share payload in the exportPreset envelope (pretty-printed like the client, B-5). */
+export function sharePayload(preset: Record<string, unknown>): string {
+  return JSON.stringify({ format: "tcg-life-preset", version: 1, preset }, null, 2);
+}
+
 export const valid = {
   user: () => ({
     displayName: "Alice",
@@ -81,7 +86,7 @@ export const valid = {
     ownerUid,
     name: "Shared",
     game: "Magic",
-    payload: JSON.stringify({ id: "custom-1" }),
+    payload: sharePayload({ id: "custom-1" }),
     createdAt: now(),
   }),
   feedback: () => ({
