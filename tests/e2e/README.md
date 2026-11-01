@@ -52,6 +52,9 @@ a new game). axe needs real timers: call `page.clock.resume()` before it.
 | START / Pause-Resume / match clock | `timer-start`, `toolbar-clock` (`data-state`), `match-clock`, `match-clock-time`, `match-time-called` |
 | PAUSED overlay | `timer-paused` (`data-reason`), `timer-resume` |
 | Settings section C | `setting-timer.{mode,bank,step,perTurn,match,extraTurns,timeoutAction,grace,responses,passMode,autoPauseBackground,autoPauseMenus,warnings,showTenths,showTurnTime}`, `timer-restart-confirm`, `timer-restart-continue`, `timer-restart-cancel`, `timer-custom-keypad` |
+| Low-time warnings sub-page (TMR-031) | `settings-sub-warnings`, `timer-warnings-preset`, `timer-warning-{i}` (`data-ms`), `timer-warning-{i}-{sound,vibrate,flash,remove}`, `timer-warning-add-{ms}`, `timer-warnings-empty` |
+| Setup Clock section | `setup-clock`, `setup-clock-mode`, `setup-clock-bank-{min}`, `setup-clock-step-{s}`, `setup-clock-perTurn-{ms}`, `setup-clock-timeout` |
+| Seat-anchored snackbar | `snackbar` (`data-anchored="1"` when placed at a seat) |
 | Seat Timer tab | `seat-timer-tab`, `seat-timer-remaining`, `seat-timer-used`, `seat-timer-stats`, `seat-timer-adjust-{deltaMs}`, `seat-timer-set`, `seat-timer-keypad`, `seat-timer-concede`, `seat-timer-off` |
 
 ### Paywall (W5)
