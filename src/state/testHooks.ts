@@ -10,6 +10,7 @@
  *   names=A,B,C         seat names for quick start
  *   start=<n>           start value override for the preset's primary counter
  *   layout=<id>         layout variant id
+ *   fp=1                keep the first-player announcement on /play quick-starts (skipped by default)
  * It also exposes `window.__tcg` = { getState, dispatch } for e2e assertions.
  */
 import { primaryCounter, seededRng } from "@/engine";
@@ -24,6 +25,8 @@ declare global {
       getState: typeof useGameStore.getState;
       dispatch: ReturnType<typeof useGameStore.getState>["dispatch"];
     };
+    /** game id whose initial first-player announcement is skipped (quick-start on /play) */
+    __tcgSkipAnnounceGame?: string;
   }
 }
 
@@ -44,12 +47,17 @@ export function applyTestHooks(search: URLSearchParams): boolean {
   const names = search.get("names")?.split(",");
   const start = search.get("start");
   const primary = primaryCounter(preset);
-  useGameStore.getState().newGame({
+  const game = useGameStore.getState().newGame({
     preset,
     players,
     seats: names?.map((name) => ({ name })),
     layoutId: search.get("layout") ?? undefined,
     startOverrides: start !== null && primary ? { [primary.id]: Number(start) } : undefined,
   });
+  // Board e2e specs quick-start on /play and must not be blocked by the first-player overlay.
+  // Pass fp=1 to keep it (the game-flow specs test it on their own harness).
+  if (window.location.pathname.startsWith("/play") && search.get("fp") !== "1") {
+    window.__tcgSkipAnnounceGame = game.id;
+  }
   return true;
 }

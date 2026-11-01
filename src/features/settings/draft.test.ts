@@ -50,7 +50,11 @@ describe("settings draft", () => {
   // @req SET-011
   it("treats options and the layout variant as live (non-structural) changes", () => {
     const d = draftFromGame(game());
-    const next = { ...d, layoutId: "rows", options: { ...d.options, autoKO: "prompt" as const } };
+    const next = {
+      ...d,
+      layoutId: "topBottom",
+      options: { ...d.options, autoKO: "prompt" as const },
+    };
     expect(isStructuralChange(d, next)).toBe(false);
     expect(changedOptions(d, next)).toEqual(["autoKO"]);
   });

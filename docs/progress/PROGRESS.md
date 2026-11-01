@@ -24,9 +24,9 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T1.9 | Seat menu (rotated sheet) | W2 | BOARD | DONE | SEAT-001, SEAT-002, SEAT-004, SEAT-005, §8.2. | lane e2e 54/54, full 66/66 ✅ |
 | T1.10 | Commander damage | W2 | BOARD | DONE | CMD-002..006, CMD-010. | board e2e 87 ✅; integrated e2e 192+9 ✅ |
 | T1.11 | Tokens and global counters UI | W2 | BOARD | DONE | TOK-001, TOK-003, TOK-004. | board e2e 87 ✅; integrated e2e 192+9 ✅ |
-| T1.12 | Launcher and setup flow | W2 | SHELL | IN_PROGRESS | GAME-001, GAME-016, LAY-005, PRE-003 (basic picker for MTG presets only; the ful |  |
-| T1.13 | Reset, first player, game over | W2 | SHELL | IN_PROGRESS | GAME-010..015, LIFE-005, SET-012 (Dice & randomizer animations toggle). |  |
-| T1.14 | Settings screen | W2 | SHELL | IN_PROGRESS | SET-001, SET-010..015, §13.1 sections A, B, D, E, F (G and H get placeholders; F |  |
+| T1.12 | Launcher and setup flow | W2 | SHELL | DONE | GAME-001, GAME-016, LAY-005, PRE-003 (basic picker for MTG presets only; the ful | shell e2e 78 ✅; integrated 279 ✅ |
+| T1.13 | Reset, first player, game over | W2 | SHELL | DONE | GAME-010..015, LIFE-005, SET-012 (Dice & randomizer animations toggle). | shell e2e 78 ✅; integrated 279 ✅ |
+| T1.14 | Settings screen | W2 | SHELL | DONE | SET-001, SET-010..015, §13.1 sections A, B, D, E, F (G and H get placeholders; F | shell e2e 78 ✅; integrated 279 ✅ |
 | T1.15 | Profiles and decks (local) | W2 | SHELL | DONE | PROF-001, PROF-002, PROF-010, PROF-011. | lane e2e 54/54, full 66/66 ✅ |
 | T1.16 | Backgrounds (non-art) | W2 | SHELL | DONE | SET-002 (gradients/colors/default), SET-003. | lane e2e 54/54, full 66/66 ✅ |
 | T1.20 | One-player mode and camera mode | W2 | SHELL | DONE | SET-032, SET-033. | board e2e 87 ✅; integrated e2e 192+9 ✅ |

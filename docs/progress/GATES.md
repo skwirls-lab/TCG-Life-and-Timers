@@ -12,3 +12,13 @@
 | G-E2E + G-A11Y | `npm run test:e2e` | ✅ 12 passed (3 projects: pixel7, iphone14-emu, landscape) |
 | G-TRACE | `npm run check:trace -- --plan` | ✅ all P0/P1 cited by task cards (237 reqs) |
 | G-LH | `npm run lhci` | ✅ baseline: Perf 100 · A11y 100 · BP 100 · SEO 100 |
+
+## W2 integration (BOARD + SEATMENU + SHELL + TOOLS-HIST + TIMER-CORE)
+| Gate | Result |
+|---|---|
+| G-STATIC | ✅ |
+| G-UNIT | ✅ 612 tests; logic coverage ≥ thresholds (engine ~99/95) |
+| G-PRESETS | ✅ 7 presets |
+| G-E2E + G-A11Y | ✅ 279 passed (3 projects), 0 flaky — incl. new cross-lane `integration-board.spec.ts` |
+| G-VISUAL | ✅ orchestrator review of board 4p, seat menu, history, settings, setup, tools at 360×740. Fixed: thumbnails (theme vars + rect frame), chip-row shape, duplicate snackbar. Board lane reviewed 2–6p in portrait + landscape. |
+| G-RULES / G-FUNCS | ✅ (unchanged since W1: 78 / 21) |

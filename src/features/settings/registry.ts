@@ -346,7 +346,7 @@ const BASE_ROWS: SettingDef[] = [
       options: (ctx) =>
         layoutVariantsFor(ctx.draft.players).map((v) => ({
           value: v.id,
-          label: t(`shell.layout.${v.id}` as MessageKey),
+          label: t(v.labelKey as MessageKey),
           preview: { type: "layout", players: ctx.draft.players, id: v.id },
         })),
     },

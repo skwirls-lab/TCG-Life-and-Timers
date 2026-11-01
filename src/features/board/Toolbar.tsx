@@ -219,7 +219,7 @@ export function Toolbar({ rect, orientation }: Props) {
   );
 }
 
-/** GAME-010 / LAY-011: hold-to-confirm (default) or a confirm dialog, then RESET_GAME + Undo snackbar. */
+/** GAME-010 / LAY-011: hold-to-confirm (default) or a confirm dialog, then RESET_GAME. */
 function ResetButton() {
   const style = useSetting("confirmStyle");
   const dispatch = useDispatch();
@@ -229,13 +229,8 @@ function ResetButton() {
 
   const doReset = () => {
     if (!useGameStore.getState().session) return;
+    // The "Game reset · Undo" snackbar is shown by GameFlowOverlays for every reset (D-039).
     dispatch({ type: "RESET_GAME" });
-    show({
-      message: t("board.reset.done"),
-      actionLabel: t("common.undo"),
-      onAction: () => useGameStore.getState().dispatch({ type: "UNDO" }),
-      durationMs: 5000,
-    });
   };
 
   const hold = useHold({

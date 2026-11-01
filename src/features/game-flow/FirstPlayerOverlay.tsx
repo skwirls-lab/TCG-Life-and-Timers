@@ -14,6 +14,7 @@ import { useReducedMotion } from "@/features/app-effects/AppEffects";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useSettingsStore } from "@/state/settingsStore";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooks";
 import { latestFirstPlayerEvent, seatName, shouldAnnounce, spinSequence } from "./flow";
 import { useFlowUi } from "./flowUi";
 
@@ -26,7 +27,9 @@ export function FirstPlayerOverlay({ game }: { game: Game }) {
   const markAnnounced = useFlowUi((s) => s.markAnnounced);
   const diceAnimations = useSettingsStore((s) => s.settings.diceAnimations);
   const reduced = useReducedMotion();
-  const visible = !!key && !announced && shouldAnnounce(game);
+  const testSkip =
+    TEST_HOOKS_ENABLED && typeof window !== "undefined" && window.__tcgSkipAnnounceGame === game.id;
+  const visible = !!key && !announced && !testSkip && shouldAnnounce(game);
 
   const seats = game.seats;
   const target = Math.max(

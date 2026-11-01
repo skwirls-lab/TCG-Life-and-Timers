@@ -85,7 +85,7 @@ test("seats can be reordered and the start value changed before starting", async
   await page.goto("/setup");
   await page.getByTestId("setup-next").click();
   await page.getByTestId("setup-players-3").click();
-  await page.getByTestId("setup-layout-default").click();
+  await page.getByTestId("setup-layout-topPair").click();
   await page.getByTestId("setup-next").click();
   for (const [i, name] of ["A", "B", "C"].entries())
     await page.getByTestId(`setup-seat-${i}-name`).fill(name);

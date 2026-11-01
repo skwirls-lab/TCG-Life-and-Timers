@@ -29,7 +29,7 @@ export function ChipRow<T extends string | number>({
       role="radiogroup"
       aria-label={label}
       data-testid={testId}
-      className="flex flex-wrap items-center gap-2 rounded-full bg-surface p-1.5"
+      className="flex flex-wrap items-center gap-2 rounded-[1.75rem] bg-surface p-1.5"
     >
       {options.map((o) => {
         const selected = o.value === value;

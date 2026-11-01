@@ -27,7 +27,7 @@ describe("setup wizard model", () => {
     expect(s.seats).toHaveLength(4);
     expect(new Set(s.seats.map((x) => x.color)).size).toBe(4);
     expect(s.firstPlayerRule).toBe("random");
-    expect(s.layoutId).toBe("default");
+    expect(s.layoutId).toBe("sides");
     expect(effectiveStart(s, commander)).toBe(40);
   });
 

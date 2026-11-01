@@ -63,38 +63,39 @@ export function ThumbnailPicker<T extends string>({
 
 function LayoutPreview({ variant }: { variant: LayoutVariant }) {
   return (
-    <span
-      className="grid h-full w-full gap-0.5 rounded-md bg-bg p-0.5"
-      style={{
-        gridTemplateColumns: `repeat(${variant.cols}, 1fr)`,
-        gridTemplateRows: `repeat(${variant.rows}, 1fr)`,
-      }}
-    >
-      {variant.cells.map(([c, r, cs, rs], i) => (
+    <span className="relative block h-full w-full rounded-md bg-bg">
+      {variant.seats.map((seat, i) => (
         <span
           key={i}
-          className="rounded-sm"
+          className="absolute rounded-sm"
           style={{
-            gridColumn: `${c} / span ${cs}`,
-            gridRow: `${r} / span ${rs}`,
+            left: `calc(${seat.rect.x * 100}% + 1px)`,
+            top: `calc(${seat.rect.y * 100}% + 1px)`,
+            width: `calc(${seat.rect.w * 100}% - 2px)`,
+            height: `calc(${seat.rect.h * 100}% - 2px)`,
             background: `var(--color-seat-${(i % 8) + 1})`,
             opacity: 0.85,
           }}
-        />
+        >
+          {/* a bar on the edge where that player sits (rotation 0 = bottom, 90 = left, …) */}
+          <span className="absolute bg-white/80" style={FACING_BAR[seat.rotation]} />
+        </span>
       ))}
     </span>
   );
 }
 
-const LAYOUT_LABELS: Record<string, Parameters<typeof t>[0]> = {
-  default: "shell.layout.default",
-  rows: "shell.layout.rows",
+const FACING_BAR: Record<number, React.CSSProperties> = {
+  0: { left: "20%", right: "20%", bottom: 2, height: 2 },
+  180: { left: "20%", right: "20%", top: 2, height: 2 },
+  90: { top: "20%", bottom: "20%", left: 2, width: 2 },
+  270: { top: "20%", bottom: "20%", right: 2, width: 2 },
 };
 
 export function layoutThumbOptions(players: number): ThumbOption<string>[] {
   return layoutVariantsFor(players).map((v) => ({
     value: v.id,
-    label: LAYOUT_LABELS[v.id] ? t(LAYOUT_LABELS[v.id]!) : v.id,
+    label: t(v.labelKey as Parameters<typeof t>[0]),
     preview: <LayoutPreview variant={v} />,
   }));
 }

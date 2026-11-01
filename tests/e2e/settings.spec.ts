@@ -122,9 +122,9 @@ test("card layout and layout variant apply live without a reset", async ({ page 
     "true",
   );
   await expect.poll(async () => (await readSetting(page, "app"))?.cardLayout).toBe("nameOnly");
-  await page.getByTestId("setting-layout-control-rows").click();
+  await page.getByTestId("setting-layout-control-topBottom").click();
   await expect(page.getByTestId("confirm-reset")).toHaveCount(0);
-  await expect.poll(async () => (await game(page))?.layoutId).toBe("rows");
+  await expect.poll(async () => (await game(page))?.layoutId).toBe("topBottom");
   expect((await game(page))?.seats.map((s) => s.id)).toEqual(before?.seats.map((s) => s.id));
 });
 

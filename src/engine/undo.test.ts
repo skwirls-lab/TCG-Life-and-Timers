@@ -1,4 +1,5 @@
 // @vitest-environment node
+// @req ARCH-004
 import { describe, expect, it } from "vitest";
 import { newGame, run, sessionOf, T0 } from "../../tests/unit/helpers/engine";
 import {

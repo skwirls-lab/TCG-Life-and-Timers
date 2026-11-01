@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Design tokens (T0.5). Themes switch via [data-theme] on <html>. */
-@theme {
+@theme static {
   --color-bg: #000000;
   --color-surface: #16181d;
   --color-surface-2: #22252c;
@@ -48,7 +48,7 @@
   --color-fg: #0b0d12;
   --color-fg-muted: #4b5260;
   --color-fg-subtle: #6b7180;
-  --color-accent: #0284c7;
+  --color-accent: #0369a1;
   --color-accent-fg: #ffffff;
 }
 

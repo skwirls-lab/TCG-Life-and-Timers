@@ -1,68 +1,37 @@
 /**
  * Layout variant ids offered per player count (LAY-002/LAY-003 thumbnails in setup + settings).
- *
- * Interim static list owned by the SHELL lane: `default` for every count, plus `rows` for 4
- * players. The layout engine (`src/engine/layout.ts`, BOARD lane) is the source of truth; the
- * orchestrator reconciles this list with it.
+ * Derived from the layout engine (`src/engine/layout.ts`), which is the single source of truth
+ * (D-038). Thumbnails are rendered from the engine's seat rects in a portrait phone frame.
  */
+import { getLayout, layoutVariants, type Rect } from "@/engine/layout";
+import type { Rotation } from "@/lib/ui/rotation";
+
 export interface LayoutVariant {
   id: string;
-  /** Thumbnail cells as [col, row, colSpan, rowSpan] on a small grid. */
-  cells: [number, number, number, number][];
-  cols: number;
-  rows: number;
+  /** i18n key for the variant name (board.layout.<id>) */
+  labelKey: string;
+  seats: { rect: Rect; rotation: Rotation }[];
+  toolbar: Rect;
 }
 
-function twoColumns(players: number): LayoutVariant {
-  if (players <= 1) return { id: "default", cells: [[1, 1, 1, 1]], cols: 1, rows: 1 };
-  if (players === 2)
-    return {
-      id: "default",
-      cells: [
-        [1, 1, 1, 1],
-        [1, 2, 1, 1],
-      ],
-      cols: 1,
-      rows: 2,
-    };
-  const perCol = Math.ceil(players / 2);
-  const odd = players % 2 === 1;
-  const cells: LayoutVariant["cells"] = [];
-  // Odd counts: one seat spans the top across both columns.
-  let rows = perCol;
-  let startRow = 1;
-  if (odd) {
-    cells.push([1, 1, 2, 1]);
-    startRow = 2;
-    rows = (players - 1) / 2 + 1;
-  }
-  const remaining = odd ? players - 1 : players;
-  for (let i = 0; i < remaining / 2; i++) {
-    cells.push([1, startRow + i, 1, 1]);
-    cells.push([2, startRow + i, 1, 1]);
-  }
-  return { id: "default", cells, cols: 2, rows };
-}
+// A real phone viewport: band heights and the toolbar are sized in px by the engine.
+const THUMB_VIEWPORT = { w: 360, h: 740 };
 
-const ROWS_4: LayoutVariant = {
-  id: "rows",
-  cells: [
-    [1, 1, 1, 1],
-    [1, 2, 1, 1],
-    [1, 3, 1, 1],
-    [1, 4, 1, 1],
-  ],
-  cols: 1,
-  rows: 4,
-};
-
-/** Variants for a player count (always at least `default`). */
+/** Variants for a player count, in engine order (the first is the default). */
 export function layoutVariantsFor(players: number): LayoutVariant[] {
-  const base = twoColumns(players);
-  return players === 4 ? [base, ROWS_4] : [base];
+  return layoutVariants(players).map((v) => {
+    const l = getLayout({ players, variantId: v.id, viewport: THUMB_VIEWPORT });
+    return {
+      id: v.id,
+      labelKey: v.label,
+      seats: l.seats.map((s) => ({ rect: s.rect, rotation: s.rotation })),
+      toolbar: l.toolbar.rect,
+    };
+  });
 }
 
-/** A valid variant id for the count (falls back to `default`). */
+/** A valid variant id for the count (falls back to the engine's first variant). */
 export function normalizeLayoutId(players: number, id: string | undefined): string {
-  return layoutVariantsFor(players).some((v) => v.id === id) ? id! : "default";
+  const variants = layoutVariants(players);
+  return variants.some((v) => v.id === id) ? id! : variants[0]!.id;
 }
