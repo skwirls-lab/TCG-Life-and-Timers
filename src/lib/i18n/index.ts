@@ -5,13 +5,24 @@
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";
 import board from "@/i18n/en/board.json";
+import builder from "@/i18n/en/builder.json";
 import history from "@/i18n/en/history.json";
 import presets from "@/i18n/en/presets.json";
 import seat from "@/i18n/en/seat.json";
 import shell from "@/i18n/en/shell.json";
 import tools from "@/i18n/en/tools.json";
 
-const dictionaries = [common, engine, board, seat, shell, tools, history, presets] as const;
+const dictionaries = [
+  common,
+  engine,
+  board,
+  builder,
+  history,
+  presets,
+  seat,
+  shell,
+  tools,
+] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>
