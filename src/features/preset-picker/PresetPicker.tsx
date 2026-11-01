@@ -76,7 +76,7 @@ export function PresetPicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("presets.picker.search")}
-          className="min-h-12 flex-1 bg-transparent text-lg text-fg outline-none placeholder:text-fg-muted"
+          className="min-h-12 min-w-0 flex-1 bg-transparent text-lg text-fg outline-none placeholder:text-fg-muted"
           data-testid="preset-search"
           autoComplete="off"
         />
