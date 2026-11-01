@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { createGame, reduce, seededRng, type Game, type GameAction } from "@/engine";
+import { createGame, reduce, seededRng, type Game, type GameAction, type Rng } from "@/engine";
 import { getBuiltInPreset } from "@/presets";
 import {
   SPIN_MS,
+  coinFlipWinner,
   detectUndoable,
+  firstTurnReminderDue,
   formatCause,
   gameOverStats,
   latestFirstPlayerEvent,
+  offersOpeningCoin,
+  rolloffView,
   seatName,
   shouldAnnounce,
   spinSequence,
@@ -127,5 +131,83 @@ describe("game over and undo snackbar", () => {
     expect(detectUndoable(undefined, ko)).toBeNull();
     const renamed = act(g, { type: "SEAT_RENAME", seatId: g.seats[0]!.id, name: "Z" });
     expect(detectUndoable(g, renamed)).toBeNull();
+  });
+});
+
+/** Rng that returns a fixed sequence of `int()` results (d20 roll = value + 1). */
+function scripted(values: number[]): Rng {
+  let i = 0;
+  return { int: (max) => (values[i++] ?? 0) % max };
+}
+
+describe("roll-off view (T3.7)", () => {
+  // @req TOOL-004 @req GAME-012
+  it("shows each seat's d20, re-rolls only the tied seats and names the winner", () => {
+    // round 1: A 18, B 20, C 20, D 3 → B and C re-roll: B 5, C 12 → C goes first
+    const g = createGame(
+      {
+        id: "g-rolloff", // no randomId: the scripted ints are all d20 rolls
+        preset: commander,
+        players: 4,
+        seats: ["A", "B", "C", "D"].map((name) => ({ name })),
+        options: { firstPlayerRule: "rolloff" },
+      },
+      scripted([17, 19, 19, 2, 4, 11]),
+      now,
+    );
+    const view = rolloffView(g)!;
+    expect(view.rounds).toBe(2);
+    expect(view.rows.map((r) => [r.name, r.rolls, r.winner])).toEqual([
+      ["A", [18], false],
+      ["B", [20, 5], false],
+      ["C", [20, 12], true],
+      ["D", [3], false],
+    ]);
+    expect(seatName(g, view.winnerId)).toBe("C");
+    expect(g.turn.activeSeat).toBe(view.winnerId);
+  });
+
+  // @req GAME-012
+  it("is null for other rules and after a manual pick; a reset rolls again", () => {
+    expect(rolloffView(game())).toBeNull();
+    let g = createGame(
+      { preset: commander, players: 3, options: { firstPlayerRule: "rolloff" } },
+      seededRng(9),
+      now,
+    );
+    expect(rolloffView(g)!.rows).toHaveLength(3);
+    for (const r of rolloffView(g)!.rows) for (const v of r.rolls) expect(v).toBeGreaterThan(0);
+    const manual = act(g, { type: "SET_FIRST_PLAYER", seatId: g.seats[1]!.id, now });
+    expect(rolloffView(manual)).toBeNull();
+    g = act(g, { type: "RESET_GAME", now });
+    expect(rolloffView(g)?.winnerId).toBe(g.turn.firstSeat);
+  });
+});
+
+describe("Pokémon opening coin and first-turn reminder (PRD §10.3)", () => {
+  const pokemon = getBuiltInPreset("pokemon.standard")!;
+  const pg = () =>
+    createGame({ preset: pokemon, seats: [{ name: "Ash" }, { name: "Misty" }] }, seededRng(3), now);
+
+  // @req TOOL-002
+  it("offers the coin for coin-prominent 2-player games; heads = seat 1", () => {
+    const g = pg();
+    expect(offersOpeningCoin(g)).toBe(true);
+    expect(offersOpeningCoin(game())).toBe(false);
+    expect(seatName(g, coinFlipWinner(g, "heads"))).toBe("Ash");
+    expect(seatName(g, coinFlipWinner(g, "tails"))).toBe("Misty");
+  });
+
+  it("reminds on turn 1 only, when the capability and the option are on", () => {
+    let g = pg();
+    expect(firstTurnReminderDue(g)).toBe(true);
+    expect(firstTurnReminderDue(game())).toBe(false);
+    expect(
+      firstTurnReminderDue(act(g, { type: "SET_OPTION", key: "firstTurnReminder", value: false })),
+    ).toBe(false);
+    g = act(g, { type: "START_GAME", now });
+    g = act(g, { type: "PASS_TURN", now });
+    expect(g.turn.turnNumber).toBe(2);
+    expect(firstTurnReminderDue(g)).toBe(false);
   });
 });

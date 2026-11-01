@@ -7,12 +7,13 @@
  */
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { CloudLightning, Minus, Plus } from "lucide-react";
+import { CloudLightning } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { Button, IconButton, PageShell } from "@/components/ui";
+import { Button, PageShell } from "@/components/ui";
 import { globalValue } from "@/engine";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useDispatch, useGameStore } from "@/state/gameStore";
+import { CounterRow } from "./CounterRow";
 import { MANA_COLORS, ManaGlyph } from "./DieIcon";
 import { useGameBootstrap, useKvValue } from "./hooks";
 import {
@@ -41,40 +42,21 @@ function Row({
   onDelta: (d: number) => void;
 }) {
   return (
-    <li
-      className="flex min-h-16 items-center gap-2 rounded-2xl bg-surface px-2 py-1"
-      data-testid={`mana-row-${field}`}
-    >
-      <IconButton
-        label={t("tools.mana.minus", { name })}
-        onClick={() => onDelta(-1)}
-        disabled={value <= 0}
-        className="bg-surface-2"
-        data-testid={`mana-${field}-minus`}
-      >
-        <Minus size={24} />
-      </IconButton>
-      <span className="flex flex-1 items-center justify-center gap-3" title={name}>
-        {icon}
-        <span className="sr-only">{name}</span>
-        <span
-          className="min-w-12 text-center text-4xl font-bold tabular"
-          data-testid={`mana-${field}-value`}
-          aria-live="polite"
-        >
-          {value}
-        </span>
-      </span>
-      <IconButton
-        label={t("tools.mana.plus", { name })}
-        onClick={() => onDelta(1)}
-        disabled={value >= MANA_MAX}
-        className="bg-surface-2"
-        data-testid={`mana-${field}-plus`}
-      >
-        <Plus size={24} />
-      </IconButton>
-    </li>
+    <CounterRow
+      name={name}
+      label={
+        <>
+          {icon}
+          <span className="sr-only">{name}</span>
+        </>
+      }
+      value={value}
+      onDelta={onDelta}
+      min={0}
+      max={MANA_MAX}
+      rowTestId={`mana-row-${field}`}
+      testIdBase={`mana-${field}`}
+    />
   );
 }
 

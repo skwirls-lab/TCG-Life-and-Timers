@@ -5,7 +5,9 @@ import { getBuiltInPreset, listBuiltInPresets } from "@/presets";
 import { defaultAppSettings } from "@/state/settingsStore";
 import { draftFromDefaults, draftFromGame } from "./draft";
 import {
+  AVAILABLE_ROUTES,
   SECTIONS,
+  hasPerSeatOverrides,
   allSettings,
   getSetting,
   registerSettings,
@@ -177,7 +179,15 @@ describe("settings registry", () => {
     expect(ids(ctx)).not.toContain("install");
     expect(getSetting("planechase")!.disabledIf!(ctx)).toBe("shell.settings.badge.p2");
     expect(getSetting("profiles")!.disabledIf!(ctx)).toBeNull();
-    expect(getSetting("myPresets")!.disabledIf!(ctx)).toBe("shell.settings.badge.soon");
+    expect(getSetting("myImages")!.disabledIf!(ctx)).toBe("shell.settings.badge.soon");
+    // @req CUS-001 G-row entry points to the builder, account and feedback pages
+    expect(getSetting("myPresets")!.disabledIf!(ctx)).toBeNull();
+    expect(getSetting("myPresets")!.control).toEqual({ kind: "link", href: "/builder" });
+    for (const id of ["signIn", "exportData", "removeData", "deleteAccount"])
+      expect(getSetting(id)!.control).toEqual({ kind: "link", href: "/account" });
+    for (const id of ["feedback", "diagnostics"])
+      expect(getSetting(id)!.control).toEqual({ kind: "link", href: "/feedback" });
+    expect(AVAILABLE_ROUTES).toEqual(expect.arrayContaining(["/builder", "/account", "/feedback"]));
     expect(getSetting("about")!.get!(ctx)).toBe("Version 1.2.3");
   });
 
@@ -202,5 +212,22 @@ describe("settings registry", () => {
       { ...getSetting("timer.mode")!, subtitleKey: "shell.settings.timerMode.subtitle" },
     ]);
     expect(visibleSettings("C", ctxFor(commander)).map((r) => r.id)).toEqual(["timer.mode"]);
+  });
+});
+
+describe("per-seat overrides row (PRE-013)", () => {
+  // @req PRE-013 @req GAME-013
+  it("shows Per-player starting values for perSeatStart / perSeatOverride presets", () => {
+    const swu = getBuiltInPreset("swu.premier")!;
+    const op = getBuiltInPreset("onepiece.standard")!;
+    expect(hasPerSeatOverrides(swu)).toBe(true);
+    expect(hasPerSeatOverrides(op)).toBe(true);
+    expect(hasPerSeatOverrides(commander)).toBe(false);
+    const row = getSetting("perSeatStart")!;
+    const game = createGame({ preset: swu, players: 2 }, seededRng(1), 1);
+    const ctx = ctxFor(swu);
+    expect(row.visibleIf!(swu, game, ctx)).toBe(true);
+    expect(row.visibleIf!(swu, null, ctx)).toBe(false);
+    expect(row.visibleIf!(commander, game, ctx)).toBe(false);
   });
 });

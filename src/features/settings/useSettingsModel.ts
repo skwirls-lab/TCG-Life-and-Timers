@@ -64,8 +64,9 @@ function setLayoutLive(layoutId: string): void {
   useGameStore.setState({ session: { ...session, game: { ...session.game, layoutId } } });
 }
 
-function presetFor(id: string, game: Game | null): Preset | undefined {
+function presetFor(id: string, game: Game | null, picked: Preset | null): Preset | undefined {
   if (game && game.preset.id === id) return game.preset;
+  if (picked && picked.id === id) return picked; // custom presets (CUS-001)
   return getBuiltInPreset(id);
 }
 
@@ -91,7 +92,9 @@ export function useSettingsModel(): SettingsModel {
   const show = useSnackbar((s) => s.show);
 
   // Next-game mode (no active game): which preset, and its draft.
-  const [nextPresetId, setNextPresetId] = useState(DEFAULT_PRESET_ID);
+  const [nextPresetObj, setNextPreset] = useState<Preset | null>(null);
+  /** The last preset chosen in the picker (may be a custom preset). */
+  const [picked, setPicked] = useState<Preset | null>(null);
   const [nextDraft, setNextDraft] = useState<GameDraft | null>(null);
   const [pending, setPending] = useState<GameDraft | null>(null);
 
@@ -102,7 +105,7 @@ export function useSettingsModel(): SettingsModel {
       const preset = last?.preset ?? getBuiltInPreset(DEFAULT_PRESET_ID)!;
       const defaults = await getPresetDefaults(preset.id).catch(() => undefined);
       if (!alive) return;
-      setNextPresetId(preset.id);
+      setNextPreset(preset);
       setNextDraft(draftFromDefaults(preset, defaults));
     })().catch(() => {});
     return () => {
@@ -110,7 +113,7 @@ export function useSettingsModel(): SettingsModel {
     };
   }, []);
 
-  const nextPreset = getBuiltInPreset(nextPresetId) ?? getBuiltInPreset(DEFAULT_PRESET_ID)!;
+  const nextPreset = nextPresetObj ?? getBuiltInPreset(DEFAULT_PRESET_ID)!;
   const draft = useMemo(
     () => (game ? draftFromGame(game) : (nextDraft ?? draftFromDefaults(nextPreset, undefined))),
     [game, nextDraft, nextPreset],
@@ -169,7 +172,7 @@ export function useSettingsModel(): SettingsModel {
     const next = pending;
     setPending(null);
     if (!next || !game) return;
-    const target = presetFor(next.presetId, game);
+    const target = presetFor(next.presetId, game, picked);
     if (!target) return;
     const samePreset = target.id === game.preset.id;
     const config = configFromDraft(
@@ -180,15 +183,16 @@ export function useSettingsModel(): SettingsModel {
     );
     await startNewGame(config);
     show({ message: t("shell.settings.resetDone"), durationMs: 3000 });
-  }, [pending, game, show]);
+  }, [pending, game, show, picked]);
 
   const choosePreset = useCallback(
     async (p: Preset) => {
       const defaults: PresetDefaults | undefined = await getPresetDefaults(p.id).catch(
         () => undefined,
       );
+      setPicked(p);
       if (!game) {
-        setNextPresetId(p.id);
+        setNextPreset(p);
         setNextDraft(draftFromDefaults(p, defaults));
         return;
       }

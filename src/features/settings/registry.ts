@@ -19,6 +19,7 @@ import type { ProFeature } from "@/lib/entitlements/features";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { AppSettings, SettingsPatch } from "@/state/settingsStore";
 import { playerChoices } from "@/features/setup/setupModel";
+import { perSeatChips } from "@/presets";
 import { setOrOmit, type GameDraft } from "./draft";
 import { layoutVariantsFor } from "./layoutVariants";
 
@@ -169,6 +170,11 @@ export function hasPerTurnCounters(preset: Preset): boolean {
   return preset.counters.some((c) => c.resetOnTurnPass);
 }
 
+/** PRE-013: per-seat start (capability perSeatStart) or threshold (`perSeatOverride`) values. */
+export function hasPerSeatOverrides(preset: Preset): boolean {
+  return perSeatChips(preset) !== undefined;
+}
+
 /**
  * Supplemental decks (Planechase / Archenemy / Bounty, P2) have no preset capability yet; until a
  * `supplementalDecks` capability lands they are offered for games listed here (data, not code
@@ -263,7 +269,13 @@ const SOON: MessageKey = "shell.settings.badge.soon";
 const UNSUPPORTED: MessageKey = "shell.settings.badge.unsupported";
 
 /** Routes that exist in this build (G rows link to them; others render disabled "coming soon"). */
-export const AVAILABLE_ROUTES: readonly string[] = ["/profiles", "/history"];
+export const AVAILABLE_ROUTES: readonly string[] = [
+  "/profiles",
+  "/history",
+  "/builder",
+  "/account",
+  "/feedback",
+];
 
 function linkRow(id: string, section: SectionId, href: string): SettingDef {
   return {
@@ -391,7 +403,7 @@ const BASE_ROWS: SettingDef[] = [
     control: { kind: "subpage", page: "perSeatStart" },
     titleKey: "shell.settings.perSeatStart.title",
     subtitleKey: "shell.settings.perSeatStart.subtitle",
-    visibleIf: (preset, game) => preset.capabilities.includes("perSeatStart") && game !== null,
+    visibleIf: (preset, game) => hasPerSeatOverrides(preset) && game !== null,
   },
   {
     id: "thresholds",
@@ -755,21 +767,21 @@ const BASE_ROWS: SettingDef[] = [
   },
 
   // ---- G. Account and data (app; FIREBASE / PAY lanes fill these in) ----------------------
-  actionRow("signIn", "G", "signIn"),
+  linkRow("signIn", "G", "/account"),
   linkRow("profiles", "G", "/profiles"),
-  linkRow("myPresets", "G", "/presets"),
+  linkRow("myPresets", "G", "/builder"),
   linkRow("myImages", "G", "/images"),
   linkRow("history", "G", "/history"),
-  actionRow("exportData", "G", "exportData"),
+  linkRow("exportData", "G", "/account"),
   actionRow("clearImageCache", "G", "clearImageCache"),
-  actionRow("removeData", "G", "removeData"),
-  actionRow("deleteAccount", "G", "deleteAccount"),
+  linkRow("removeData", "G", "/account"),
+  linkRow("deleteAccount", "G", "/account"),
 
   // ---- H. Support and about ---------------------------------------------------------------
   actionRow("support", "H", "support"),
   actionRow("share", "H", "share"),
-  actionRow("feedback", "H", "feedback"),
-  actionRow("diagnostics", "H", "diagnostics"),
+  linkRow("feedback", "H", "/feedback"),
+  linkRow("diagnostics", "H", "/feedback"),
   actionRow("whatsNew", "H", "whatsNew"),
   {
     id: "about",

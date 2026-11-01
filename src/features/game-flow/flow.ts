@@ -133,3 +133,72 @@ export function detectUndoable(
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------------------------
+// T3.7 roll-off (TOOL-004, GAME-012)
+// ---------------------------------------------------------------------------------------------
+
+export interface RolloffRow {
+  seatId: SeatId;
+  name: string;
+  color: string;
+  /** One d20 per round the seat took part in (ties re-roll among the tied seats only). */
+  rolls: number[];
+  winner: boolean;
+}
+
+export interface RolloffView {
+  rounds: number;
+  rows: RolloffRow[];
+  winnerId: SeatId;
+}
+
+/**
+ * The engine's recorded roll-off (`game.turn.rolloff`, rolled with the store's Rng in
+ * `pickFirstSeat`) for the latest first-player pick, or null when that pick wasn't a roll-off.
+ */
+export function rolloffView(game: Game): RolloffView | null {
+  const ev = latestFirstPlayerEvent(game);
+  const rolls = game.turn.rolloff;
+  if (!ev || ev.meta?.rule !== "rolloff" || !rolls) return null;
+  const rows = game.seats
+    .filter((s) => rolls[s.id]?.length)
+    .map((s) => ({
+      seatId: s.id,
+      name: s.name,
+      color: s.color,
+      rolls: [...rolls[s.id]!],
+      winner: s.id === game.turn.firstSeat,
+    }));
+  if (!rows.some((r) => r.winner)) return null;
+  return {
+    rounds: Math.max(...rows.map((r) => r.rolls.length)),
+    rows,
+    winnerId: game.turn.firstSeat,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// PRD §10.3: opening coin flip (TOOL-002) and the first-turn reminder
+// ---------------------------------------------------------------------------------------------
+
+/** Presets with a prominent coin can settle a 2-player start with a coin flip instead. */
+export function offersOpeningCoin(game: Game): boolean {
+  return game.preset.capabilities.includes("coinFlipProminent") && game.seats.length === 2;
+}
+
+/** Seat 1 calls heads, seat 2 tails; the flip winner chooses who goes first. */
+export function coinFlipWinner(game: Game, face: "heads" | "tails"): SeatId {
+  return game.seats[face === "heads" ? 0 : 1]!.id;
+}
+
+/** The "player going first" reminder applies (data: capability + game option) on turn 1. */
+export function firstTurnReminderDue(game: Game): boolean {
+  return (
+    game.preset.capabilities.includes("firstTurnReminder") &&
+    game.options.firstTurnReminder &&
+    game.status !== "ended" &&
+    game.turn.turnNumber === 1 &&
+    !game.turn.awaitingFirstPlayer
+  );
+}

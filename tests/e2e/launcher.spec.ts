@@ -1,4 +1,4 @@
-// @req GAME-001 @req GAME-016 @req A11Y-002
+// @req GAME-001 @req GAME-016 @req A11Y-002 @req CUS-001
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 
@@ -16,6 +16,7 @@ for (const [link, path] of [
   ["tools", "/tools"],
   ["settings", "/settings"],
   ["profiles", "/profiles"],
+  ["presets", "/builder"],
 ] as const) {
   test(`launcher links to ${path}`, async ({ page }) => {
     await page.goto("/");

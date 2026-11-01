@@ -8,7 +8,10 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
 import { Button, IconButton, PageShell, Stepper, Toggle } from "@/components/ui";
 import { primaryCounter } from "@/engine";
+import { setPerSeatValue } from "@/features/setup/setupModel";
+import { StartValuePicker } from "@/features/setup/StartValuePicker";
 import { t } from "@/lib/i18n";
+import { perSeatChips } from "@/presets";
 import { useDispatch } from "@/state/gameStore";
 import { setOrOmit, type GameDraft } from "./draft";
 import { thresholdCounters, type SettingsContext, type SubPageId } from "./registry";
@@ -232,35 +235,75 @@ function PerSeatStartPage({
   onApply: (d: GameDraft) => void;
 }) {
   const primary = primaryCounter(ctx.preset);
+  const chips = perSeatChips(ctx.preset);
   const base = ctx.draft.startOverrides[primary.id] ?? primary.start;
+  const baseThreshold = primary.threshold
+    ? primary.id in ctx.draft.thresholdOverrides
+      ? (ctx.draft.thresholdOverrides[primary.id] ?? null)
+      : primary.threshold.value
+    : null;
   const [perSeat, setPerSeat] = useState(ctx.draft.perSeatStart);
-  const dirty = JSON.stringify(perSeat) !== JSON.stringify(ctx.draft.perSeatStart);
+  const [perSeatT, setPerSeatT] = useState(ctx.draft.perSeatThreshold);
+  const dirty =
+    JSON.stringify(perSeat) !== JSON.stringify(ctx.draft.perSeatStart) ||
+    JSON.stringify(perSeatT) !== JSON.stringify(ctx.draft.perSeatThreshold);
   return (
     <>
       <p className="mt-4 text-sm text-fg-muted">{t("shell.settings.perSeatStart.subtitle")}</p>
       <ul className="flex flex-col">
-        {(ctx.game?.seats ?? []).map((s) => {
+        {(ctx.game?.seats ?? []).map((s, i) => {
           const v = perSeat[s.id]?.[primary.id] ?? base;
+          const th = perSeatT[s.id]?.[primary.id] ?? baseThreshold;
           return (
             <li
               key={s.id}
-              className="flex min-h-16 items-center gap-3 border-b border-border/50 py-2"
+              className="flex flex-col gap-2 border-b border-border/50 py-3"
+              data-testid={`settings-per-seat-${i}`}
             >
-              <span className="flex-1 text-lg">{s.name}</span>
-              <Stepper
-                label={s.name}
-                value={v}
-                step={primary.holdStep ?? primary.step}
-                min={1}
-                onChange={(n) =>
-                  setPerSeat((p) => ({ ...p, [s.id]: { ...p[s.id], [primary.id]: n } }))
-                }
-              />
+              <span className="flex items-center gap-2 text-lg">
+                <span aria-hidden className="size-3 rounded-full" style={{ background: s.color }} />
+                {s.name}
+              </span>
+              {chips?.start && (
+                <StartValuePicker
+                  label={t("shell.perSeat.start", { name: s.name, counter: primary.name })}
+                  values={chips.start}
+                  value={v}
+                  testId={`settings-seat-${i}-start`}
+                  onChange={(n) => setPerSeat((p) => setPerSeatValue(p, s.id, primary.id, n, base))}
+                />
+              )}
+              {chips?.threshold && th !== null && baseThreshold !== null && (
+                <>
+                  <span className="text-sm text-fg-muted">
+                    {t(
+                      primary.threshold?.outcome === "win"
+                        ? "shell.perSeat.thresholdWin"
+                        : "shell.perSeat.thresholdLose",
+                      { counter: primary.name },
+                    )}
+                  </span>
+                  <StartValuePicker
+                    label={t("shell.perSeat.threshold", { name: s.name, counter: primary.name })}
+                    values={chips.threshold}
+                    value={th}
+                    testId={`settings-seat-${i}-threshold`}
+                    onChange={(n) =>
+                      setPerSeatT((p) =>
+                        setPerSeatValue<number | null>(p, s.id, primary.id, n, baseThreshold),
+                      )
+                    }
+                  />
+                </>
+              )}
             </li>
           );
         })}
       </ul>
-      <ApplyBar dirty={dirty} onApply={() => onApply({ ...ctx.draft, perSeatStart: perSeat })} />
+      <ApplyBar
+        dirty={dirty}
+        onApply={() => onApply({ ...ctx.draft, perSeatStart: perSeat, perSeatThreshold: perSeatT })}
+      />
     </>
   );
 }

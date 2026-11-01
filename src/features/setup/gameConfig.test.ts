@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createGame, seededRng } from "@/engine";
+import { deleteCustomPreset, duplicateBuiltIn } from "@/lib/customPresets";
 import { TcgDb } from "@/lib/db";
 import { getBuiltInPreset } from "@/presets";
 import {
   LAST_CONFIG_KEY,
   configFromGame,
   fromStoredConfig,
+  fromStoredConfigAsync,
   loadLastConfig,
   saveLastConfig,
   seatsFromGame,
@@ -63,6 +65,38 @@ describe("last game config", () => {
     const c = await loadLastConfig(db);
     expect(c?.preset.id).toBe("mtg.commander");
     expect(c?.seats?.[0]?.name).toBe("A");
+  });
+
+  // @req GAME-001 @req CUS-001
+  it("quick start resolves a custom preset from the same db (async lookup)", async () => {
+    const db = freshDb();
+    const custom = await duplicateBuiltIn("mtg.commander", { db });
+    expect(custom.id.startsWith("custom.")).toBe(true);
+    await saveLastConfig(
+      {
+        preset: custom,
+        players: 3,
+        seats: [{ name: "A" }],
+        perSeatStart: { s2: { "mtg.life": 30 } },
+      },
+      db,
+    );
+    const c = await loadLastConfig(db);
+    expect(c?.preset.id).toBe(custom.id);
+    expect(c?.players).toBe(3);
+    expect(c?.perSeatStart).toEqual({ s2: { "mtg.life": 30 } });
+    // the sync built-in lookup can't see it
+    expect(fromStoredConfig((await db.kv.get(LAST_CONFIG_KEY))!.value)).toBeNull();
+    expect(
+      await fromStoredConfigAsync({ presetId: "mtg.commander" }, () => Promise.resolve(commander)),
+    ).toMatchObject({ players: 4 });
+    expect(await fromStoredConfigAsync({ presetId: "x" }, () => Promise.reject(new Error()))).toBe(
+      null,
+    );
+    expect(await fromStoredConfigAsync({ bad: true })).toBeNull();
+    // a deleted custom preset → no quick start
+    await deleteCustomPreset(custom.id, db);
+    expect(await loadLastConfig(db)).toBeNull();
   });
 
   // @req GAME-010

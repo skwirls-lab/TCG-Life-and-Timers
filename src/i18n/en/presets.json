@@ -16,6 +16,7 @@
   "presets.picker.favorite": "Add {name} to favorites",
   "presets.picker.unfavorite": "Remove {name} from favorites",
   "presets.picker.selected": "Selected",
+  "presets.picker.custom": "Custom",
   "presets.picker.players": "{min}–{max} players",
   "presets.picker.playersFixed": "{min} players",
   "presets.disclaimer": "Game names are trademarks of their owners. Not affiliated with or endorsed by any publisher."

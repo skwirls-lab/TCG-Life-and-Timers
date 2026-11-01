@@ -166,7 +166,15 @@ function PresetRow({ preset: p, selected, favorite, onSelect, onToggleFavorite }
               </>
             )}
           </span>
-          <span className="text-sm text-fg-muted">
+          <span className="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
+            {!p.builtIn && (
+              <span
+                className="rounded-full bg-accent/15 px-2 text-xs font-semibold text-accent"
+                data-testid={`preset-custom-${p.id}`}
+              >
+                {t("presets.picker.custom")}
+              </span>
+            )}
             {p.format ? `${p.format} · ${players}` : players}
           </span>
           <span className="text-sm leading-snug text-fg" data-testid={`preset-summary-${p.id}`}>
