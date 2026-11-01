@@ -3,8 +3,9 @@
  * with keys prefixed by its namespace (e.g. "board.*"). Register new files below.
  */
 import common from "@/i18n/en/common.json";
+import engine from "@/i18n/en/engine.json";
 
-const dictionaries = [common] as const;
+const dictionaries = [common, engine] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>

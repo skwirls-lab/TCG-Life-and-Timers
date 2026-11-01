@@ -1,0 +1,170 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`built-in presets > mtg.2hg enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "dayNight",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+  ],
+  "players": [
+    4,
+    4,
+    4,
+  ],
+  "primary": "mtg.life",
+  "start": 30,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.archenemy enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "perSeatStart",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+  ],
+  "players": [
+    3,
+    4,
+    5,
+  ],
+  "primary": "mtg.life",
+  "start": 20,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.brawl enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "partners",
+    "commanderTax",
+    "dayNight",
+    "monarch",
+    "initiative",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.tax",
+  ],
+  "players": [
+    2,
+    2,
+    6,
+  ],
+  "primary": "mtg.life",
+  "start": 25,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.commander enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "commanderDamage",
+    "partners",
+    "commanderTax",
+    "dayNight",
+    "monarch",
+    "initiative",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+    "mtg.cmdDamage",
+    "mtg.tax",
+    "mtg.monarch",
+    "mtg.initiative",
+  ],
+  "players": [
+    2,
+    4,
+    8,
+  ],
+  "primary": "mtg.life",
+  "start": 40,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.constructed enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "dayNight",
+    "monarch",
+    "initiative",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+  ],
+  "players": [
+    1,
+    2,
+    4,
+  ],
+  "primary": "mtg.life",
+  "start": 20,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.limited enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "dayNight",
+    "monarch",
+    "initiative",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+  ],
+  "players": [
+    2,
+    2,
+    2,
+  ],
+  "primary": "mtg.life",
+  "start": 20,
+  "timer": "off",
+}
+`;
+
+exports[`built-in presets > mtg.oathbreaker enabled-by-default counters (snapshot) 1`] = `
+{
+  "capabilities": [
+    "commanderTax",
+    "dayNight",
+    "monarch",
+    "initiative",
+    "perTurnFlags",
+  ],
+  "enabled": [
+    "mtg.life",
+    "mtg.poison",
+    "mtg.taxOathbreaker",
+    "mtg.taxSignature",
+  ],
+  "players": [
+    2,
+    4,
+    6,
+  ],
+  "primary": "mtg.life",
+  "start": 20,
+  "timer": "off",
+}
+`;
