@@ -20,6 +20,8 @@
   "tools.tip": "Hold the die button on the board for instant access to all dice and randomizers.",
   "tools.manaLink": "Mana & Storm",
   "tools.manaLinkHint": "Floating mana pool and storm count",
+  "tools.countersLink": "Scratch counters",
+  "tools.countersLinkHint": "Your own named counters for anything else",
   "tools.close": "Close",
   "tools.result.title": "Result",
   "tools.result.rollAgain": "Roll again",
@@ -50,5 +52,16 @@
   "tools.mana.plus": "Add one {name}",
   "tools.mana.clear": "Clear",
   "tools.mana.close": "Close",
-  "tools.mana.note": "The mana pool belongs to this device, not a seat. Symbols are original drawings."
+  "tools.mana.note": "The mana pool belongs to this device, not a seat. Symbols are original drawings.",
+  "tools.counters.title": "Scratch counters",
+  "tools.counters.empty": "No counters yet. Add one for ink, damage, a timer of turns, or anything else.",
+  "tools.counters.add": "Add counter",
+  "tools.counters.newName": "Counter {n}",
+  "tools.counters.name": "Name of counter {n}",
+  "tools.counters.minus": "Remove one from {name}",
+  "tools.counters.plus": "Add one to {name}",
+  "tools.counters.delete": "Delete {name}",
+  "tools.counters.clear": "Reset all to 0",
+  "tools.counters.close": "Close",
+  "tools.counters.note": "These counters belong to this device, not a game or a seat."
 }
