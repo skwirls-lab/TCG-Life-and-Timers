@@ -18,23 +18,23 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T1.3 | MTG presets | W1 | ENGINE | DONE | §10.2, PRE-001, PRE-002, CMD-011, TOK-002. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
 | T1.4 | Persistence | W1 | ENGINE | DONE | ARCH-006, GAME-016, REL-001. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
 | T1.5 | Store | W1 | ENGINE | DONE | PERF-002, REL-004. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
-| T1.6 | Layout engine | W2 | BOARD | TODO | LAY-001..004, LAY-006, LAY-009, LAY-010. |  |
-| T1.7 | Seat tile | W2 | BOARD | TODO | LIFE-001..006, INP-001..004, INP-006, INP-008, INP-009, LAY-007, LAY-008, SET-00 |  |
-| T1.8 | Center toolbar | W2 | BOARD | TODO | §7.2, LAY-010, LAY-011, SET-031. |  |
-| T1.9 | Seat menu (rotated sheet) | W2 | BOARD | TODO | SEAT-001, SEAT-002, SEAT-004, SEAT-005, §8.2. |  |
-| T1.10 | Commander damage | W2 | BOARD | TODO | CMD-002..006, CMD-010. |  |
-| T1.11 | Tokens and global counters UI | W2 | BOARD | TODO | TOK-001, TOK-003, TOK-004. |  |
-| T1.12 | Launcher and setup flow | W2 | SHELL | TODO | GAME-001, GAME-016, LAY-005, PRE-003 (basic picker for MTG presets only; the ful |  |
-| T1.13 | Reset, first player, game over | W2 | SHELL | TODO | GAME-010..015, LIFE-005, SET-012 (Dice & randomizer animations toggle). |  |
-| T1.14 | Settings screen | W2 | SHELL | TODO | SET-001, SET-010..015, §13.1 sections A, B, D, E, F (G and H get placeholders; F |  |
-| T1.15 | Profiles and decks (local) | W2 | SHELL | TODO | PROF-001, PROF-002, PROF-010, PROF-011. |  |
-| T1.16 | Backgrounds (non-art) | W2 | SHELL | TODO | SET-002 (gradients/colors/default), SET-003. |  |
-| T1.20 | One-player mode and camera mode | W2 | SHELL | TODO | SET-032, SET-033. |  |
-| T1.17 | Tools page and quick access | W2 | TOOLS-HIST | TODO | TOOL-001..003, TOOL-007..011, TOOL-013. |  |
-| T1.18 | Current-game history | W2 | TOOLS-HIST | TODO | HIST-001, HIST-002, HIST-010..013. |  |
-| T1.19 | Device services | W2 | TOOLS-HIST | TODO | PWA-005, PWA-006, INP-008, SET (Device section). |  |
-| T2.1 | Timer engine | W2 | TIMER-CORE | TODO | TMR-001..011, TMR-020..024, TMR-030..032, TMR-040, TMR-044, TMR-050, TURN-001, T |  |
-| T2.2 | Scheduler | W2 | TIMER-CORE | TODO | TMR-021, TMR-031, TMR-051. |  |
+| T1.6 | Layout engine | W2 | BOARD | IN_PROGRESS | LAY-001..004, LAY-006, LAY-009, LAY-010. |  |
+| T1.7 | Seat tile | W2 | BOARD | IN_PROGRESS | LIFE-001..006, INP-001..004, INP-006, INP-008, INP-009, LAY-007, LAY-008, SET-00 |  |
+| T1.8 | Center toolbar | W2 | BOARD | IN_PROGRESS | §7.2, LAY-010, LAY-011, SET-031. |  |
+| T1.9 | Seat menu (rotated sheet) | W2 | BOARD | IN_PROGRESS | SEAT-001, SEAT-002, SEAT-004, SEAT-005, §8.2. |  |
+| T1.10 | Commander damage | W2 | BOARD | IN_PROGRESS | CMD-002..006, CMD-010. |  |
+| T1.11 | Tokens and global counters UI | W2 | BOARD | IN_PROGRESS | TOK-001, TOK-003, TOK-004. |  |
+| T1.12 | Launcher and setup flow | W2 | SHELL | IN_PROGRESS | GAME-001, GAME-016, LAY-005, PRE-003 (basic picker for MTG presets only; the ful |  |
+| T1.13 | Reset, first player, game over | W2 | SHELL | IN_PROGRESS | GAME-010..015, LIFE-005, SET-012 (Dice & randomizer animations toggle). |  |
+| T1.14 | Settings screen | W2 | SHELL | IN_PROGRESS | SET-001, SET-010..015, §13.1 sections A, B, D, E, F (G and H get placeholders; F |  |
+| T1.15 | Profiles and decks (local) | W2 | SHELL | IN_PROGRESS | PROF-001, PROF-002, PROF-010, PROF-011. |  |
+| T1.16 | Backgrounds (non-art) | W2 | SHELL | IN_PROGRESS | SET-002 (gradients/colors/default), SET-003. |  |
+| T1.20 | One-player mode and camera mode | W2 | SHELL | IN_PROGRESS | SET-032, SET-033. |  |
+| T1.17 | Tools page and quick access | W2 | TOOLS-HIST | IN_PROGRESS | TOOL-001..003, TOOL-007..011, TOOL-013. |  |
+| T1.18 | Current-game history | W2 | TOOLS-HIST | IN_PROGRESS | HIST-001, HIST-002, HIST-010..013. |  |
+| T1.19 | Device services | W2 | TOOLS-HIST | DONE | PWA-005, PWA-006, INP-008, SET (Device section). | device lib 12 unit ✅ (wiring in BOARD) |
+| T2.1 | Timer engine | W2 | TIMER-CORE | IN_PROGRESS | TMR-001..011, TMR-020..024, TMR-030..032, TMR-040, TMR-044, TMR-050, TURN-001, T |  |
+| T2.2 | Scheduler | W2 | TIMER-CORE | IN_PROGRESS | TMR-021, TMR-031, TMR-051. |  |
 | T2.3 | Turn tracking UI | W3 | TIMER-UI | TODO | TURN-001, LIFE-006, TMR-003, TMR-004, TMR-009. |  |
 | T2.4 | Clock chips and the response stack | W3 | TIMER-UI | TODO | TMR-005..008, TMR-010, TMR-011, TMR-041..043. |  |
 | T2.5 | Start, pause and overlays | W3 | TIMER-UI | TODO | TMR-001, TMR-002, TMR-020, TMR-021, SET-013. |  |
