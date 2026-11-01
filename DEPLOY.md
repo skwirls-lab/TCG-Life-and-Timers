@@ -88,7 +88,11 @@ npx firebase use <your-project-id>
 npx firebase deploy --only firestore,storage,functions
 ```
 
-Functions that get deployed: `deleteUserData` (callable; "Delete account"), `onUserDeleted` (cleanup), `syncEntitlementsOnSubscription` and `syncEntitlementsOnPayment` (Pro status from Stripe; harmless without Stripe), `hello` (health check).
+Functions that get deployed:
+- `deleteUserData` (callable; "Delete account") and `onUserDeleted` (cleanup)
+- `syncEntitlementsOnSubscription` and `syncEntitlementsOnPayment` (Pro status from Stripe; harmless without Stripe)
+- `artQuotaOnFinalize` and `artQuotaOnDelete` (server-side image quota; only enforced when the paywall is on)
+- `hello` (health check)
 
 ## Part 6: Merge to `main` and verify
 1. The finished work is on branch `claude/tcg-life-timer-pwa-d7i37k`, and is merged to `main` at the end of the build. If you're reading this before that merge: on GitHub, **Pull requests → New** → base `main` ← compare that branch → merge.
@@ -105,6 +109,7 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 - [ ] **Photo upload** from the camera roll and the camera.
 - [ ] **Delete account** (with a throwaway Google account): data disappears from Firestore and Storage.
 - [ ] **Lighthouse** on the live URL (Chrome DevTools → Lighthouse, Mobile): Performance ≥ 90, Accessibility ≥ 95.
+- [ ] **Legal placeholders**: fill the `[bracket]` placeholders in `src/features/legal/content/en.json` (region, retention, contact, jurisdiction, refund policy), have someone review /privacy and /terms, then remove the "Draft" banners.
 - [ ] **Rules values**: review `docs/RULES-TO-VERIFY.md` with players of each game and correct the preset data if needed (`src/presets/<game>/presets.ts`).
 
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
@@ -118,11 +123,17 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 3. Firebase Console → **Extensions** → install **"Run Payments with Stripe"** (`stripe/firestore-stripe-payments`):
    - Customer details collection: `customers`. Products collection: `products`. Sync new users: **No**.
    - Paste your Stripe **secret key** (or a restricted key) **into the extension config**. Never commit it or paste it in chat.
+   - Set **"Automatically delete Stripe customer objects"** to **Auto delete**. Then deleting a user's account cancels their Stripe subscriptions.
    - Follow the extension's post-install steps to create the Stripe **webhook** to the extension's URL with the listed events.
 4. Functions config: set `LIFETIME_PRICE_IDS` = your lifetime price id (comma-separated if several). For example, create `functions/.env.<project-id>` with `LIFETIME_PRICE_IDS=price_…` and redeploy functions. **Only these price ids grant lifetime Pro**; client-supplied metadata is ignored for security.
-5. `apphosting.yaml`: set `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY/_YEARLY/_LIFETIME`, optional display prices, and `NEXT_PUBLIC_PAYWALL_ENABLED: "1"`. Push to `main`.
-6. Test with Stripe test card `4242 4242 4242 4242`. The account shows Pro within seconds, and **Manage subscription** opens the Stripe portal. Then switch Stripe to Live mode and replace the price ids and key.
-7. Legal: before charging money, have someone review `/terms`, `/privacy`, the trademark disclaimer, and WotC's Fan Content Policy (PRD §17.1, Q7). Pro features are deliberately game-agnostic, and Scryfall art is never paywalled.
+5. **Turn the paywall on, in BOTH places** (they must agree):
+   - `apphosting.yaml`: set `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY/_YEARLY/_LIFETIME`, optional display prices, and `NEXT_PUBLIC_PAYWALL_ENABLED: "1"`. Push to `main`.
+   - Firestore console → create document **`config/billing`** with field `paywallEnabled` (boolean) = `true`. Clients can't write this doc. While it's absent, the server allows everything, which is the free-for-all default.
+   Once both are on, the server enforces Pro for cloud history sync, share links and the image quota (free 10 / Pro 200).
+6. Optional, recommended: give the functions a **restricted Stripe key** (`rk_…` with only *Subscriptions: Write*) as `STRIPE_SECRET_KEY` in an **uncommitted** `functions/.env.<project-id>`. "Delete account" then cancels active subscriptions before deleting data, and stops if Stripe refuses.
+7. Refunds and disputes: the extension doesn't mirror refunds. When you refund a lifetime purchase or lose a dispute, set that `customers/{uid}/payments/{id}` doc's `status` to `"refunded"` (or add `revoked: true`). Pro is recomputed automatically.
+8. Test with Stripe test card `4242 4242 4242 4242`. The account shows Pro within seconds, and **Manage subscription** opens the Stripe portal. Then switch Stripe to Live mode and replace the price ids and key.
+9. Legal: before charging money, have someone review `/terms`, `/privacy`, the trademark disclaimer, and WotC's Fan Content Policy (PRD §17.1, Q7). Pro features are deliberately game-agnostic, and Scryfall art is never paywalled.
 
 ## Part 8 (optional): Error reporting and analytics
 - **Sentry**: create a project (platform: JavaScript/Browser) → copy the DSN → `NEXT_PUBLIC_SENTRY_DSN` in `apphosting.yaml`. Sentry loads only when this is set.
