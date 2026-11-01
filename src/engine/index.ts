@@ -78,6 +78,7 @@ export {
   canUndo,
   canRedo,
   STICKY_ACTIONS,
+  PAUSE_ACTIONS,
   type GameSession,
 } from "./undo";
 export { pickFirstSeat, turnOrderFor } from "./turn";

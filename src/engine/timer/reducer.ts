@@ -8,8 +8,9 @@
  * eliminations, turn changes and game end caused by any action (TMR-023).
  *
  * Model (§9.8): clock values are exact as of `runningSince`. Every transition first *settles*
- * the running clock to `now` (charging the holder), then changes who holds it. Undo is a plain
- * snapshot restore (GameSession): restoring the state before a PASS_TURN puts the clock back on
+ * the running clock to `now` (charging the holder), then changes who holds it. Undo is a
+ * snapshot restore (GameSession; pause/resume are applied to every snapshot, B-1): restoring
+ * the state before a PASS_TURN puts the clock back on
  * the passer with its old `runningSince`, so recomputing at `now` charges all time since then —
  * including the time after the pass — to the original holder, exactly as TMR-004 requires.
  *
