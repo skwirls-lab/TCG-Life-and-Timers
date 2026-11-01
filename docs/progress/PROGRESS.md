@@ -13,11 +13,11 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T0.7 | Entitlements stub | W0 | ORCH | DONE | ARCH-008, PAY-001. | see GATES.md#w0 |
 | T0.8 | CI workflows | W0 | ORCH | DONE | REL-003. | see GATES.md#w0 |
 | T0.9 | Progress files + trace exemptions | W0 | ORCH | DONE |  | see GATES.md#w0 |
-| T1.1 | Engine types and schemas | W1 | ENGINE | IN_PROGRESS | §6.2, §6.3, CTR-001, PRE-001. |  |
-| T1.2 | Reducer | W1 | ENGINE | IN_PROGRESS | CTR-002..005, CMD-001, CMD-003..005, CMD-010, TOK-001, TOK-003, TOK-004, GAME-01 |  |
-| T1.3 | MTG presets | W1 | ENGINE | IN_PROGRESS | §10.2, PRE-001, PRE-002, CMD-011, TOK-002. |  |
-| T1.4 | Persistence | W1 | ENGINE | IN_PROGRESS | ARCH-006, GAME-016, REL-001. |  |
-| T1.5 | Store | W1 | ENGINE | IN_PROGRESS | PERF-002, REL-004. |  |
+| T1.1 | Engine types and schemas | W1 | ENGINE | DONE | §6.2, §6.3, CTR-001, PRE-001. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
+| T1.2 | Reducer | W1 | ENGINE | DONE | CTR-002..005, CMD-001, CMD-003..005, CMD-010, TOK-001, TOK-003, TOK-004, GAME-01 | 357 unit ✅ cov 99.3/95.4 presets ✅ |
+| T1.3 | MTG presets | W1 | ENGINE | DONE | §10.2, PRE-001, PRE-002, CMD-011, TOK-002. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
+| T1.4 | Persistence | W1 | ENGINE | DONE | ARCH-006, GAME-016, REL-001. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
+| T1.5 | Store | W1 | ENGINE | DONE | PERF-002, REL-004. | 357 unit ✅ cov 99.3/95.4 presets ✅ |
 | T1.6 | Layout engine | W2 | BOARD | TODO | LAY-001..004, LAY-006, LAY-009, LAY-010. |  |
 | T1.7 | Seat tile | W2 | BOARD | TODO | LIFE-001..006, INP-001..004, INP-006, INP-008, INP-009, LAY-007, LAY-008, SET-00 |  |
 | T1.8 | Center toolbar | W2 | BOARD | TODO | §7.2, LAY-010, LAY-011, SET-031. |  |
