@@ -33,6 +33,8 @@ export interface GameDraft {
   startOverrides: Record<string, number>;
   thresholdOverrides: Record<string, number | null>;
   perSeatStart: Record<string, Record<string, number>>;
+  /** PRE-013 per-seat threshold values (seat id → counter id → value). */
+  perSeatThreshold: Record<string, Record<string, number | null>>;
   enabledCounters: string[];
 }
 
@@ -45,11 +47,12 @@ export function draftFromGame(game: Game): GameDraft {
     startOverrides: { ...game.startOverrides },
     thresholdOverrides: { ...game.thresholdOverrides },
     perSeatStart: structuredCloneRecord(game.perSeatStart),
+    perSeatThreshold: structuredCloneRecord(game.perSeatThreshold),
     enabledCounters: [...game.enabledCounters],
   };
 }
 
-function structuredCloneRecord<T extends Record<string, Record<string, number>>>(r: T): T {
+function structuredCloneRecord<T extends Record<string, Record<string, number | null>>>(r: T): T {
   return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { ...v }])) as T;
 }
 
@@ -77,6 +80,7 @@ export function draftFromDefaults(preset: Preset, defaults: PresetDefaults | und
     startOverrides: { ...defaults?.startOverrides },
     thresholdOverrides: { ...defaults?.thresholdOverrides },
     perSeatStart: structuredCloneRecord(defaults?.perSeatStart ?? {}),
+    perSeatThreshold: {},
     enabledCounters: defaults?.enabledCounters
       ? [...defaults.enabledCounters]
       : preset.counters.filter((c) => c.enabledByDefault).map((c) => c.id),
@@ -122,6 +126,7 @@ export function isStructuralChange(before: GameDraft, after: GameDraft): boolean
     !same(before.startOverrides, after.startOverrides) ||
     !same(before.thresholdOverrides, after.thresholdOverrides) ||
     !same(before.perSeatStart, after.perSeatStart) ||
+    !same(before.perSeatThreshold, after.perSeatThreshold) ||
     !same([...before.enabledCounters].sort(), [...after.enabledCounters].sort())
   );
 }
@@ -158,6 +163,7 @@ export function configFromDraft(
     startOverrides: { ...draft.startOverrides },
     thresholdOverrides: { ...draft.thresholdOverrides },
     perSeatStart: structuredCloneRecord(draft.perSeatStart),
+    perSeatThreshold: structuredCloneRecord(draft.perSeatThreshold),
     enabledCounters: [...draft.enabledCounters],
   };
 }

@@ -13,6 +13,7 @@ import {
 import type { ProfileSelection } from "@/lib/profiles/types";
 import { applyPresetDefaults, type PresetDefaults } from "@/state/presetDefaults";
 import { normalizeLayoutId } from "@/features/settings/layoutVariants";
+import { perSeatChips } from "@/presets";
 
 export const SETUP_STEPS = ["preset", "players", "seats", "options"] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
@@ -31,6 +32,10 @@ export interface SetupSeat {
   art?: ArtRef;
   contrast?: boolean;
   commanders: string[];
+  /** PRE-013 per-seat primary start; undefined = the game's start value. */
+  start?: number;
+  /** PRE-013 per-seat primary threshold; undefined = the preset's threshold. */
+  threshold?: number;
 }
 
 export interface SetupState {
@@ -102,7 +107,8 @@ export function stateForPreset(
       players,
       defaults?.layoutId ?? preset.defaults.layoutByPlayers?.[String(players)],
     ),
-    seats: resizeSeats(prev?.seats ?? [], players),
+    // Per-seat values belong to the previous preset's primary counter.
+    seats: resizeSeats(prev?.seats ?? [], players).map(clearPerSeat),
     startValue: savedStart ?? null,
     enabledCounters: defaults?.enabledCounters
       ? [...defaults.enabledCounters]
@@ -113,6 +119,11 @@ export function stateForPreset(
       preset.defaults.firstPlayerRule,
     ...(defaults ? { defaults } : {}),
   };
+}
+
+function clearPerSeat(seat: SetupSeat): SetupSeat {
+  const { start: _s, threshold: _t, ...rest } = seat;
+  return rest;
 }
 
 export function setPlayers(state: SetupState, preset: Preset, players: number): SetupState {
@@ -183,6 +194,45 @@ export function effectiveStart(state: SetupState, preset: Preset): number {
   return state.startValue ?? primaryCounter(preset).start;
 }
 
+/** Engine seat id for setup seat `index` (matches createGame's default ids). */
+export const setupSeatId = (index: number): string => `s${index + 1}`;
+
+/** PRE-013: the seat's effective primary start in the options step. */
+export function seatStart(state: SetupState, preset: Preset, index: number): number {
+  return state.seats[index]?.start ?? effectiveStart(state, preset);
+}
+
+/** PRE-013: the seat's effective primary threshold (undefined when the primary has none). */
+export function seatThreshold(
+  state: SetupState,
+  preset: Preset,
+  index: number,
+): number | undefined {
+  return state.seats[index]?.threshold ?? primaryCounter(preset).threshold?.value;
+}
+
+/** Per-seat maps for NewGameConfig (only seats that differ from the game-wide value). */
+export function perSeatMaps(
+  state: SetupState,
+  preset: Preset,
+): Pick<NewGameConfig, "perSeatStart" | "perSeatThreshold"> {
+  const primary = primaryCounter(preset);
+  const chips = perSeatChips(preset);
+  const perSeatStart: Record<string, Record<string, number>> = {};
+  const perSeatThreshold: Record<string, Record<string, number | null>> = {};
+  state.seats.forEach((s, i) => {
+    const id = setupSeatId(i);
+    if (chips?.start && s.start !== undefined && s.start !== effectiveStart(state, preset))
+      perSeatStart[id] = { [primary.id]: s.start };
+    if (chips?.threshold && s.threshold !== undefined && s.threshold !== primary.threshold?.value)
+      perSeatThreshold[id] = { [primary.id]: s.threshold };
+  });
+  return {
+    ...(Object.keys(perSeatStart).length ? { perSeatStart } : {}),
+    ...(Object.keys(perSeatThreshold).length ? { perSeatThreshold } : {}),
+  };
+}
+
 /** Build the engine config (stored preset defaults fill anything the wizard didn't set). */
 export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfig {
   const primary = primaryCounter(preset);
@@ -190,8 +240,12 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
     preset,
     players: state.players,
     layoutId: state.layoutId,
-    seats: state.seats.map((s) => {
-      const seat: NonNullable<NewGameConfig["seats"]>[number] = { name: s.name, color: s.color };
+    seats: state.seats.map((s, i) => {
+      const seat: NonNullable<NewGameConfig["seats"]>[number] = {
+        id: setupSeatId(i),
+        name: s.name,
+        color: s.color,
+      };
       if (s.profileId) seat.profileId = s.profileId;
       if (s.deckId) seat.deckId = s.deckId;
       if (s.deckName) seat.deckName = s.deckName;
@@ -204,6 +258,7 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
     options: { firstPlayerRule: state.firstPlayerRule },
     enabledCounters: [...state.enabledCounters],
     ...(state.startValue !== null ? { startOverrides: { [primary.id]: state.startValue } } : {}),
+    ...perSeatMaps(state, preset),
   };
   return applyPresetDefaults(config, state.defaults);
 }
@@ -216,4 +271,25 @@ export function usesCommanders(preset: Preset): boolean {
 /** Optional (non-primary) counters the options step can toggle (CTR-001). */
 export function optionalCounters(preset: Preset) {
   return preset.counters.filter((c) => !c.isPrimary);
+}
+
+/**
+ * PRE-013: set one seat's value for a counter in a per-seat map (`perSeatStart` /
+ * `perSeatThreshold`); a value equal to `base` removes the entry (and an emptied seat).
+ */
+export function setPerSeatValue<V extends number | null>(
+  map: Readonly<Record<string, Readonly<Record<string, V>>>>,
+  seatId: string,
+  counterId: string,
+  value: NoInfer<V>,
+  base: NoInfer<V>,
+): Record<string, Record<string, V>> {
+  const seat: Record<string, V> = Object.fromEntries(
+    Object.entries(map[seatId] ?? {}).filter(([k]) => k !== counterId),
+  );
+  if (value !== base) seat[counterId] = value;
+  const out: Record<string, Record<string, V>> = {};
+  for (const [id, values] of Object.entries(map)) if (id !== seatId) out[id] = { ...values };
+  if (Object.keys(seat).length) out[seatId] = seat;
+  return out;
 }

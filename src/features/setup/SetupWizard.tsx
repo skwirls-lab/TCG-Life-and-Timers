@@ -3,9 +3,9 @@
  * `/setup` wizard (T1.12, GAME-001): preset → players + layout → seats → options → Start.
  * Start is available on every step, so a default game is 2 taps from the launcher (≤ 6 budget).
  */
-import { ArrowDown, ArrowUp, Palette, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Palette, TriangleAlert, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, ChipRow, IconButton, LockBadge, PageShell, Toggle } from "@/components/ui";
 import {
   FIRST_PLAYER_RULES,
@@ -15,12 +15,19 @@ import {
   type Preset,
 } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
+import { rememberPresetUse } from "@/features/preset-picker";
 import { ProfilePicker } from "@/features/profiles/ProfilePicker";
 import { Select } from "@/features/settings/Select";
 import { ThumbnailPicker, layoutThumbOptions } from "@/features/settings/Thumbnails";
 import { useCan } from "@/lib/entitlements/store";
 import { t } from "@/lib/i18n";
-import { DEFAULT_PRESET_ID, getBuiltInPreset } from "@/presets";
+import {
+  DEFAULT_PRESET_ID,
+  getBuiltInPreset,
+  hasUnverifiedValues,
+  perSeatChips,
+  presetVerifyItems,
+} from "@/presets";
 import { getPresetDefaults } from "@/state/presetDefaults";
 import { PresetList } from "./PresetList";
 import { StartValuePicker } from "./StartValuePicker";
@@ -31,6 +38,8 @@ import {
   moveSeat,
   optionalCounters,
   playerChoices,
+  seatStart,
+  seatThreshold,
   setPlayers,
   stateForPreset,
   toNewGameConfig,
@@ -67,12 +76,11 @@ export function SetupWizard() {
   const [state, setState] = useState<SetupState>(() => stateForPreset(defaultPreset(), undefined));
   const [pickerSeat, setPickerSeat] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
-  const preset = useMemo(
-    () => getBuiltInPreset(state.presetId) ?? defaultPreset(),
-    [state.presetId],
-  );
+  // The chosen preset object (built-in or custom, CUS-001); custom presets have no sync lookup.
+  const [preset, setPreset] = useState<Preset>(defaultPreset);
 
   const choosePreset = async (p: Preset) => {
+    setPreset(p);
     const defaults = await getPresetDefaults(p.id).catch(() => undefined);
     setState((s) => stateForPreset(p, defaults, s));
   };
@@ -96,12 +104,16 @@ export function SetupWizard() {
   const step = SETUP_STEPS[state.step]!;
   const last = state.step === SETUP_STEPS.length - 1;
   const primary = primaryCounter(preset);
+  const chips = perSeatChips(preset);
+  const verifyItems = hasUnverifiedValues(preset) ? presetVerifyItems(preset) : [];
 
   const start = async () => {
     if (starting) return;
     setStarting(true);
     try {
       await startNewGame(toNewGameConfig(state, preset));
+      // The picker doesn't record Recent on select in setup; the preset is "used" at Start.
+      await rememberPresetUse(preset.id).catch(() => undefined);
       router.push("/play");
     } catch (e) {
       console.warn("[setup] start failed", e);
@@ -139,6 +151,7 @@ export function SetupWizard() {
           onChange={(p) => void choosePreset(p)}
           label={t("shell.setup.step.preset")}
           testIdPrefix="setup-preset"
+          recordRecent={false}
         />
       )}
 
@@ -293,6 +306,62 @@ export function SetupWizard() {
               testId="setup-start"
             />
           </div>
+          {chips && (
+            <div className="flex flex-col gap-2" data-testid="setup-per-seat">
+              <h3 className="text-lg">{t("shell.settings.perSeatStart.title")}</h3>
+              <p className="text-sm text-fg-muted">{t("shell.setup.perSeat.hint")}</p>
+              <ul className="flex flex-col gap-3">
+                {state.seats.map((seat, i) => {
+                  const name = seat.name.trim() || t("shell.setup.seat.placeholder", { n: i + 1 });
+                  const threshold = seatThreshold(state, preset, i);
+                  return (
+                    <li
+                      key={seat.key}
+                      className="flex flex-col gap-2 rounded-2xl bg-surface p-3"
+                      data-testid={`setup-per-seat-${i}`}
+                    >
+                      <span className="flex items-center gap-2 text-base font-semibold">
+                        <span
+                          aria-hidden
+                          className="size-3 rounded-full"
+                          style={{ background: seat.color }}
+                        />
+                        {name}
+                      </span>
+                      {chips.start && (
+                        <StartValuePicker
+                          label={t("shell.perSeat.start", { name, counter: primary.name })}
+                          values={chips.start}
+                          value={seatStart(state, preset, i)}
+                          onChange={(v) => setState((s) => updateSeat(s, i, { start: v }))}
+                          testId={`setup-seat-${i}-start`}
+                        />
+                      )}
+                      {chips.threshold && threshold !== undefined && (
+                        <>
+                          <span className="text-sm text-fg-muted">
+                            {t(
+                              primary.threshold?.outcome === "win"
+                                ? "shell.perSeat.thresholdWin"
+                                : "shell.perSeat.thresholdLose",
+                              { counter: primary.name },
+                            )}
+                          </span>
+                          <StartValuePicker
+                            label={t("shell.perSeat.threshold", { name, counter: primary.name })}
+                            values={chips.threshold}
+                            value={threshold}
+                            onChange={(v) => setState((s) => updateSeat(s, i, { threshold: v }))}
+                            testId={`setup-seat-${i}-threshold`}
+                          />
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <h3 className="text-lg">{t("shell.settings.counters.title")}</h3>
             {optionalCounters(preset).map((c) => (
@@ -320,6 +389,22 @@ export function SetupWizard() {
               onChange={(firstPlayerRule) => setState((s) => ({ ...s, firstPlayerRule }))}
             />
           </div>
+        </div>
+      )}
+
+      {verifyItems.length > 0 && step === "options" && (
+        <div
+          className="mt-4 flex items-start gap-2 rounded-2xl border border-warning/40 bg-warning/10 p-3 text-sm"
+          data-testid="setup-verify-hint"
+          role="note"
+        >
+          <TriangleAlert aria-hidden size={18} className="mt-0.5 shrink-0 text-warning" />
+          <span>
+            {t("shell.setup.verifyHint", {
+              preset: preset.name,
+              items: verifyItems.map((v) => v.target).join(", "),
+            })}
+          </span>
         </div>
       )}
 

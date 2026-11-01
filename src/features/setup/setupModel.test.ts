@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { counterValue, createGame, seededRng } from "@/engine";
+import { counterValue, createGame, reduce, seededRng } from "@/engine";
 import { getBuiltInPreset } from "@/presets";
 import {
   applyProfile,
   effectiveStart,
   moveSeat,
+  perSeatMaps,
   playerChoices,
   resizeSeats,
+  seatStart,
+  seatThreshold,
+  setPerSeatValue,
   setPlayers,
   stateForPreset,
   toNewGameConfig,
@@ -130,5 +134,66 @@ describe("setup wizard model", () => {
   it("shows commander inputs only for presets with commander counters", () => {
     expect(usesCommanders(commander)).toBe(true);
     expect(usesCommanders(constructed)).toBe(false);
+  });
+});
+
+describe("per-seat overrides in setup (T3.4)", () => {
+  const swu = getBuiltInPreset("swu.premier")!;
+  const onePiece = getBuiltInPreset("onepiece.standard")!;
+  const rng = seededRng(1);
+
+  // @req PRE-013 @req GAME-013
+  it("SWU seats lose at their own base HP threshold", () => {
+    let s = stateForPreset(swu, undefined);
+    s = updateSeat(s, 0, { name: "Rey", threshold: 25 });
+    s = updateSeat(s, 1, { name: "Kylo", threshold: 30 });
+    expect(seatThreshold(s, swu, 0)).toBe(25);
+    expect(seatThreshold(s, swu, 1)).toBe(30);
+    const config = toNewGameConfig(s, swu);
+    // 30 is the preset default, so only the first seat is stored
+    expect(config.perSeatThreshold).toEqual({ s1: { "swu.baseDamage": 25 } });
+    expect(config.perSeatStart).toBeUndefined();
+    let game = createGame(config, rng, 1);
+    expect(game.seats.map((x) => x.id)).toEqual(["s1", "s2"]);
+    for (const seatId of ["s1", "s2"]) {
+      game = reduce(
+        game,
+        { type: "COUNTER_SET", counterId: "swu.baseDamage", seatId, value: 25, now: 2 },
+        { rng },
+      );
+    }
+    expect(game.seats.map((x) => x.eliminated)).toEqual([true, false]);
+  });
+
+  // @req PRE-013
+  it("One Piece seats start at their own leader life and follow seat reordering", () => {
+    let s = stateForPreset(onePiece, undefined);
+    s = updateSeat(s, 1, { start: 4 });
+    expect(seatStart(s, onePiece, 0)).toBe(5);
+    expect(seatStart(s, onePiece, 1)).toBe(4);
+    s = moveSeat(s, 1, -1);
+    expect(seatStart(s, onePiece, 0)).toBe(4);
+    const game = createGame(toNewGameConfig(s, onePiece), rng, 1);
+    expect(counterValue(game, "op.life", "s1")).toBe(4);
+    expect(counterValue(game, "op.life", "s2")).toBe(5);
+    // a value equal to the game-wide start is not stored
+    expect(perSeatMaps(updateSeat(s, 0, { start: 5 }), onePiece)).toEqual({});
+  });
+
+  // @req PRE-013
+  it("switching preset clears per-seat values", () => {
+    const s = updateSeat(stateForPreset(swu, undefined), 0, { threshold: 25 });
+    const next = stateForPreset(commander, undefined, s);
+    expect(next.seats[0]!.threshold).toBeUndefined();
+  });
+
+  // @req PRE-013
+  it("setPerSeatValue adds, replaces and removes per-seat entries", () => {
+    let m: Record<string, Record<string, number>> = setPerSeatValue({}, "s1", "c", 25, 30);
+    expect(m).toEqual({ s1: { c: 25 } });
+    m = setPerSeatValue(m, "s2", "c", 28, 30);
+    expect(m).toEqual({ s1: { c: 25 }, s2: { c: 28 } });
+    m = setPerSeatValue(m, "s1", "c", 30, 30);
+    expect(m).toEqual({ s2: { c: 28 } });
   });
 });
