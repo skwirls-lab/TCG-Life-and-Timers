@@ -112,6 +112,7 @@ export const TIMER_ROWS: SettingDef[] = [
           label: t(`timer.mode.${m}`),
           locked: ADVANCED_MODES.includes(m) && locked(ctx),
           disabled: ADVANCED_MODES.includes(m) && locked(ctx),
+          lockFeature: "timerAdvancedModes",
         })),
     },
     {
@@ -197,6 +198,7 @@ export const TIMER_ROWS: SettingDef[] = [
           label: m === 0 ? t("timer.settings.off") : t("timer.settings.minutes", { n: m }),
           locked: m !== 0 && locked(ctx),
           disabled: m !== 0 && locked(ctx),
+          lockFeature: "timerAdvancedModes",
         }));
         const custom = cur > 0 && !MATCH_MINUTES.some((m) => m * MIN === cur);
         opts.push({
@@ -204,6 +206,7 @@ export const TIMER_ROWS: SettingDef[] = [
           label: custom ? shortDuration(cur) : t("timer.settings.custom"),
           locked: locked(ctx),
           disabled: locked(ctx),
+          lockFeature: "timerAdvancedModes",
         });
         return opts;
       },
@@ -250,6 +253,7 @@ export const TIMER_ROWS: SettingDef[] = [
           label: t(`timer.timeout.${a}`),
           locked: a === "addOnce" && locked(ctx),
           disabled: a === "addOnce" && locked(ctx),
+          lockFeature: "timerAdvancedModes",
         })),
     },
     {
@@ -336,6 +340,7 @@ export const TIMER_ROWS: SettingDef[] = [
           label: t(`timer.warnings.${id}` as MessageKey),
           locked: id === "more" && locked(ctx),
           disabled: id === "more" && locked(ctx),
+          lockFeature: "timerAdvancedModes",
         }));
         if (warningPresetId(cfgOf(ctx).warningsMs) === "custom")
           opts.push({ value: "custom", label: t("timer.warnings.custom"), disabled: true });
