@@ -289,3 +289,26 @@ describe("rules to verify", () => {
     expect(md).toContain("| — |");
   });
 });
+
+describe("per-seat chips", () => {
+  // @req PRE-013
+  it("fall back to the primary start / threshold value", () => {
+    const p = getBuiltInPreset("generic.life")!;
+    const custom: Preset = {
+      ...p,
+      quickStartValues: undefined,
+      capabilities: ["perSeatStart"],
+      counters: p.counters.map((c) =>
+        c.isPrimary ? { ...c, threshold: { ...c.threshold!, perSeatOverride: true } } : c,
+      ),
+    };
+    expect(perSeatChips(custom)).toEqual({
+      counterId: "generic.life",
+      start: [20],
+      threshold: [0],
+    });
+    expect(
+      perSeatChips({ ...p, counters: p.counters.filter((c) => !c.isPrimary) }),
+    ).toBeUndefined();
+  });
+});
