@@ -67,9 +67,9 @@ export function tileMetrics(
   const glyphRow = opts.wide ? 0 : glyph + 8;
   const numberTop = topH + glyphRow;
   const numberH = Math.max(16, h - topH - bottomH - 2 * glyphRow);
-  const availW = Math.max(16, w - 2 * glyphCol - 8);
+  const availW = Math.max(16, opts.wide ? w - 2 * glyphCol - 8 : w * 0.84);
   const n = Math.max(2, opts.chars);
-  const fontPx = Math.floor(Math.max(14, Math.min(numberH * 0.95, availW / (n * 0.6))));
+  const fontPx = Math.floor(Math.max(14, Math.min(numberH * 0.95, availW / (n * 0.64))));
   const rows = Math.max(1, opts.gridRows);
   // The grid sits in a corner, so it may grow above the bottom row on short tiles.
   const gridH = Math.max(bottomH, h * 0.3);

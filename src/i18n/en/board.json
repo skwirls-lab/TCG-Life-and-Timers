@@ -15,7 +15,7 @@
   "board.toolbar.label": "Game toolbar",
   "board.toolbar.reset": "Reset game",
   "board.toolbar.resetHold": "Reset game (hold to confirm)",
-  "board.toolbar.players": "Players and layout ({count})",
+  "board.toolbar.players": "{count} players: change players or layout",
   "board.toolbar.history": "History",
   "board.toolbar.clockSoon": "Clock (coming soon)",
   "board.toolbar.tools": "Dice and tools (hold for quick tools)",

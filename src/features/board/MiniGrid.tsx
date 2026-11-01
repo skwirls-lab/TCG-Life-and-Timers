@@ -72,11 +72,11 @@ export function TileMiniGrid({
     <button
       type="button"
       data-testid={`seat-${index}-cmdgrid`}
-      aria-label={t("board.cmd.open")}
       onClick={onOpen}
       className="pointer-events-auto grid min-h-12 min-w-12 shrink-0 gap-0.5 rounded-lg bg-black/40 p-1"
       style={{ ...gridStyle(grid), gridAutoRows: cell }}
     >
+      <span className="sr-only">{t("board.cmd.open")}</span>
       {grid.cells.map((c) => {
         const look = looks[c.index];
         const d = look ? damage.get(look.id) : undefined;
