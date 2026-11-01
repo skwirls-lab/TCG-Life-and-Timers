@@ -326,7 +326,7 @@ A bottom sheet **rotated to face the seat's player**. The LifeTap screenshots sh
 - **TOK-002 (P1, M1):** **Initiative** optionally tracks Undercity room progress (enum: Secret Entrance → Forge/Lost Well → Trap!/Arena/Stash → Archives/Catacombs → Throne of the Dead Three). This is P2 if time is short.
 - **TOK-003 (P0, M1):** **Day/Night** is a `global` enum: *Neither → Day → Night → Day…*. Once day/night has started it never returns to *Neither*, except by reset or explicit hold-option. It shows as a sun/moon in the center toolbar.
 - **TOK-004 (P1, M1):** **City's Blessing (Ascend)** is a per-player boolean. It is permanent once gained (the hold-menu allows a manual undo).
-- **TOK-005 (P1, M3):** **Dungeon / Venture** progress per player (Tomb of Annihilation, Lost Mine of Phandelver, Dungeon of the Mad Mage, Undercity) is P2.
+- **TOK-005 (P2):** **Dungeon / Venture** progress per player (Tomb of Annihilation, Lost Mine of Phandelver, Dungeon of the Mad Mage, Undercity) is P2.
 
 ### 8.6 New game / reset
 - **GAME-001 (P0, M1):** The **setup flow** is launcher → choose preset → player count and layout → seats (names, profiles, art, reorder) → options (starting life override, which optional counters are enabled, timer config) → **Start**. The last configuration is remembered, and **"Quick start: same as last game"** is one tap from the launcher.
