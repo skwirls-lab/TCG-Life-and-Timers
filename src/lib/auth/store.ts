@@ -42,8 +42,11 @@ export interface AuthEnv {
   loadDriver: () => Promise<AuthDriver | null>;
   /** Mobile browsers and installed PWAs use redirect; desktop uses a popup (AUTH-001). */
   preferRedirect: () => boolean;
-  /** Runs before Firebase sign-out (stop sync so local clearing isn't pushed as deletes). */
-  beforeSignOut: () => Promise<void>;
+  /**
+   * Runs before Firebase sign-out: stop sync (so clearing isn't pushed as deletes) and clear the
+   * device. Doing it first means a tab closed mid-way is still signed in, never half-cleared.
+   */
+  beforeSignOut: (opts: SignOutOptions) => Promise<void>;
   /** Runs after sign-out. */
   afterSignOut: (opts: SignOutOptions) => Promise<void>;
 }
@@ -193,7 +196,7 @@ export async function ensureAnonymous(): Promise<AuthUser | null> {
 /** AUTH-004: sign out; optionally remove this account's synced data from the device. */
 export async function signOut(opts: SignOutOptions = {}): Promise<void> {
   const d = await readyDriver();
-  await env.beforeSignOut();
+  await env.beforeSignOut(opts);
   if (d) await d.signOut();
   useAuth.setState({ user: null, status: env.cloudConfigured() ? "signedOut" : "unconfigured" });
   await env.afterSignOut(opts);

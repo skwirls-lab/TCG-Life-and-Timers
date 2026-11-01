@@ -165,14 +165,20 @@ export async function stopSync(): Promise<void> {
   useCloud.setState({ phase: "idle", mergePrompt: null });
 }
 
-async function afterSignOut(opts: SignOutOptions): Promise<void> {
+/**
+ * Before Firebase sign-out: stop sync, then forget sync state and (optionally) the account's
+ * local data. The "merged" marker goes first so an interrupted clear can never skip the next
+ * sign-in's merge prompt.
+ */
+async function beforeSignOut(opts: SignOutOptions): Promise<void> {
+  await stopSync();
   const db = deps.db();
+  if (opts.removeLocalData) await db.kv.delete(LINKED_UID_KEY);
+  await clearSyncState(db);
   if (opts.removeLocalData) {
     await clearLocalAccountData({ includeRecords: deps.historySync() }, db);
-    await db.kv.delete(LINKED_UID_KEY);
     await deps.reloadSettings();
   }
-  await clearSyncState(db);
 }
 
 declare global {
@@ -201,7 +207,7 @@ function exposeTestHooks() {
 export function startCloud(overrides: Partial<CloudDeps> = {}): Promise<void> {
   startPromise ??= (async () => {
     deps = { ...defaultDeps(), ...overrides };
-    configureAuth({ beforeSignOut: stopSync, afterSignOut });
+    configureAuth({ beforeSignOut });
     if (!isCloudConfigured()) {
       await initAuth();
       return;

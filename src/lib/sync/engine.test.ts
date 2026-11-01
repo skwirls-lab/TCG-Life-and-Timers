@@ -356,6 +356,39 @@ describe("sync engine", () => {
     a.engine.stop();
   });
 
+  // @req SYNC-004
+  it("reports Synced only once every collection finished reconciling", async () => {
+    const slowRemote = new MemoryRemote();
+    slowRemote.serverWrite({ id: "r1", deleted: false, data: { name: "R" } });
+    const slowLocal = new MemoryLocal();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const apply = slowLocal.apply.bind(slowLocal);
+    slowLocal.apply = async (i) => {
+      await gate;
+      return apply(i);
+    };
+    const engine = createSyncEngine({
+      scope: "u1",
+      collections: [
+        { name: "slow", local: slowLocal, remote: slowRemote },
+        { name: "fast", local: new MemoryLocal(), remote: new MemoryRemote() },
+      ],
+      kv: new MemoryKv(),
+      network: new MemoryNetwork(),
+      debounceMs: 0,
+    });
+    await engine.start();
+    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 2));
+    expect(engine.status()).toMatchObject({ state: "syncing", lastSyncedAt: null });
+    release();
+    await engine.whenIdle();
+    expect(slowLocal.rows.has("r1")).toBe(true);
+    expect(engine.status().state).toBe("idle");
+    expect(engine.status().lastSyncedAt).not.toBeNull();
+    engine.stop();
+  });
+
   it("start is idempotent and flush is a no-op when stopped", async () => {
     const remote = new MemoryRemote();
     const a = device(remote);

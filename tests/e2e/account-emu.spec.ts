@@ -23,6 +23,20 @@ interface FsDoc {
   fields: Record<string, FsValue>;
 }
 
+/** Profile names in the cloud for `uid` (live ones only), read with emulator owner access. */
+async function cloudProfiles(uid: string): Promise<string[]> {
+  const res = await fetch(`${FIRESTORE}/users/${uid}/profiles`, {
+    headers: { Authorization: "Bearer owner" },
+  });
+  const body = (await res.json()) as {
+    documents?: { fields: Record<string, { stringValue?: string; booleanValue?: boolean }> }[];
+  };
+  return (body.documents ?? [])
+    .filter((d) => d.fields.deleted?.booleanValue !== true)
+    .map((d) => d.fields.name?.stringValue ?? "")
+    .sort();
+}
+
 async function feedbackDocs(): Promise<FsDoc[]> {
   const res = await fetch(`${FIRESTORE}/feedback?pageSize=300`, {
     headers: { Authorization: "Bearer owner" },
@@ -83,10 +97,13 @@ test.describe("account @emu", () => {
     await expect(page.getByTestId("account-sync-status")).toContainText("Synced", {
       timeout: 15_000,
     });
+    const uid = await page.evaluate(() => window.__tcgAuth!.auth().user!.uid);
+    expect(await cloudProfiles(uid)).toEqual(["Cloud Carl"]);
     await page.getByTestId("account-signout").click();
     await page.getByTestId("account-signout-remove").check();
     await page.getByTestId("account-signout-confirm").click();
     await expect(page.getByTestId("account-signin")).toBeVisible();
+    expect(await cloudProfiles(uid)).toEqual(["Cloud Carl"]); // clearing the device ≠ deleting
 
     // 2. New guest data, then sign in again: both sides have data → Merge / Keep cloud only.
     await addProfile("Local Lou");
@@ -99,7 +116,8 @@ test.describe("account @emu", () => {
       timeout: 15_000,
     });
 
-    // 3. No data loss: both profiles are on the device.
+    // 3. No data loss: both profiles are in the cloud and on the device.
+    await expect.poll(() => cloudProfiles(uid)).toEqual(["Cloud Carl", "Local Lou"]);
     await page.goto("/profiles");
     await expect(page.getByTestId("profiles-page")).toContainText("Cloud Carl");
     await expect(page.getByTestId("profiles-page")).toContainText("Local Lou");

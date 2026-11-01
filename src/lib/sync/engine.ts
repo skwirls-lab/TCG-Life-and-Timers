@@ -119,6 +119,7 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
   let listenError: string | null = null;
   let retrying = false;
   let lastSyncedAt: number | null = null;
+  let reconciling = 0;
   let lastEmitted = "";
 
   const opKey = (c: string, id: string) => `${c}/${id}`;
@@ -138,7 +139,8 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
     if (!running) state = "idle";
     else if (!network.isOnline()) state = "offline";
     else if (retrying || (error && pending === 0)) state = "error";
-    else if (flushing || pending > 0 || ready.size < specs.size) state = "syncing";
+    else if (flushing || pending > 0 || ready.size < specs.size || reconciling > 0)
+      state = "syncing";
     else state = "idle";
     return { state, lastSyncedAt, pending, error };
   }
@@ -151,8 +153,20 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
     opts.onStatus?.(s);
   }
 
+  /** Nothing left to do: every collection confirmed, no reconcile pending, nothing queued. */
+  function clean(): boolean {
+    return (
+      running &&
+      network.isOnline() &&
+      queue.size === 0 &&
+      ready.size === specs.size &&
+      reconciling === 0 &&
+      debounces.size === 0
+    );
+  }
+
   async function markSyncedIfClean() {
-    if (running && network.isOnline() && queue.size === 0 && ready.size === specs.size) {
+    if (clean()) {
       lastSyncedAt = now();
       await kv.set(kvKeys.lastSyncedAt(scope), lastSyncedAt);
     }
@@ -174,6 +188,17 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
   async function reconcile(c: string): Promise<void> {
     const spec = specs.get(c);
     if (!spec || !running || !ready.has(c)) return;
+    reconciling += 1;
+    try {
+      await reconcileNow(c, spec);
+    } finally {
+      reconciling -= 1;
+    }
+    emit();
+    void flush();
+  }
+
+  async function reconcileNow(c: string, spec: CollectionSpec): Promise<void> {
     await run(async () => {
       if (!running) return;
       const localItems = await spec.local.list();
@@ -232,8 +257,6 @@ export function createSyncEngine(opts: SyncEngineOptions): SyncEngine {
       if (shadowDirty) await persistShadow(c);
       if (queueDirty) await persistQueue();
     });
-    emit();
-    void flush();
   }
 
   function scheduleReconcile(c: string) {

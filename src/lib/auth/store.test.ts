@@ -80,7 +80,7 @@ function setup(
     cloudConfigured: () => opts.configured ?? true,
     loadDriver: async () => driver,
     preferRedirect: () => opts.redirect ?? false,
-    beforeSignOut: async () => void hooks.push("before"),
+    beforeSignOut: async (o) => void hooks.push(`before:${o.removeLocalData === true}`),
     afterSignOut: async (o) => void hooks.push(`after:${o.removeLocalData === true}`),
   });
   return { driver: driver!, hooks };
@@ -201,11 +201,11 @@ describe("useAuth", () => {
     driver.user = google;
     await initAuth();
     await signOut({ removeLocalData: true });
-    expect(hooks).toEqual(["before", "after:true"]);
+    expect(hooks).toEqual(["before:true", "after:true"]);
     expect(driver.calls).toContain("signOut");
     expect(useAuth.getState()).toMatchObject({ status: "signedOut", user: null });
     await signOut();
-    expect(hooks).toEqual(["before", "after:true", "before", "after:false"]);
+    expect(hooks).toEqual(["before:true", "after:true", "before:false", "after:false"]);
   });
 
   it("signInForTests only works with an emulator driver", async () => {
