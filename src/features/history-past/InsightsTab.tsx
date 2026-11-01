@@ -23,7 +23,7 @@ function Tile({ label, value, testId }: { label: string; value: string; testId: 
   return (
     <Card className="flex flex-col gap-1 p-3">
       <span className="text-sm text-fg-muted">{label}</span>
-      <span className="text-2xl font-semibold tabular" data-testid={testId}>
+      <span className="text-xl font-semibold leading-tight tabular" data-testid={testId}>
         {value}
       </span>
     </Card>

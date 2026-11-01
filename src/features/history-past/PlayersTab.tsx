@@ -51,9 +51,9 @@ function PlayerRow({
           <span className="truncate text-lg" data-testid="player-name">
             {row.name}
           </span>
-          <span className="text-sm text-fg-muted">
+          <span className="truncate text-sm text-fg-muted">
             {tp("historyPast.players.games", row.games)} ·{" "}
-            <span data-testid="player-wl">
+            <span className="whitespace-nowrap" data-testid="player-wl">
               {t("historyPast.players.wl", { wins: row.wins, losses: row.losses })}
             </span>
           </span>

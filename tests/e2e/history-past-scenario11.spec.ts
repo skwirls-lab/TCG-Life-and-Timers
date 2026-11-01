@@ -113,6 +113,21 @@ test("Scenario 11: history and stats", async ({ page }) => {
   const lines = (await downloadText(csv)).trimEnd().split("\r\n");
   expect(lines).toHaveLength(1 + 12);
   expect(lines.filter((l) => l.includes(",Ben,p:p-ben,"))).toHaveLength(3);
+  await page.getByTestId("export-sheet-close").click();
+
+  // Rematch with the same setup (game 1) → a new game on the board with the same seats.
+  await page.getByTestId("past-tabs-games").click();
+  await cards.nth(2).click();
+  await page.getByTestId("past-rematch").click();
+  await expect(page).toHaveURL(/\/play/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const g = window.__tcg?.getState().session?.game;
+        return g ? `${g.status}:${g.seats.map((s) => s.name).join(",")}` : "";
+      }),
+    )
+    .toBe("ready:Ana,Ben,Cy,Player 4");
 });
 
 test("trivial games are discarded and 'Don't save' keeps nothing (HIST-032, HIST-031)", async ({

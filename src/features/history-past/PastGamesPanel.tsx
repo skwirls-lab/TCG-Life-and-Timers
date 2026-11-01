@@ -8,7 +8,13 @@ import { Download, History, SlidersHorizontal } from "lucide-react";
 import { IconButton, Tabs } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { useCan, useLimit } from "@/lib/entitlements/store";
-import { applyFilter, freeTierFilter, identityNames, type RecordFilter } from "@/lib/stats";
+import {
+  activeFilterKeys,
+  applyFilter,
+  freeTierFilter,
+  identityNames,
+  type RecordFilter,
+} from "@/lib/stats";
 import { cn } from "@/lib/ui/cn";
 import { DeckDetailView, DecksTab } from "./DecksTab";
 import { ExportSheet } from "./ExportSheet";
@@ -87,29 +93,33 @@ export function PastGamesPanel() {
   } else {
     body = (
       <>
-        <div className="mt-3 flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <Tabs
-              label={t("historyPast.tabs")}
-              value={tab}
-              onChange={setTab}
-              testId="past-tabs"
-              tabs={[
-                { value: "games", label: t("historyPast.tab.games") },
-                { value: "players", label: t("historyPast.tab.players") },
-                { value: "decks", label: t("historyPast.tab.decks") },
-                { value: "insights", label: t("historyPast.tab.insights") },
-              ]}
-            />
-          </div>
-          <IconButton
-            label={t("historyPast.filter")}
+        <div className="mt-3">
+          <Tabs
+            label={t("historyPast.tabs")}
+            value={tab}
+            onChange={setTab}
+            testId="past-tabs"
+            tabs={[
+              { value: "games", label: t("historyPast.tab.games") },
+              { value: "players", label: t("historyPast.tab.players") },
+              { value: "decks", label: t("historyPast.tab.decks") },
+              { value: "insights", label: t("historyPast.tab.insights") },
+            ]}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
             onClick={() => setSheet("filter")}
             data-testid="past-filter"
-            className={cn(Object.keys(filter).length > 0 && "text-accent")}
+            className={cn(
+              "inline-flex min-h-12 items-center gap-2 rounded-xl bg-surface px-4",
+              activeFilterKeys(filter).length > 0 && "text-accent",
+            )}
           >
-            <SlidersHorizontal size={22} aria-hidden />
-          </IconButton>
+            <SlidersHorizontal size={20} aria-hidden />
+            {t("historyPast.filter")}
+          </button>
           <IconButton
             label={t("historyPast.export")}
             onClick={() => setSheet("export")}
