@@ -34,6 +34,8 @@ import {
   saveCustomPreset,
 } from "@/lib/customPresets";
 import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
+import { confirmReset } from "@/features/history-past/whoWon";
+import { activeGame } from "@/features/setup/startGame";
 import { useLimit } from "@/lib/entitlements/store";
 import { t, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
@@ -150,6 +152,8 @@ export function PresetEditor() {
   async function play() {
     const preset = dirty || !ready?.stored ? await save() : ready.draft;
     if (!preset) return;
+    // HIST-031: the game being replaced goes through Who won? (closed prompt = keep playing it)
+    if (!(await confirmReset(await activeGame()))) return;
     useGameStore.getState().newGame({ preset });
     await flushAutosave().catch(() => undefined);
     router.push("/play");

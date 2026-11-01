@@ -12,13 +12,15 @@ import { useSnackbar } from "@/components/ui/Snackbar";
 import { GameIcon } from "@/components/icons/GameIcon";
 import type { Rect, ToolbarOrientation } from "@/engine/layout";
 import { enumLabel, globalValue } from "@/engine";
+import { requestReset } from "@/features/history-past/whoWon";
 import { QuickToolsMenu } from "@/features/tools/QuickToolsMenu";
 import { ClockToolbar } from "@/features/timer/ClockToolbar";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch, useGameStore, useGameValue } from "@/state/gameStore";
-import { useSetting } from "@/state/settingsStore";
+import { historyVisible } from "@/state/recordKeeper";
+import { useSetting, useSettingsStore } from "@/state/settingsStore";
 import { enumStateIcon, toolbarGlobals } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
 import { PlayersSheet } from "./PlayersSheet";
@@ -68,6 +70,9 @@ export function Toolbar({ rect, orientation }: Props) {
       return JSON.stringify([d.id, d.name, enumStateIcon(d, idx), enumLabel(d, idx) ?? "", d.icon]);
     }),
   );
+  const settings = useSettingsStore((s) => s.settings);
+  // HIST-008: no history entry point when the game keeps no history.
+  const showHistory = useGameValue((g) => historyVisible(settings, g)) ?? true;
   const cmdMode = useBoardUi((s) => s.cmdMode);
   const setCmdMode = useBoardUi((s) => s.setCmdMode);
   const autoHide = useSetting("autoHideMenu");
@@ -150,13 +155,15 @@ export function Toolbar({ rect, orientation }: Props) {
             {players}
           </span>
         </ToolButton>
-        <ToolButton
-          label={t("board.toolbar.history")}
-          testId="toolbar-history"
-          onClick={() => router.push("/history")}
-        >
-          <History size={24} />
-        </ToolButton>
+        {showHistory && (
+          <ToolButton
+            label={t("board.toolbar.history")}
+            testId="toolbar-history"
+            onClick={() => router.push("/history")}
+          >
+            <History size={24} />
+          </ToolButton>
+        )}
         {/* TIMER-UI: START / Pause / Resume + match clock (T2.5, T2.7) */}
         <ClockToolbar vertical={vertical} />
         <button
@@ -228,9 +235,11 @@ function ResetButton() {
   const [holding, setHolding] = useState(false);
 
   const doReset = () => {
-    if (!useGameStore.getState().session) return;
+    const game = useGameStore.getState().session?.game;
+    if (!game) return;
+    // HIST-031: the Who-won flow saves the game first (or the prompt is closed: no reset).
     // The "Game reset · Undo" snackbar is shown by GameFlowOverlays for every reset (D-039).
-    dispatch({ type: "RESET_GAME" });
+    void requestReset({ game, proceed: () => dispatch({ type: "RESET_GAME" }) });
   };
 
   const hold = useHold({

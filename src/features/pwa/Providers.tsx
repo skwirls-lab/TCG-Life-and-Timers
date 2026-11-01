@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { SnackbarHost } from "@/components/ui/Snackbar";
 import { UpdatePrompt } from "./UpdatePrompt";
 import { AppEffects } from "@/features/app-effects/AppEffects";
+import { WhoWonHost } from "@/features/history-past/WhoWonPrompt";
 
 export function Providers({ children }: { children: ReactNode }) {
   const disableSw = process.env.NODE_ENV === "development";
@@ -16,6 +17,8 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <AppEffects />
       {children}
+      {/* HIST-031: "Who won?" for every reset / new-game path (requestReset) */}
+      <WhoWonHost />
       <SnackbarHost />
       <UpdatePrompt />
     </SerwistProvider>

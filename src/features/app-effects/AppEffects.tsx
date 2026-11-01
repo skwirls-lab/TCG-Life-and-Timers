@@ -1,10 +1,13 @@
 "use client";
 /**
  * App-wide effects (mounted once in Providers): loads app settings, then mirrors the theme,
- * reduce-motion preference and language onto <html> (SET-001, A11Y-003, SET-034).
+ * reduce-motion preference and language onto <html> (SET-001, A11Y-003, SET-034), and keeps game
+ * records (HIST-003: ended / replaced games are saved by the record keeper).
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { isCloudConfigured } from "@/lib/firebase/config";
+import { useGameStore } from "@/state/gameStore";
+import { startRecordKeeper } from "@/state/recordKeeper";
 import { useSettingsStore } from "@/state/settingsStore";
 import { shouldReduceMotion, themeAttr } from "./effects";
 
@@ -38,6 +41,11 @@ export function AppEffects() {
       .getState()
       .load()
       .catch((e: unknown) => console.warn("[settings] load failed", e));
+  }, []);
+
+  // Game records (HIST-003/HIST-032). Idempotent; it lives as long as the app (never stopped).
+  useEffect(() => {
+    startRecordKeeper(useGameStore);
   }, []);
 
   // Cloud (App Check + auth + sync) starts lazily after first paint, only when this deployment has

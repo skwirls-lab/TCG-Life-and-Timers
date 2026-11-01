@@ -1,6 +1,7 @@
 "use client";
 /** Board-level game commands that aren't single engine actions. */
 import type { Game, NewGameConfig, SeatInput } from "@/engine";
+import { requestReset } from "@/features/history-past/whoWon";
 import { useGameStore } from "@/state/gameStore";
 
 /** Seats carried into a new game by index (names, art, colours, commanders, profiles). */
@@ -36,11 +37,14 @@ export function configWithPlayers(game: Game, players: number, layoutId?: string
   };
 }
 
+/** New game with another player count; the current one goes through Who won? (HIST-031). */
 export function changePlayerCount(players: number, layoutId?: string): void {
-  const s = useGameStore.getState();
-  const game = s.session?.game;
+  const game = useGameStore.getState().session?.game;
   if (!game) return;
-  s.newGame(configWithPlayers(game, players, layoutId));
+  void requestReset({
+    game,
+    proceed: () => useGameStore.getState().newGame(configWithPlayers(game, players, layoutId)),
+  });
 }
 
 /**

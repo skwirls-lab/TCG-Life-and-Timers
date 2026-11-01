@@ -181,7 +181,7 @@ export function useSettingsModel(): SettingsModel {
       seatsFromGame(game),
       samePreset ? configFromGame(game).timer : undefined,
     );
-    await startNewGame(config);
+    if (!(await startNewGame(config))) return; // Who-won prompt closed (HIST-031)
     show({ message: t("shell.settings.resetDone"), durationMs: 3000 });
   }, [pending, game, show, picked]);
 
