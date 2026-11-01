@@ -9,8 +9,9 @@ import history from "@/i18n/en/history.json";
 import seat from "@/i18n/en/seat.json";
 import shell from "@/i18n/en/shell.json";
 import tools from "@/i18n/en/tools.json";
+import timer from "@/i18n/en/timer.json";
 
-const dictionaries = [common, engine, board, seat, shell, tools, history] as const;
+const dictionaries = [common, engine, board, seat, shell, tools, history, timer] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>
