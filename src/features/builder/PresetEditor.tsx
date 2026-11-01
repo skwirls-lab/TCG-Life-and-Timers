@@ -39,6 +39,7 @@ import { activeGame } from "@/features/setup/startGame";
 import { useLimit } from "@/lib/entitlements/store";
 import { t, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
+import { track } from "@/lib/analytics/telemetry";
 import { flushAutosave, useGameStore } from "@/state/gameStore";
 import { CounterSheet } from "./CounterSheet";
 import { NumberField, SelectField, TextField } from "./fields";
@@ -136,6 +137,7 @@ export function PresetEditor() {
       const saved = await saveCustomPreset(normalizeDraft(ready.draft, words()));
       setState({ status: "ready", draft: saved, savedSnap: snapshot(saved), stored: true });
       if (!ready.stored) {
+        track("preset_custom_created"); // LEG-004: no-op without analytics config + consent
         setCount((n) => n + 1);
         window.history.replaceState(null, "", `/builder/edit?id=${encodeURIComponent(saved.id)}`);
       }

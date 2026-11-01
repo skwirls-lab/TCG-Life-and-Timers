@@ -25,6 +25,7 @@ import {
 } from "@/lib/art/picker";
 import { cacheRemoteArt, listUploads, type ArtRow } from "@/lib/art/repo";
 import { watchArtCloud } from "@/lib/art/cloudRuntime";
+import { track } from "@/lib/analytics/telemetry";
 import { getScryfall } from "@/lib/art/scryfall";
 import { t } from "@/lib/i18n";
 import { getDeck, saveDeck } from "@/lib/profiles/repo";
@@ -109,6 +110,7 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
       const art = artRefFromOption(draft.option, focal);
       setArt(art);
       void cacheRemoteArt(art.value);
+      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
       setNotice(t("art.saved"));
       setStep(seat.commanderPreset ? { k: "saved", option: draft.option, art } : { k: "home" });
       return;
@@ -128,6 +130,7 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
       const art = artRefFromOption(opt, DEFAULT_FOCAL);
       setArt(art);
       void cacheRemoteArt(art.value);
+      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
       setNotice(t("art.saved"));
     } catch {
       setNotice(t("art.picker.commanderArtFailed", { name }));

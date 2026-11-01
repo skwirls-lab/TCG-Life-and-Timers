@@ -5,8 +5,13 @@
  */
 import type { TelemetryConfig } from "@/lib/analytics/config";
 
+/** Optional React context for an error (an error boundary's `ErrorInfo`). No PII. */
+export interface ErrorContext {
+  componentStack?: string | null;
+}
+
 export interface ErrorReporter {
-  capture: (error: unknown) => void;
+  capture: (error: unknown, context?: ErrorContext) => void;
   close: () => Promise<void>;
 }
 
@@ -45,8 +50,10 @@ export const loadSentry: ReporterLoader = async (cfg) => {
     },
   });
   return {
-    capture: (e) => {
-      Sentry.captureException(e);
+    capture: (e, context) => {
+      const stack = context?.componentStack;
+      if (stack) Sentry.captureException(e, { contexts: { react: { componentStack: stack } } });
+      else Sentry.captureException(e);
     },
     close: async () => {
       await Sentry.close();
@@ -79,8 +86,8 @@ export async function stopErrorReporting(): Promise<void> {
 }
 
 /** Reports an error if reporting is running; otherwise does nothing. */
-export function captureError(error: unknown): void {
-  void reporter?.then((r) => r?.capture(error));
+export function captureError(error: unknown, context?: ErrorContext): void {
+  void reporter?.then((r) => r?.capture(error, context));
 }
 
 export function errorReportingActive(): boolean {

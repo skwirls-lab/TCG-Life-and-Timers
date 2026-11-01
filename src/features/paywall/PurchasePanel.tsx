@@ -7,6 +7,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui";
 import { signInWithGoogle, useAuth } from "@/lib/auth/store";
+import { rememberCheckoutPlan } from "@/lib/entitlements/purchaseTracking";
 import { useEntitlements } from "@/lib/entitlements/store";
 import {
   PLACEHOLDER_PRICES,
@@ -55,6 +56,7 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
   const buy = async (plan: Plan) => {
     if (!plan.priceId) return;
     setBusy({ kind: "working", text: t("pay.checkout.redirecting") });
+    rememberCheckoutPlan(plan.id); // §19.5 purchase attribution on the success return
     const { startCheckout } = await import("@/lib/entitlements/checkout");
     const res = await startCheckout(plan.priceId, plan.mode);
     if (res.status === "redirected") return;

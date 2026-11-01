@@ -5,6 +5,7 @@
  */
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { captureError } from "@/lib/errors";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "./gameStore";
 
@@ -28,6 +29,8 @@ export class GameErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("[GameErrorBoundary]", error, info.componentStack);
+    // REL-005: no-op unless this deployment has Sentry configured and the user consented.
+    captureError(error, { componentStack: info.componentStack });
   }
 
   private recover = async () => {
