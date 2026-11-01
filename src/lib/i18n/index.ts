@@ -4,8 +4,10 @@
  */
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";
+import history from "@/i18n/en/history.json";
+import tools from "@/i18n/en/tools.json";
 
-const dictionaries = [common, engine] as const;
+const dictionaries = [common, engine, tools, history] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>
