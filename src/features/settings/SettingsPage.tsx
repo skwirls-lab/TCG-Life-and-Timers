@@ -19,10 +19,12 @@ import {
 import { SettingRow, type RowHandlers } from "./SettingRow";
 import { SettingsSubPage } from "./SubPages";
 import { useSettingsModel } from "./useSettingsModel";
+// TIMER-UI (W3): section C rows (registers on import) + SET-013 auto-pause, restart confirm, keypad.
+import "@/features/timer/timerSettings";
+import { TimerSettingsHost } from "@/features/timer/TimerSettingsHost";
 
 export function SettingsPage() {
   usePageBoot();
-  // TODO(T2.5): SET-013 — pause running clocks while Settings is open (no-op until timers exist).
   const model = useSettingsModel();
   const { ctx } = model;
   const [presetPicker, setPresetPicker] = useState(false);
@@ -117,6 +119,7 @@ export function SettingsPage() {
           </Button>
         </div>
       </Sheet>
+      <TimerSettingsHost />
     </PageShell>
   );
 }

@@ -166,8 +166,7 @@ test.describe("seat menu", () => {
       await expect(page.getByTestId(`seat-menu-panel-${tab}`)).toBeVisible();
       await expectNoSeriousA11yViolations(page);
     }
-    await expect(page.getByTestId("seat-timer-placeholder")).toHaveText(
-      "Timers arrive with the clock",
-    );
+    // TIMER-UI (W3) replaced the placeholder with the real Timer tab.
+    await expect(page.getByTestId("seat-timer-tab")).toBeVisible();
   });
 });
