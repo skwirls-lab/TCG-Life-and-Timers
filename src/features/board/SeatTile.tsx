@@ -16,10 +16,10 @@ import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
 import type { Rotation } from "@/lib/ui/rotation";
-import { useDispatch, useGameValue, useSeat } from "@/state/gameStore";
+import { useDispatch, useGameStore, useGameValue, useSeat } from "@/state/gameStore";
 // TIMER-UI (W3): per-seat timer bar (turn chip, clock chip, PASS TURN / Respond / Pass back).
-import { SeatTimerBar } from "@/features/timer/SeatTimerBar";
-import { timerBarActive, timerTileMetrics } from "@/features/timer/model";
+import { SeatTimerBar, passTurnWithUndo } from "@/features/timer/SeatTimerBar";
+import { seatTimerView, timerBarActive, timerTileMetrics } from "@/features/timer/model";
 import { useSetting } from "@/state/settingsStore";
 import { shouldOpenCalculator } from "@/features/calculator/calc";
 import { ArtBackground } from "@/features/art/ArtBackground";
@@ -29,6 +29,7 @@ import { useBoardUi } from "./boardStore";
 import { reducedMotion, tapFeedback } from "./feedback";
 import { QuickCmdGrid, TileMiniGrid } from "./MiniGrid";
 import type { SeatLook } from "./useSeatLooks";
+import { useSwipe } from "./useSwipe";
 
 export interface SeatTileProps {
   index: number;
@@ -83,6 +84,7 @@ export const SeatTile = memo(function SeatTile({
   const holdDelay = useSetting("holdDelayMs");
   const holdRepeat = useSetting("holdRepeat");
   const bubbleMs = useSetting("bubbleMs");
+  const swipeOn = useSetting("swipe");
   const timerOn = useGameValue(timerBarActive) ?? false;
   // INP-007: tapping the number opens the calculator for high-total presets (Yu-Gi-Oh! LP).
   const calcOn = useGameValue((g) => shouldOpenCalculator(g.preset, g.options)) ?? false;
@@ -128,9 +130,7 @@ export const SeatTile = memo(function SeatTile({
     onHold: () => change(-holdStep),
   });
 
-  if (!view) return null;
-
-  const valueText = formatValue(view.value);
+  const valueText = view ? formatValue(view.value) : "";
   const big = cardLayout === "bigFont";
   const halves = tapZones === "halves";
   const showDetails = cardLayout === "default";
@@ -146,11 +146,47 @@ export const SeatTile = memo(function SeatTile({
     ? timerTileMetrics({ w: frameW, h: frameH }, (f) => tileMetrics(f, metricOpts))
     : null;
   const m = timerM ? timerM.tile : tileMetrics({ w: frameW, h: frameH }, metricOpts);
+
+  // INP-005: a vertical swipe (in this player's frame) between the name pill and the bottom row.
+  const swipe = useSwipe({
+    enabled: swipeOn && !cmdMode && !!view,
+    rotation,
+    top: m.topH,
+    bottom: frameH - m.bottomH,
+    onSwipe: (dir) => change(dir === "up" ? step : -step),
+  });
+
+  if (!view) return null;
+
+  // A11Y-005: arrows adjust the focused seat (Shift = hold step); Space/Enter passes the turn when
+  // it is this seat's; R responds (timers). Arrows also work from the seat's own buttons.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (cmdMode || e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = e.key;
+    if (k === "ArrowUp" || k === "ArrowRight" || k === "ArrowDown" || k === "ArrowLeft") {
+      e.preventDefault();
+      const amount = e.shiftKey ? holdStep : step;
+      change(k === "ArrowUp" || k === "ArrowRight" ? amount : -amount);
+      return;
+    }
+    if (e.target !== e.currentTarget) return;
+    const game = useGameStore.getState().session?.game;
+    if (!game) return;
+    const tv = seatTimerView(game, seatId);
+    if ((k === " " || k === "Enter") && tv.canPass) {
+      e.preventDefault();
+      passTurnWithUndo(seatId, rotation);
+    } else if ((k === "r" || k === "R") && tv.canRespond) {
+      e.preventDefault();
+      dispatch({ type: "TIMER_RESPOND", seatId });
+    }
+  };
   const openSeat = () => openMenu({ seatId, tab: "player", rotation });
   const zoneLabel = (kind: "plus" | "minus") =>
     t(kind === "plus" ? "board.seat.increase" : "board.seat.decrease", {
       name: view.name,
       counter: view.primaryName,
+      value: valueText,
     });
 
   const zone = (kind: "plus" | "minus") => {
@@ -220,12 +256,28 @@ export const SeatTile = memo(function SeatTile({
     <RotatedContainer
       rotation={rotation}
       testId={`seat-${index}`}
-      className={cn("size-full rounded-tile bg-surface", view.active && "ring-4 ring-accent")}
+      className={cn(
+        "size-full rounded-tile bg-surface",
+        "focus-visible:outline-solid focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-white",
+        view.active && "ring-4 ring-accent",
+      )}
+      tabIndex={0}
+      role="group"
+      aria-label={t(view.active ? "board.seat.groupTurn" : "board.seat.group", {
+        name: view.name,
+        counter: view.primaryName,
+        value: valueText,
+      })}
+      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Space Enter R"
+      data-active={view.active || undefined}
+      onKeyDown={onKeyDown}
     >
       <div
         className="absolute inset-0 overflow-hidden rounded-tile [container-type:size]"
         data-seat-id={seatId}
         data-eliminated={view.eliminated || undefined}
+        style={swipe ? { touchAction: "none" } : undefined}
+        {...swipe}
       >
         {/* Background art + scrim (LAY-007, SET-003 contrast) */}
         <ArtBackground
@@ -325,7 +377,7 @@ export const SeatTile = memo(function SeatTile({
                   {bubble !== 0 && (
                     <span
                       data-testid={`seat-${index}-bubble`}
-                      aria-live="polite"
+                      aria-hidden
                       className={cn(
                         "absolute top-full z-10 rounded-full px-2.5 py-0.5 font-bold tabular shadow",
                         bubble > 0 ? "bg-success text-black" : "bg-danger text-white",
