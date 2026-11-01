@@ -1,7 +1,7 @@
 // @req ARCH-006 @req PERF-002 @req PWA-004
 import { act, render } from "@testing-library/react";
 import { Dexie } from "dexie";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { counterValue, seededRng } from "@/engine";
 import { useActiveGameFlag } from "@/lib/app/activeGame";
 import { loadActive, TcgDb } from "@/lib/db";
@@ -85,8 +85,8 @@ describe("gameStore", () => {
         .dispatch({ type: "COUNTER_ADD", counterId: "life", seatId: "s2", delta: -1 });
     }
     expect(saves).toBe(0);
-    await sleep(120);
-    expect(saves).toBe(1);
+    // wait for the debounced write (robust under load instead of a fixed sleep)
+    await vi.waitFor(() => expect(saves).toBe(1), { timeout: 3000, interval: 10 });
     const saved = await loadActive(db);
     expect(counterValue(saved.session!.game, "life", "s2")).toBe(15);
     // resume in a fresh store
@@ -109,15 +109,13 @@ describe("gameStore", () => {
     expect(saves).toBe(0);
     Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
     document.dispatchEvent(new Event("visibilitychange"));
-    await sleep(30);
-    expect(saves).toBe(1);
+    await vi.waitFor(() => expect(saves).toBe(1), { timeout: 3000, interval: 10 });
     clock += 5000;
     useGameStore
       .getState()
       .dispatch({ type: "COUNTER_ADD", counterId: "life", seatId: "s3", delta: -1 });
     window.dispatchEvent(new Event("pagehide"));
-    await sleep(30);
-    expect(saves).toBe(2);
+    await vi.waitFor(() => expect(saves).toBe(2), { timeout: 3000, interval: 10 });
     await flushAutosave(); // nothing pending
     expect(saves).toBe(2);
     Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });

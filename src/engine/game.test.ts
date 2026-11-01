@@ -142,7 +142,7 @@ describe("createGame", () => {
 });
 
 describe("timer seam", () => {
-  it("reduceTimer is an identity stub and isTimerAction classifies actions", () => {
+  it("reduceTimer leaves an untimed game unchanged and isTimerAction classifies actions", () => {
     const g = createGame({ preset: testPreset(), players: 2 }, seededRng(1), T0);
     expect(reduceTimer(g, { type: "TIMER_RESUME", now: T0 }, T0)).toBe(g);
     expect(isTimerAction({ type: "TIMER_RESUME", now: T0 })).toBe(true);
