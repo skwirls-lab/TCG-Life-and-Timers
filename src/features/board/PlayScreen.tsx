@@ -27,6 +27,8 @@ import { lazyComponent } from "@/lib/hooks/lazyComponent";
 
 // PERF-003: sheets that are not needed for the first paint of the board load on demand.
 const SeatMenu = lazyComponent(() => import("@/features/seat/SeatMenu").then((m) => m.SeatMenu));
+// A11Y-001 live region: not needed for the first paint either (it only speaks after changes).
+const LiveAnnouncer = lazyComponent(() => import("./LiveAnnouncer").then((m) => m.LiveAnnouncer));
 const CalculatorSheet = lazyComponent(() =>
   import("@/features/calculator/CalculatorSheet").then((m) => m.CalculatorSheet),
 );
@@ -162,6 +164,7 @@ export function PlayScreen() {
         <GameErrorBoundary>
           <h1 className="sr-only">{t("board.label")}</h1>
           <Board />
+          <LiveAnnouncer />
           <GameFlowOverlays />
           {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
           <TimerLayer />

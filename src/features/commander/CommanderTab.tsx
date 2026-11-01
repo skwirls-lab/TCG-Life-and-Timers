@@ -1,4 +1,5 @@
 "use client";
+import { Skull, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   commanderDamageGrid,
@@ -147,7 +148,26 @@ export function CommanderTab({ game, seatId }: Props) {
                       {label && (
                         <span className="w-full truncate text-center text-xs">{label}</span>
                       )}
-                      <span className="text-3xl font-semibold tabular">{c.value}</span>
+                      <span className="flex items-center gap-1 text-3xl font-semibold tabular">
+                        {/* A11Y-004: near-lethal / lethal is not shown by colour alone. */}
+                        {level === "warning" && (
+                          <TriangleAlert
+                            role="img"
+                            aria-label={t("seat.commander.warning")}
+                            data-testid={`cmd-cell-${g.index}-${c.sourceIndex}-warning`}
+                            className="size-5"
+                          />
+                        )}
+                        {level === "lethal" && (
+                          <Skull
+                            role="img"
+                            aria-label={t("seat.commander.lethal")}
+                            data-testid={`cmd-cell-${g.index}-${c.sourceIndex}-lethal`}
+                            className="size-5"
+                          />
+                        )}
+                        {c.value}
+                      </span>
                     </TapHoldButton>
                   );
                 })}

@@ -1,7 +1,7 @@
-// @req REL-004
+// @req REL-004 @req REL-005
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Dexie } from "dexie";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { counterValue, seededRng } from "@/engine";
 import { TcgDb } from "@/lib/db";
 import { t } from "@/lib/i18n";
@@ -14,6 +14,9 @@ import {
   useGameStore,
   useSeat,
 } from "./gameStore";
+
+const { captureError } = vi.hoisted(() => ({ captureError: vi.fn() }));
+vi.mock("@/lib/errors", () => ({ captureError }));
 
 let db: TcgDb;
 let explode = false;
@@ -59,6 +62,10 @@ describe("GameErrorBoundary", () => {
       console.error = err;
     }
     expect(screen.getByRole("alert")).toHaveTextContent(t("engine.recover.title"));
+    // REL-005: the boundary hands the error + component stack to the (consent-gated) reporter.
+    expect(captureError).toHaveBeenCalledWith(expect.objectContaining({ message: "render boom" }), {
+      componentStack: expect.any(String),
+    });
     explode = false;
     fireEvent.click(screen.getByRole("button", { name: t("engine.recover.button") }));
     await waitFor(() => expect(screen.getByTestId("life")).toHaveTextContent("14"));

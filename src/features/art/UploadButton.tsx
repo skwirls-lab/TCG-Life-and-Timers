@@ -6,6 +6,7 @@
  */
 import { ImagePlus, LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
+import { track } from "@/lib/analytics/telemetry";
 import { saveUpload, nameFromFile, type ArtRow } from "@/lib/art/repo";
 import { syncArtNow } from "@/lib/art/cloudRuntime";
 import { ImageValidationError, processImage } from "@/lib/image";
@@ -41,6 +42,7 @@ export function UploadButton({ onUploaded, className, testId = "art-upload" }: P
         contentType: out.type,
         name: nameFromFile(file.name, t("art.upload.defaultName")),
       });
+      track("art_uploaded"); // LEG-004: no-op without analytics config + consent
       onUploaded(row);
       void syncArtNow().catch(() => null);
     } catch (e) {

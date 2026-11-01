@@ -5,6 +5,8 @@
  */
 import { PageShell } from "@/components/ui";
 import { useQueryParam } from "@/features/tools/hooks";
+import { useEffect } from "react";
+import { trackPurchaseReturn } from "@/lib/entitlements/purchaseTracking";
 import { useEntitlements } from "@/lib/entitlements/store";
 import { useEntitlementSync } from "@/lib/entitlements/sync";
 import { t } from "@/lib/i18n";
@@ -19,6 +21,9 @@ export function ProScreen() {
   const pro = useEntitlements((s) => s.pro);
   const status = useQueryParam("status");
   const ret: Return = status === "success" || status === "cancel" ? status : null;
+  useEffect(() => {
+    if (ret === "success") trackPurchaseReturn(); // LEG-004: no-op without config + consent
+  }, [ret]);
 
   const statusText =
     policy === "ALL_FREE"

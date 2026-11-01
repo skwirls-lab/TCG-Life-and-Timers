@@ -10,6 +10,7 @@
   "timer.flagged": "Flag",
   "timer.paused": "Paused",
   "timer.chipHint": "Tap for remaining and used time",
+  "timer.lowTime": "Low time",
   "timer.turnTime": "This turn {time}",
   "timer.bannerName": "{name}",
   "timer.depth": "⚡×{n}",

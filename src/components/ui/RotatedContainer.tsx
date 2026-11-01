@@ -1,8 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 import type { Rotation } from "@/lib/ui/rotation";
 
-interface Props {
+interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "className" | "style" | "children"> {
   rotation: Rotation;
   className?: string;
   innerClassName?: string;
@@ -22,9 +22,11 @@ export function RotatedContainer({
   style,
   children,
   testId,
+  ...rest
 }: Props) {
   return (
     <div
+      {...rest}
       className={cn("rot-outer", className)}
       style={style}
       data-testid={testId}

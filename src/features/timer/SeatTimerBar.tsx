@@ -15,7 +15,7 @@
  * Only the holder's chip ticks (useClock), plus the tiny banner timer while a response runs
  * (§10.2).
  */
-import { Hand, Undo2, Zap } from "lucide-react";
+import { Hand, TriangleAlert, Undo2, Zap } from "lucide-react";
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { formatClock, turnTimeUsed, type Game, type SeatId } from "@/engine";
 import { useSnackbar, type SnackAnchor } from "@/components/ui/Snackbar";
@@ -312,6 +312,16 @@ function ClockChip({
             {responder ? "⚡" : "▶"}
           </span>
         )}
+        {/* A11Y-004: low time / overtime is not signalled by the red colour alone. */}
+        {low && (
+          <TriangleAlert
+            data-testid={`seat-${index}-clock-low`}
+            role="img"
+            aria-label={t("timer.lowTime")}
+            className="shrink-0"
+            style={{ width: px * 0.6, height: px * 0.6 }}
+          />
+        )}
         <span data-testid={`seat-${index}-clock-time`}>{clock.display}</span>
       </span>
       {showTurnTime && holding && <TurnTime seatId={seatId} />}
@@ -442,6 +452,32 @@ function BarButton({
 }
 
 /**
+ * PASS TURN with the pass chime and (optionally) the 3 s "Passed to {name} · Undo" snackbar facing
+ * the passing seat. Shared by the button and the A11Y-005 keyboard shortcut on a focused seat.
+ */
+export function passTurnWithUndo(
+  seatId: SeatId,
+  rotation: Rotation,
+  withUndo = true,
+  anchor: SnackAnchor = { rotation, seatId },
+): boolean {
+  const r = passTurn();
+  if (!r) return false;
+  playTone("pass", "taps");
+  if (withUndo) {
+    useSnackbar.getState().show({
+      message: t("timer.passedTo", { name: r.nextName }),
+      actionLabel: t("common.undo"),
+      durationMs: PASS_UNDO_MS,
+      rotation,
+      anchor,
+      onAction: r.undo,
+    });
+  }
+  return true;
+}
+
+/**
  * TMR-003/004: tap + 3 s undo snackbar on the passing seat (anchored to the seat tile when the
  * board registers it, else to this button — D-043/D-058), or hold-to-pass (600 ms).
  */
@@ -470,19 +506,8 @@ function PassTurnButton({
     };
   };
   const doPass = (withUndo: boolean) => {
-    const at = anchor(); // before the pass: the button unmounts once the turn moves on
-    const r = passTurn();
-    if (!r) return;
-    playTone("pass", "taps");
-    if (!withUndo) return;
-    show({
-      message: t("timer.passedTo", { name: r.nextName }),
-      actionLabel: t("common.undo"),
-      durationMs: PASS_UNDO_MS,
-      rotation,
-      anchor: at,
-      onAction: r.undo,
-    });
+    // Anchor before the pass: the button unmounts once the turn moves on.
+    passTurnWithUndo(seatId, rotation, withUndo, anchor());
   };
   const gesture = useHold({
     delay: PASS_HOLD_MS,

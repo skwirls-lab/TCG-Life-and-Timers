@@ -29,6 +29,8 @@
   "seat.commander.help": "Tap = +1 damage received from that commander. Hold for options. {threshold} from one commander loses.",
   "seat.commander.helpNoThreshold": "Tap = +1 damage received from that commander. Hold for options.",
   "seat.commander.total": "Total {total}",
+  "seat.commander.warning": "Near lethal",
+  "seat.commander.lethal": "Lethal",
   "seat.commander.cellLabel": "Commander damage from {who}:",
   "seat.commander.nameN": "Commander {n} name",
   "seat.commander.placeholder": "Commander name",

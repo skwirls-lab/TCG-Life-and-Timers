@@ -63,6 +63,13 @@ describe("error reporting (REL-005)", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(captureException).toHaveBeenCalledTimes(1);
+    // Error-boundary context (componentStack) is forwarded as a React context.
+    captureError(new Error("render"), { componentStack: "\n    at Board" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(captureException).toHaveBeenLastCalledWith(expect.any(Error), {
+      contexts: { react: { componentStack: "\n    at Board" } },
+    });
     await stopErrorReporting();
     expect(close).toHaveBeenCalled();
     expect(errorReportingActive()).toBe(false);
