@@ -20,7 +20,6 @@ import { useGameStore } from "@/state/gameStore";
 import { mergeSettings, useSettingsStore } from "@/state/settingsStore";
 import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { Board } from "./Board";
-import { LiveAnnouncer } from "./LiveAnnouncer";
 import { PlayersSheet, QuickToolsMenu } from "./Toolbar";
 import { parseSettingsParams } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
@@ -28,6 +27,8 @@ import { lazyComponent } from "@/lib/hooks/lazyComponent";
 
 // PERF-003: sheets that are not needed for the first paint of the board load on demand.
 const SeatMenu = lazyComponent(() => import("@/features/seat/SeatMenu").then((m) => m.SeatMenu));
+// A11Y-001 live region: not needed for the first paint either (it only speaks after changes).
+const LiveAnnouncer = lazyComponent(() => import("./LiveAnnouncer").then((m) => m.LiveAnnouncer));
 const CalculatorSheet = lazyComponent(() =>
   import("@/features/calculator/CalculatorSheet").then((m) => m.CalculatorSheet),
 );
