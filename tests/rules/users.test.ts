@@ -196,6 +196,19 @@ describe("document validation (SEC-003)", () => {
         art: { ...p.art, focal: { x: 2, y: 0 } },
       }),
     );
+    // focal zoom is allowed within 0.1–10 (D-052)
+    await assertSucceeds(
+      setDoc(doc(alice(), "users/alice/profiles/p1"), {
+        ...p,
+        art: { ...p.art, focal: { x: 0.5, y: 0.5, zoom: 1.6 } },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "users/alice/profiles/p1"), {
+        ...p,
+        art: { ...p.art, focal: { x: 0.5, y: 0.5, zoom: 50 } },
+      }),
+    );
   });
 
   // @req SEC-003

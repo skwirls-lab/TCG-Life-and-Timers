@@ -4,6 +4,7 @@
  * reduce-motion preference and language onto <html> (SET-001, A11Y-003, SET-034).
  */
 import { useEffect, useSyncExternalStore } from "react";
+import { isCloudConfigured } from "@/lib/firebase/config";
 import { useSettingsStore } from "@/state/settingsStore";
 import { shouldReduceMotion, themeAttr } from "./effects";
 
@@ -37,6 +38,18 @@ export function AppEffects() {
       .getState()
       .load()
       .catch((e: unknown) => console.warn("[settings] load failed", e));
+  }, []);
+
+  // Cloud (App Check + auth + sync) starts lazily after first paint, only when this deployment has
+  // Firebase config. The SDK stays out of the initial/board chunks (PERF-003, D-051).
+  useEffect(() => {
+    if (!isCloudConfigured()) return;
+    const timer = window.setTimeout(() => {
+      void import("@/lib/account/cloud")
+        .then((m) => m.startCloud())
+        .catch((e: unknown) => console.warn("[cloud] start failed", e));
+    }, 1500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

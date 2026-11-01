@@ -49,13 +49,13 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T3.5 | Preset picker | W3 | PRESETS | DONE | PRE-003, PRE-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.7 | Roll-off | W3 | PRESETS | IN_PROGRESS | TOOL-004, GAME-012. |  |
 | T3.6 | Custom preset builder | W3 | BUILDER | DONE | CUS-001..008, CUS-010. | builder e2e 21 ✅ Scenario 7 |
-| T4.1 | Auth | W3 | FIREBASE | TODO | AUTH-001, AUTH-002, AUTH-004. |  |
-| T4.2 | Rules and rules tests | W3 | FIREBASE | DONE | SEC-001..006, LEG-005. | rules 78 ✅ functions 21 ✅ (T4.5: server side; client export pending) |
-| T4.3 | Sync engine | W3 | FIREBASE | TODO | ARCH-007, SYNC-001..004, PROF-003, SET-014. |  |
-| T4.4 | Guest → account merge | W3 | FIREBASE | TODO | AUTH-003. |  |
-| T4.5 | Account data functions | W3 | FIREBASE | DONE | AUTH-005, AUTH-006. | rules 78 ✅ functions 21 ✅ (T4.5: server side; client export pending) |
-| T4.6 | App Check | W3 | FIREBASE | TODO | SEC-007. |  |
-| T4.7 | Feedback and diagnostics | W3 | FIREBASE | TODO | SET-040..043, §13.1-H. |  |
+| T4.1 | Auth | W3 | FIREBASE | DONE | AUTH-001, AUTH-002, AUTH-004. | unit+sync 5+emu e2e 15 ✅ |
+| T4.2 | Rules and rules tests | W3 | FIREBASE | DONE | SEC-001..006, LEG-005. | rules ✅ functions 21 ✅ client export+delete ✅ |
+| T4.3 | Sync engine | W3 | FIREBASE | DONE | ARCH-007, SYNC-001..004, PROF-003, SET-014. | unit+sync 5+emu e2e 15 ✅ |
+| T4.4 | Guest → account merge | W3 | FIREBASE | DONE | AUTH-003. | unit+sync 5+emu e2e 15 ✅ |
+| T4.5 | Account data functions | W3 | FIREBASE | DONE | AUTH-005, AUTH-006. | rules ✅ functions 21 ✅ client export+delete ✅ |
+| T4.6 | App Check | W3 | FIREBASE | DONE | SEC-007. | unit+sync 5+emu e2e 15 ✅ |
+| T4.7 | Feedback and diagnostics | W3 | FIREBASE | DONE | SET-040..043, §13.1-H. | unit+sync 5+emu e2e 15 ✅ |
 | T5.1 | Scryfall client | W4 | ART | IN_PROGRESS | ART-001..003, ART-006. | library DONE (85 unit tests; UI in W4) |
 | T5.2 | Art picker and focal editor | W4 | ART | TODO | ART-001..005, ART-008, PROF-010. |  |
 | T5.3 | Uploads | W4 | ART | IN_PROGRESS | ART-020..023, ART-025. | library DONE; Dexie storage + My images UI in W4 |

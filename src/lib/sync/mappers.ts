@@ -69,14 +69,20 @@ interface LocalArtRef {
   cardName?: string;
 }
 
-/** Remote art refs carry {x, y} focal only; zoom stays on the device (see report: rules gap). */
+/** Remote art refs carry the full focal point {x, y, zoom?} (D-052). */
 function artToRemote(art: unknown): unknown {
   if (!art || typeof art !== "object") return undefined;
   const a = art as LocalArtRef;
   return {
     kind: a.kind,
     value: a.value,
-    focal: a.focal ? { x: a.focal.x, y: a.focal.y } : undefined,
+    focal: a.focal
+      ? {
+          x: a.focal.x,
+          y: a.focal.y,
+          ...(a.focal.zoom !== undefined ? { zoom: a.focal.zoom } : {}),
+        }
+      : undefined,
     artist: a.artist,
     cardName: a.cardName,
   };
@@ -88,7 +94,7 @@ function artFromRemote(remote: unknown, existing: unknown): LocalArtRef | undefi
   const r = parsed.data;
   const prevZoom = (existing as LocalArtRef | undefined)?.focal?.zoom;
   const out: LocalArtRef = { kind: r.kind, value: r.value };
-  if (r.focal) out.focal = { x: r.focal.x, y: r.focal.y, zoom: prevZoom ?? 1 };
+  if (r.focal) out.focal = { x: r.focal.x, y: r.focal.y, zoom: r.focal.zoom ?? prevZoom ?? 1 };
   if (r.artist !== undefined) out.artist = r.artist;
   if (r.cardName !== undefined) out.cardName = r.cardName;
   return out;
@@ -264,8 +270,13 @@ export const artMapper: RowMapper<StoredArt> = {
     if (typeof meta.storagePath !== "string") return null; // not uploaded: local only
     const pick: Record<string, unknown> = {};
     for (const k of ART_FIELDS) pick[k] = meta[k];
-    const focal = meta.focal as { x?: unknown; y?: unknown } | undefined;
-    if (focal && typeof focal === "object") pick.focal = { x: focal.x, y: focal.y };
+    const focal = meta.focal as { x?: unknown; y?: unknown; zoom?: unknown } | undefined;
+    if (focal && typeof focal === "object")
+      pick.focal = {
+        x: focal.x,
+        y: focal.y,
+        ...(typeof focal.zoom === "number" ? { zoom: focal.zoom } : {}),
+      };
     const data = validated(artDataSchema, pick, `art ${row.id}`, log);
     return data ? { id: row.id, updatedAt: num(meta.updatedAt), deleted: false, data } : null;
   },
@@ -274,7 +285,7 @@ export const artMapper: RowMapper<StoredArt> = {
     const d = item.data as Record<string, unknown>;
     const meta: Record<string, unknown> = { ...existing?.meta, ...d, updatedAt: item.updatedAt };
     if (d.focal && typeof d.focal === "object")
-      meta.focal = { ...(d.focal as object), ...(prevFocal?.zoom ? { zoom: prevFocal.zoom } : {}) };
+      meta.focal = { ...(prevFocal?.zoom ? { zoom: prevFocal.zoom } : {}), ...(d.focal as object) };
     else delete meta.focal;
     if (!existing) meta.remoteOnly = true;
     return {

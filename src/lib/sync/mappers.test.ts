@@ -43,24 +43,35 @@ const profile: StoredProfile = {
 };
 
 describe("profileMapper", () => {
-  it("maps to the remote shape and round-trips (focal zoom stays on the device)", () => {
+  it("maps to the remote shape and round-trips (focal zoom syncs, D-052)", () => {
     const { item, back } = roundTrip(profileMapper, profile);
     expect(item.data).toEqual({
       name: "Jean Paul",
       normalizedName: "jean paul",
       color: "#34d399",
       contrast: true,
-      art: { kind: "scryfall", value: "https://x/y.jpg", focal: { x: 0.2, y: 0.3 }, artist: "A" },
+      art: {
+        kind: "scryfall",
+        value: "https://x/y.jpg",
+        focal: { x: 0.2, y: 0.3, zoom: 1.5 },
+        artist: "A",
+      },
     });
     expect(item.updatedAt).toBe(100);
     expect(back).toMatchObject({ isMe: true, lastUsedAt: 5, updatedAt: 777 });
     expect((back.art as { focal: { zoom: number } }).focal.zoom).toBe(1.5);
   });
 
-  it("new remote profiles get zoom 1 and lose art when the remote has none", () => {
+  it("new remote profiles take the remote zoom (default 1) and lose art when the remote has none", () => {
     const { item } = roundTrip(profileMapper, profile);
     const fresh = profileMapper.fromItem(item, undefined);
-    expect((fresh.art as { focal: { zoom: number } }).focal.zoom).toBe(1);
+    expect((fresh.art as { focal: { zoom: number } }).focal.zoom).toBe(1.5);
+    const art = item.data.art as { focal: object };
+    const noZoom = profileMapper.fromItem(
+      { ...item, data: { ...item.data, art: { ...art, focal: { x: 0.2, y: 0.3 } } } },
+      undefined,
+    );
+    expect((noZoom.art as { focal: { zoom: number } }).focal.zoom).toBe(1);
     const noArt = profileMapper.fromItem({ ...item, data: { ...item.data, art: null } }, profile);
     expect("art" in noArt).toBe(false);
     const bare = profileMapper.fromItem(
@@ -212,7 +223,7 @@ describe("artMapper", () => {
       bytes: 1000,
       contentType: "image/webp",
       name: "Mine",
-      focal: { x: 0.5, y: 0.5 },
+      focal: { x: 0.5, y: 0.5, zoom: 2 },
     });
     expect(back.blob).toBe(art.blob);
     expect(back.meta).toMatchObject({ localThing: true, focal: { zoom: 2 } });
@@ -229,7 +240,7 @@ describe("artMapper", () => {
       ...art,
       meta: { ...art.meta, focal: { x: 0, y: 0 } },
     });
-    expect(noZoom.meta.focal).toEqual({ x: 0.5, y: 0.5 });
+    expect(noZoom.meta.focal).toEqual({ x: 0.5, y: 0.5, zoom: 2 });
   });
 });
 

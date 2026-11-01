@@ -8,7 +8,12 @@ export interface EntitlementState {
 }
 
 /** Default policy: everything free until the paywall is enabled by env (T7.1). */
-export function defaultPolicy(env: Record<string, string | undefined> = process.env): Policy {
+// Next.js inlines only literal `process.env.NEXT_PUBLIC_*` reads in client bundles (D-050).
+export function defaultPolicy(
+  env: Record<string, string | undefined> = {
+    NEXT_PUBLIC_PAYWALL_ENABLED: process.env.NEXT_PUBLIC_PAYWALL_ENABLED,
+  },
+): Policy {
   return env.NEXT_PUBLIC_PAYWALL_ENABLED === "1" ? "TIERED" : "ALL_FREE";
 }
 

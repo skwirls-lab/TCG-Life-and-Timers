@@ -24,9 +24,10 @@ service cloud.firestore {
     function pathIdOk(id) { return id.size() <= 100; }
 
     function isFocal(f) {
-      return f is map && shape(f, ['x', 'y'], [])
+      return f is map && shape(f, ['x', 'y'], ['zoom'])
         && f.x is number && f.x >= 0 && f.x <= 1
-        && f.y is number && f.y >= 0 && f.y <= 1;
+        && f.y is number && f.y >= 0 && f.y <= 1
+        && (!('zoom' in f) || (f.zoom is number && f.zoom >= 0.1 && f.zoom <= 10));
     }
     function optFocal(m) { return !('focal' in m) || isFocal(m.focal); }
     function isArt(a) {

@@ -71,6 +71,8 @@ const tombstone = z.boolean().optional();
 export const focalSchema = z.strictObject({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
+  /** art zoom (D-052) */
+  zoom: z.number().min(0.1).max(10).optional(),
 });
 
 export const ART_KINDS = ["scryfall", "upload", "gradient", "solid"] as const;

@@ -22,3 +22,14 @@
 | G-E2E + G-A11Y | ✅ 279 passed (3 projects), 0 flaky — incl. new cross-lane `integration-board.spec.ts` |
 | G-VISUAL | ✅ orchestrator review of board 4p, seat menu, history, settings, setup, tools at 360×740. Fixed: thumbnails (theme vars + rect frame), chip-row shape, duplicate snackbar. Board lane reviewed 2–6p in portrait + landscape. |
 | G-RULES / G-FUNCS | ✅ (unchanged since W1: 78 / 21) |
+
+## W3 partial integration (PRESETS + BUILDER + FIREBASE-CLIENT on top of W2)
+| Gate | Result |
+|---|---|
+| G-STATIC | ✅ |
+| G-UNIT | ✅ 813 tests; logic coverage 97.98 % lines / 93.14 % branches |
+| G-PRESETS | ✅ 20 presets |
+| G-RULES | ✅ 80 (incl. focal zoom cases) |
+| G-SYNC (`npm run test:sync`) | ✅ 5 |
+| G-E2E + G-A11Y | ✅ 381 passed, 0 flaky |
+| G-E2E-EMU | ✅ 15 passed (@emu account/sync/feedback specs) |
