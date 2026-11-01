@@ -13,11 +13,25 @@ import { useEffect } from "react";
 import { Button, useSnackbar } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
-import { ChooseFirstPlayer, PromptDialog } from "./Dialogs";
-import { FirstPlayerOverlay } from "./FirstPlayerOverlay";
-import { FirstTurnHint } from "./FirstTurnHint";
-import { GameOverOverlay } from "./GameOverOverlay";
-import { detectUndoable, seatName } from "./flow";
+import {
+  detectUndoable,
+  firstTurnReminderDue,
+  latestFirstPlayerEvent,
+  seatName,
+  shouldAnnounce,
+} from "./flow";
+import { lazyComponent } from "@/lib/hooks/lazyComponent";
+
+// PERF-003: each overlay's code loads only when its trigger condition holds.
+const ChooseFirstPlayer = lazyComponent(() => import("./Dialogs").then((m) => m.ChooseFirstPlayer));
+const PromptDialog = lazyComponent(() => import("./Dialogs").then((m) => m.PromptDialog));
+const FirstPlayerOverlay = lazyComponent(() =>
+  import("./FirstPlayerOverlay").then((m) => m.FirstPlayerOverlay),
+);
+const FirstTurnHint = lazyComponent(() => import("./FirstTurnHint").then((m) => m.FirstTurnHint));
+const GameOverOverlay = lazyComponent(() =>
+  import("./GameOverOverlay").then((m) => m.GameOverOverlay),
+);
 
 export const UNDO_SNACK_MS = 5000;
 
@@ -80,11 +94,13 @@ export function GameFlowOverlays() {
     <>
       {game && (
         <>
-          <ChooseFirstPlayer game={game} />
-          <FirstPlayerOverlay game={game} />
-          <FirstTurnHint game={game} />
-          <PromptDialog game={game} />
-          <GameOverOverlay game={game} />
+          {game.turn.awaitingFirstPlayer && <ChooseFirstPlayer game={game} />}
+          {latestFirstPlayerEvent(game) && shouldAnnounce(game) && (
+            <FirstPlayerOverlay game={game} />
+          )}
+          {firstTurnReminderDue(game) && <FirstTurnHint game={game} />}
+          {game.pendingPrompts.length > 0 && <PromptDialog game={game} />}
+          {game.status === "ended" && <GameOverOverlay game={game} />}
         </>
       )}
       <CorruptNotice />

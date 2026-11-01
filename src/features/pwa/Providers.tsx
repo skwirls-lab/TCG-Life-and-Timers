@@ -7,6 +7,9 @@ import { AppEffects } from "@/features/app-effects/AppEffects";
 import { WhoWonHost } from "@/features/history-past/WhoWonPrompt";
 // PAY lane (T7.1): the single paywall sheet + pw= test hook + entitlement sync start-up.
 import { PaywallHost } from "@/features/paywall/PaywallHost";
+// HARDEN (T8.3 / T8.7): consent banner (LEG-004) and install offer (PWA-003).
+import { ConsentBanner } from "@/features/consent/ConsentBanner";
+import { InstallPromptHost } from "@/features/install/InstallPromptHost";
 
 export function Providers({ children }: { children: ReactNode }) {
   const disableSw = process.env.NODE_ENV === "development";
@@ -24,6 +27,8 @@ export function Providers({ children }: { children: ReactNode }) {
       <SnackbarHost />
       <UpdatePrompt />
       <PaywallHost />
+      <ConsentBanner />
+      <InstallPromptHost />
     </SerwistProvider>
   );
 }

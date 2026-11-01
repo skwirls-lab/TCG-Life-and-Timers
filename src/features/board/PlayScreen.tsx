@@ -8,8 +8,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { GameFlowOverlays } from "@/features/game-flow/GameFlowOverlays";
-import { SeatMenu } from "@/features/seat/SeatMenu";
-import { CalculatorSheet } from "@/features/calculator";
 // TIMER-UI (W3): scheduler, signals, auto-pause and the PAUSED overlay; test-only `t.*` params.
 import { TimerLayer } from "@/features/timer/TimerLayer";
 import { applyTimerTestParams } from "@/features/timer/testParams";
@@ -20,10 +18,18 @@ import { t } from "@/lib/i18n";
 import { GameErrorBoundary } from "@/state/GameErrorBoundary";
 import { useGameStore } from "@/state/gameStore";
 import { mergeSettings, useSettingsStore } from "@/state/settingsStore";
-import { TEST_HOOKS_ENABLED, applyTestHooks } from "@/state/testHooks";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { Board } from "./Board";
+import { PlayersSheet, QuickToolsMenu } from "./Toolbar";
 import { parseSettingsParams } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
+import { lazyComponent } from "@/lib/hooks/lazyComponent";
+
+// PERF-003: sheets that are not needed for the first paint of the board load on demand.
+const SeatMenu = lazyComponent(() => import("@/features/seat/SeatMenu").then((m) => m.SeatMenu));
+const CalculatorSheet = lazyComponent(() =>
+  import("@/features/calculator/CalculatorSheet").then((m) => m.CalculatorSheet),
+);
 
 const BOARD_CSS = `
 @keyframes board-confetti {
@@ -41,9 +47,11 @@ async function loadSession(search: URLSearchParams): Promise<boolean> {
     if (Object.keys(patch).length > 0) {
       useSettingsStore.setState((s) => ({ settings: mergeSettings({ ...s.settings, ...patch }) }));
     }
+    // Dynamic so production builds drop the hooks (and the preset registry) entirely (PERF-003).
+    const { applyTestHooks } = await import("@/state/testHooks");
+    applyTestHooks(search);
+    applyTimerTestParams(search); // TIMER-UI: test builds only, after a quick start
   }
-  applyTestHooks(search);
-  applyTimerTestParams(search); // TIMER-UI: test builds only, after a quick start
   if (useGameStore.getState().session) return true;
   return useGameStore
     .getState()
@@ -84,6 +92,32 @@ function useDeviceServices(active: boolean) {
   }, [active]);
 }
 
+/**
+ * Warm the lazily loaded sheets once the board is up and the main thread is idle, so the first
+ * long-press / menu tap doesn't wait for the network (PERF-002) while keeping them out of the
+ * initial /play JS (PERF-003). One-shot, no repeating work (PERF-004).
+ */
+function usePrefetchSheets(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const warm = () => {
+      for (const c of [SeatMenu, CalculatorSheet, QuickToolsMenu, PlayersSheet]) {
+        void c.preload().catch(() => undefined);
+      }
+    };
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warm, { timeout: 3000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(warm, 1500);
+    return () => window.clearTimeout(id);
+  }, [active]);
+}
+
 export function PlayScreen() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -115,6 +149,7 @@ export function PlayScreen() {
   );
 
   useDeviceServices(ready && hasSession);
+  usePrefetchSheets(ready && hasSession);
 
   return (
     <main
@@ -130,14 +165,16 @@ export function PlayScreen() {
           <GameFlowOverlays />
           {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
           <TimerLayer />
-          <SeatMenu
-            seatId={menu?.seatId ?? ""}
-            open={menu !== null}
-            onClose={closeMenu}
-            {...(menu?.tab ? { initialTab: menu.tab } : {})}
-            {...(menu?.focusCounterId ? { focusCounterId: menu.focusCounterId } : {})}
-            {...(menu?.rotation !== undefined ? { rotation: menu.rotation } : {})}
-          />
+          {menu !== null && (
+            <SeatMenu
+              seatId={menu.seatId}
+              open
+              onClose={closeMenu}
+              {...(menu.tab ? { initialTab: menu.tab } : {})}
+              {...(menu.focusCounterId ? { focusCounterId: menu.focusCounterId } : {})}
+              {...(menu.rotation !== undefined ? { rotation: menu.rotation } : {})}
+            />
+          )}
           {calc && (
             <CalculatorSheet
               seatId={calc.seatId}

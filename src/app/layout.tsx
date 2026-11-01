@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/features/pwa/Providers";
-import { ConsentBanner } from "@/features/consent/ConsentBanner";
-import { InstallPromptHost } from "@/features/install/InstallPromptHost";
 
 export const metadata: Metadata = {
   title: "TCG Life & Timers",
@@ -28,12 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" data-theme="dark">
       <body className="min-h-dvh antialiased">
-        <Providers>
-          {children}
-          {/* HARDEN (T8.3 / T8.7): consent banner (LEG-004) and install offer (PWA-003). */}
-          <ConsentBanner />
-          <InstallPromptHost />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -105,8 +105,10 @@ test("'Not now' is remembered", async ({ page }) => {
   await expect(page.getByTestId("install-prompt")).toHaveCount(0);
 });
 
-test("What's new shows the 1.0.0 release notes", async ({ page }) => {
-  await page.goto("/whats-new");
+test("What's new shows the 1.0.0 release notes (linked from Settings)", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByTestId("setting-whatsNew-control").click();
+  await expect(page).toHaveURL(/\/whats-new$/);
   await expect(page.getByTestId("whats-new")).toBeVisible();
   const release = page.getByTestId("release-1.0.0");
   await expect(release).toBeVisible();

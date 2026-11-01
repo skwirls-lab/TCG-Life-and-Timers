@@ -7,11 +7,13 @@
  * - Puts Zod in jitless mode before any schema runs: its JIT feature probe calls `new Function`,
  *   which our CSP (no 'unsafe-eval', §19.6) blocks and reports as a violation.
  */
-import { z } from "zod";
 import { captureInstallPrompt } from "@/features/install/installEvents";
 import { bootTelemetry } from "@/lib/analytics/telemetry";
 
-z.config({ jitless: true });
+// Zod reads `globalThis.__zod_globalConfig` (shared by all its copies); setting it here avoids
+// importing zod into every route's runtime chunk.
+const zodGlobal = globalThis as { __zod_globalConfig?: Record<string, unknown> };
+zodGlobal.__zod_globalConfig = Object.assign(zodGlobal.__zod_globalConfig ?? {}, { jitless: true });
 
 try {
   captureInstallPrompt();

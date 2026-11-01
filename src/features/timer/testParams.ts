@@ -5,7 +5,7 @@
  * in tests/e2e/README.md.
  */
 import { useGameStore } from "@/state/gameStore";
-import { TEST_HOOKS_ENABLED } from "@/state/testHooks";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { parseTimerParams } from "./model";
 
 export function applyTimerTestParams(search: URLSearchParams): void {

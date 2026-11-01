@@ -7,6 +7,8 @@ import {
   chunksFromHtml,
   evaluate,
   firebaseMarkersIn,
+  frameworkChunks,
+  frameworkGzip,
   kb,
   measureRoute,
   PLAY_BUDGET_BYTES,
@@ -64,5 +66,14 @@ describe("check-bundle (PERF-003)", () => {
     expect(r.gzipTotal).toBeGreaterThan(0);
     expect(r.gzipTotal).toBeLessThan(200);
     expect(() => measureRoute(dist, "/", "index.html")).toThrow(/npm run build/);
+    expect(frameworkGzip(r)).toBe(0);
+    writeFileSync(
+      join(dist, "build-manifest.json"),
+      JSON.stringify({ rootMainFiles: ["static/chunks/a.js"] }),
+    );
+    expect([...frameworkChunks(dist)]).toEqual(["a.js"]);
+    const r2 = measureRoute(dist, "/play", "play.html");
+    expect(r2.chunks[0]!.framework).toBe(true);
+    expect(frameworkGzip(r2)).toBe(r2.gzipTotal);
   });
 });

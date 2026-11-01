@@ -20,7 +20,9 @@ import { primaryCounter, seededRng, type Preset } from "@/engine";
 import { getBuiltInPreset } from "@/presets";
 import { configureGameStore, useGameStore } from "./gameStore";
 
-export const TEST_HOOKS_ENABLED = process.env.NEXT_PUBLIC_TEST_HOOKS === "1";
+import { TEST_HOOKS_ENABLED } from "./testHooksFlag";
+
+export { TEST_HOOKS_ENABLED };
 
 declare global {
   interface Window {

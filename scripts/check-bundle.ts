@@ -50,6 +50,8 @@ export interface ChunkInfo {
   raw: number;
   gzip: number;
   firebase: string[];
+  /** One of the build manifest's rootMainFiles (React/Next runtime shared by every route). */
+  framework?: boolean;
 }
 
 export interface RouteReport {
@@ -59,12 +61,25 @@ export interface RouteReport {
   gzipTotal: number;
 }
 
+/** The React/Next runtime chunks every route loads (build-manifest `rootMainFiles`). */
+export function frameworkChunks(dist: string): Set<string> {
+  const p = join(dist, "build-manifest.json");
+  if (!existsSync(p)) return new Set();
+  const m = JSON.parse(readFileSync(p, "utf8")) as { rootMainFiles?: string[] };
+  return new Set((m.rootMainFiles ?? []).map((f) => f.replace(/^static\/chunks\//, "")));
+}
+
+export function frameworkGzip(r: RouteReport): number {
+  return r.chunks.filter((c) => c.framework).reduce((n, c) => n + c.gzip, 0);
+}
+
 export function measureRoute(dist: string, route: string, htmlFile: string): RouteReport {
   const htmlPath = join(dist, "server", "app", htmlFile);
   if (!existsSync(htmlPath)) {
     throw new Error(`${htmlPath} not found — run \`npm run build\` first`);
   }
   const html = readFileSync(htmlPath, "utf8");
+  const framework = frameworkChunks(dist);
   const chunks = chunksFromHtml(html).map((file): ChunkInfo => {
     const path = join(dist, "static", "chunks", file);
     const buf = readFileSync(path);
@@ -73,6 +88,7 @@ export function measureRoute(dist: string, route: string, htmlFile: string): Rou
       raw: buf.length,
       gzip: gzipSync(buf, { level: 9 }).length,
       firebase: firebaseMarkersIn(buf.toString("utf8")),
+      ...(framework.has(file) ? { framework: true } : {}),
     };
   });
   return {
@@ -103,9 +119,15 @@ export function kb(bytes: number): string {
 }
 
 function print(r: RouteReport): void {
-  console.log(`\n${r.route}  (${r.chunks.length} chunks, ${kb(r.gzipTotal)} gzip)`);
+  const fw = frameworkGzip(r);
+  console.log(
+    `\n${r.route}  (${r.chunks.length} chunks, ${kb(r.gzipTotal)} gzip = ` +
+      `${kb(fw)} root runtime (React, Next, instrumentation-client) + ${kb(r.gzipTotal - fw)} app)`,
+  );
   for (const c of [...r.chunks].sort((a, b) => b.gzip - a.gzip)) {
-    const flag = c.firebase.length ? `  FIREBASE: ${c.firebase.join(",")}` : "";
+    const flag =
+      (c.framework ? "  [root]" : "") +
+      (c.firebase.length ? `  FIREBASE: ${c.firebase.join(",")}` : "");
     console.log(`  ${kb(c.gzip).padStart(9)}  ${kb(c.raw).padStart(9)} raw  ${c.file}${flag}`);
   }
 }

@@ -14,7 +14,6 @@ import type { Rect, ToolbarOrientation } from "@/engine/layout";
 import { enumLabel, globalValue } from "@/engine";
 import { requestReset } from "@/features/history-past/whoWon";
 import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
-import { QuickToolsMenu } from "@/features/tools/QuickToolsMenu";
 import { ClockToolbar } from "@/features/timer/ClockToolbar";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
@@ -24,7 +23,15 @@ import { historyVisible } from "@/lib/records/policy";
 import { useSetting, useSettingsStore } from "@/state/settingsStore";
 import { enumStateIcon, toolbarGlobals } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
-import { PlayersSheet } from "./PlayersSheet";
+import { lazyComponent } from "@/lib/hooks/lazyComponent";
+
+// PERF-003: loaded on demand (and prefetched when the board is idle, see PlayScreen).
+export const QuickToolsMenu = lazyComponent(() =>
+  import("@/features/tools/QuickToolsMenu").then((m) => m.QuickToolsMenu),
+);
+export const PlayersSheet = lazyComponent(() =>
+  import("./PlayersSheet").then((m) => m.PlayersSheet),
+);
 
 const AUTO_HIDE_MS = 5000;
 const RESET_HOLD_MS = 1000;
@@ -221,8 +228,8 @@ export function Toolbar({ rect, orientation }: Props) {
       >
         {content}
       </div>
-      <PlayersSheet open={playersOpen} onClose={() => setPlayersOpen(false)} />
-      <QuickToolsMenu open={toolsOpen} onClose={() => setToolsOpen(false)} />
+      {playersOpen && <PlayersSheet open onClose={() => setPlayersOpen(false)} />}
+      {toolsOpen && <QuickToolsMenu open onClose={() => setToolsOpen(false)} />}
     </div>
   );
 }

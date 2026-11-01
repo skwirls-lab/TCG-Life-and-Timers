@@ -9,7 +9,7 @@ import { Info } from "lucide-react";
 import type { Game } from "@/engine";
 import { Button } from "@/components/ui";
 import { t } from "@/lib/i18n";
-import { TEST_HOOKS_ENABLED } from "@/state/testHooks";
+import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { firstTurnReminderDue, latestFirstPlayerEvent, seatName, shouldAnnounce } from "./flow";
 import { useFlowUi } from "./flowUi";
 
