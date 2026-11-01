@@ -41,3 +41,21 @@
 | G-UNIT | ✅ 841 tests |
 | G-E2E + G-A11Y | ✅ 489 passed, 0 failed, 0 flaky (incl. Scenarios 3, 4, 5, 7, 9, 10 through the UI) |
 | G-E2E-EMU | ✅ 15 (W3 partial run; account/sync unchanged since) |
+
+## Final acceptance (clean checkout, after FIX-A + FIX-B)
+Commit `2c77488`, run on a fresh worktree after `npm ci` (root and `functions/`).
+
+| Gate | Command | Result |
+|---|---|---|
+| G-STATIC | `npm run typecheck && npm run lint && npm run format:check` | ✅ |
+| G-UNIT | `npm run test:unit -- --coverage` | ✅ 1160 tests in 127 files; logic coverage 97.65 % lines, 96.55 % statements |
+| G-PRESETS | `npm run check:presets` | ✅ 20 presets |
+| G-RULES | `npm run test:rules` | ✅ 93 |
+| G-FUNCS | `npm run test:functions` | ✅ 48 |
+| G-SYNC | `npm run test:sync` | ✅ 8 |
+| G-BUILD | `npm run build && npm run check:bundle` | ✅ /play 295.2 KB gzip total, / 271.8 KB; no Firebase SDK in /play chunks |
+| G-E2E + G-A11Y | `npm run test:e2e` | ✅ 852 passed (pixel7, iphone14-emu, landscape) |
+| G-E2E-EMU | `npm run test:e2e:emu` | ✅ 30 passed |
+| G-LH | `npm run lhci` | ✅ 100/100/100/100 on /, /settings and /setup (3 runs each) |
+| G-TRACE | `npm run check:trace -- --all` | ✅ 229 P0/P1 requirements in scope, all traced or exempt |
+| Acceptance | `npm run test:acceptance` | ✅ Scenarios 1–12: 171 e2e + 21 unit + 93 rules |

@@ -51,9 +51,24 @@ A **Custom builder** handles everything else: counters, thresholds, timer defaul
 
 ## Gate results (clean checkout)
 
-GATE_TABLE
+Commit `2c77488`, run on a fresh worktree after `npm ci` (root and `functions/`).
 
-Bundle (PERF-003, revised in D-067): the `/play` app JS is ~162 KB gzip on top of the ~131 KB shared React/Next runtime, for a total of ~294 KB against the 300 KB cap. That leaves about **6 KB** of headroom; the next large feature should be lazy-loaded.
+| Gate | Command | Result |
+|---|---|---|
+| G-STATIC | `npm run typecheck && npm run lint && npm run format:check` | ✅ |
+| G-UNIT | `npm run test:unit -- --coverage` | ✅ 1160 tests in 127 files; logic coverage 97.65 % lines, 96.55 % statements |
+| G-PRESETS | `npm run check:presets` | ✅ 20 presets |
+| G-RULES | `npm run test:rules` | ✅ 93 |
+| G-FUNCS | `npm run test:functions` | ✅ 48 |
+| G-SYNC | `npm run test:sync` | ✅ 8 |
+| G-BUILD | `npm run build && npm run check:bundle` | ✅ /play 295.2 KB gzip total, / 271.8 KB; no Firebase SDK in /play chunks |
+| G-E2E + G-A11Y | `npm run test:e2e` | ✅ 852 passed (pixel7, iphone14-emu, landscape) |
+| G-E2E-EMU | `npm run test:e2e:emu` | ✅ 30 passed |
+| G-LH | `npm run lhci` | ✅ 100/100/100/100 on /, /settings and /setup (3 runs each) |
+| G-TRACE | `npm run check:trace -- --all` | ✅ 229 P0/P1 requirements in scope, all traced or exempt |
+| Acceptance | `npm run test:acceptance` | ✅ Scenarios 1–12: 171 e2e + 21 unit + 93 rules |
+
+Bundle (PERF-003, revised in D-067): the `/play` app JS is ~164 KB gzip on top of the ~131 KB shared React/Next runtime, for a total of 295.2 KB against the 300 KB cap. That leaves about **5 KB** of headroom; the next large feature should be lazy-loaded.
 
 Traceability: `npm run check:trace -- --all` passes. Every P0/P1 requirement in milestones M0–M4 is cited by at least one test, or is listed in `docs/progress/TRACE-EXEMPT.md` (ARCH-003 and ARCH-007 are exempt; PERF-001, PERF-005, REL-002, REL-003 and ENV-002 are enforced by gates). See `docs/progress/TRACE.md`.
 

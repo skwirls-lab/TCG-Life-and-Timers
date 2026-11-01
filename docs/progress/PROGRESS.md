@@ -73,12 +73,12 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T7.2 | Stripe checkout and entitlements | W5 | PAY | DONE | PAY-002, PAY-003. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
 | T7.3 | Share links | W5 | PAY | DONE | CUS-007, SEC-005. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
 | T7.4 | Pricing config | W5 | PAY | DONE | PAY-002, Q4. | pay e2e 27 + emu 15 ✅ functions 32 ✅ |
-| T8.6 | i18n completeness | W5 | POLISH-A | TODO |  |  |
-| T8.7 | Landing, about, install UX, what's new | W5 | POLISH-A | TODO | PWA-003, LEG-002, SET-043. |  |
-| T8.1 | Performance | W6 | HARDEN + ORCH | TODO | PERF-001..004. |  |
-| T8.2 | Accessibility | W6 | HARDEN + ORCH | TODO | A11Y-001..005. |  |
-| T8.3 | Legal, consent, analytics, errors | W6 | HARDEN + ORCH | TODO | LEG-001, LEG-002, LEG-004, LEG-006, §19.5, REL-005. |  |
-| T8.4 | Security headers | W6 | HARDEN + ORCH | TODO | §19.6. |  |
-| T8.5 | Lighthouse CI | W6 | HARDEN + ORCH | TODO | PERF-005. |  |
-| T8.8 | Final acceptance | W6 | HARDEN + ORCH | TODO |  |  |
-| T8.9 | Deliverables | W6 | HARDEN + ORCH | TODO |  |  |
+| T8.6 | i18n completeness | W5 | POLISH-A | DONE |  | final clean-checkout gates ✅ |
+| T8.7 | Landing, about, install UX, what's new | W5 | POLISH-A | DONE | PWA-003, LEG-002, SET-043. | final clean-checkout gates ✅ |
+| T8.1 | Performance | W6 | HARDEN + ORCH | DONE | PERF-001..004. | final clean-checkout gates ✅ |
+| T8.2 | Accessibility | W6 | HARDEN + ORCH | DONE | A11Y-001..005. | final clean-checkout gates ✅ |
+| T8.3 | Legal, consent, analytics, errors | W6 | HARDEN + ORCH | DONE | LEG-001, LEG-002, LEG-004, LEG-006, §19.5, REL-005. | final clean-checkout gates ✅ |
+| T8.4 | Security headers | W6 | HARDEN + ORCH | DONE | §19.6. | final clean-checkout gates ✅ |
+| T8.5 | Lighthouse CI | W6 | HARDEN + ORCH | DONE | PERF-005. | final clean-checkout gates ✅ |
+| T8.8 | Final acceptance | W6 | HARDEN + ORCH | DONE |  | final clean-checkout gates ✅ |
+| T8.9 | Deliverables | W6 | HARDEN + ORCH | DONE |  | final clean-checkout gates ✅ |
