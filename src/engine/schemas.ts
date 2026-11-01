@@ -32,6 +32,7 @@ import {
 } from "./types";
 import {
   CLOCK_STATES,
+  FINAL_ACTIONS,
   PASS_MODES,
   PAUSE_REASONS,
   RESPONSE_MODES,
@@ -67,6 +68,7 @@ export const TimerConfigSchema = z.object({
   graceMs: ms(),
   timeoutAction: z.enum(TIMEOUT_ACTIONS),
   addOnceMs: ms(),
+  finalAction: z.enum(FINAL_ACTIONS).optional(),
   warningsMs: z.array(ms()),
   responses: z.enum(RESPONSE_MODES),
   passMode: z.enum(PASS_MODES),
@@ -102,6 +104,8 @@ export const TimerStateSchema = z.object({
       extraTurnsRemaining: nonNegInt().optional(),
     })
     .optional(),
+  holdFreeMs: z.number().nonnegative().optional(),
+  turnNumber: z.number().int().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------------------------

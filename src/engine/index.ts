@@ -24,7 +24,8 @@
  *   CMD_TAX_CAST, COUNTER_ENABLE, ELIMINATE, REVIVE, CONCEDE, RESOLVE_PROMPT, END_GAME,
  *   RESET_GAME, SET_FIRST_PLAYER, START_GAME, PASS_TURN, LOG_NOTE, SEAT_* (rename, art, color,
  *   commanders, profile, rotation, contrast, reorder, add, remove), SET_OPTION, UNDO, REDO,
- *   UNDO_TO, TIMER_* (types only in W1).
+ *   UNDO_TO, TIMER_* (timer/reducer.ts). Timer helpers (timer/clock.ts): remaining, timeUsed,
+ *   turnTimeUsed, displayMs, holder, matchRemaining, nextSignificantEvent, formatClock, turnStats.
  *
  * Selectors (selectors.ts): value, counterValue, counterDef, enabledCounters, primaryCounter,
  *   seatById, aliveSeats, nextSeat, seatCounters, visibleBadges, commanderDamageFrom,
@@ -87,8 +88,26 @@ export {
 export { clamp, sourceCount, commanderCount } from "./counters";
 export {
   reduceTimer,
+  syncTimer,
   isTimerAction,
   TIMER_ACTION_TYPES,
   TIMER_HOOK_ACTIONS,
 } from "./timer/reducer";
+export {
+  remaining,
+  timeUsed,
+  turnTimeUsed,
+  displayMs,
+  clockAt,
+  clockState,
+  holder,
+  isCharging,
+  isLimited,
+  matchRemaining,
+  nextSignificantEvent,
+  formatClock,
+  turnStats,
+  type SignificantEvent,
+  type SignificantEventKind,
+} from "./timer/clock";
 export * from "./selectors";

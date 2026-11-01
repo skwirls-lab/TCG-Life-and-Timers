@@ -20,7 +20,7 @@ import { counterKey } from "./keys";
 import { appendEvent } from "./log";
 import type { Rng } from "./rng";
 import { eliminateSeat, endGame, evaluate, reviveSeat, seatLoseTriggerIds } from "./thresholds";
-import { isTimerAction, reduceTimer, TIMER_HOOK_ACTIONS } from "./timer/reducer";
+import { isTimerAction, reduceTimer, syncTimer, TIMER_HOOK_ACTIONS } from "./timer/reducer";
 import { advanceTurn, turnOrderFor } from "./turn";
 import type {
   CounterDefinition,
@@ -452,7 +452,8 @@ export function reduceWithMeta(game: Game, action: GameAction, ctx: ReduceContex
   let g = r.game;
   if (isTimerAction(action) || HOOKS.has(action.type)) g = reduceTimer(g, action, now, game);
   if (g === game) return unchanged(game);
-  return { game: evaluate(g, now), merged: r.merged };
+  // TMR-023: keep the clocks consistent with eliminations / game end from any action.
+  return { game: syncTimer(evaluate(g, now), now), merged: r.merged };
 }
 
 /** Pure reducer: `(game, action, { rng }) → game`. */
