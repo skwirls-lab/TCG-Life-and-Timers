@@ -1,0 +1,21 @@
+{
+  "app.name": "TCG Life & Timers",
+  "app.tagline": "Life tracking and table clocks for any card game.",
+  "common.close": "Close",
+  "common.cancel": "Cancel",
+  "common.confirm": "Confirm",
+  "common.back": "Back",
+  "common.save": "Save",
+  "common.delete": "Delete",
+  "common.reset": "Reset",
+  "common.undo": "Undo",
+  "common.on": "On",
+  "common.off": "Off",
+  "common.holdToConfirm": "Hold to confirm",
+  "common.proFeature": "Pro feature",
+  "pwa.updateAvailable": "Update available",
+  "pwa.reload": "Reload",
+  "launcher.newGame": "New game",
+  "launcher.comingSoon": "Board coming soon",
+  "devui.title": "Design system"
+}

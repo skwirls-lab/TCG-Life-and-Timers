@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm --prefix functions ci
+      - name: Static (G-STATIC)
+        run: npm run typecheck && npm run lint && npm run format:check
+      - name: Unit + coverage (G-UNIT)
+        run: npm run test:unit -- --coverage
+      - name: Presets (G-PRESETS)
+        run: npm run check:presets
+      - name: Trace (G-TRACE)
+        run: npm run check:trace
+      - name: Rules (G-RULES)
+        run: npm run test:rules
+      - name: Functions (G-FUNCS)
+        run: npm run test:functions
+      - name: Build + bundle (G-BUILD)
+        run: npm run build && npm run check:bundle
+      - name: Install Playwright browsers (CI only)
+        run: npx playwright install --with-deps chromium webkit
+      - name: E2E (G-E2E, includes real WebKit)
+        run: npm run test:e2e
+      - name: E2E with emulators (G-E2E-EMU)
+        run: npm run test:e2e:emu
+      - name: Lighthouse (G-LH)
+        run: npm run lhci
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: |
+            test-results
+            playwright-report

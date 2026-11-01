@@ -1,0 +1,15 @@
+# Decisions log
+
+| ID | Date | Decision | Reason | Ref |
+|---|---|---|---|---|
+| D-001 | 2026-11-01 | Next.js 16.4 with Turbopack builds; `cacheComponents`/`partialPrefetching` disabled | The app is client-heavy; avoid Cache Components constraints. The service worker provides offline support. | §8 |
+| D-002 | 2026-11-01 | Service worker via `@serwist/turbopack` (route handler `/serwist/sw.js`) | Native Turbopack support; the §6.3 fallback was not needed | PWA-002 |
+| D-003 | 2026-11-01 | Separate dist dirs: `.next` (prod), `.next-test` (`NEXT_PUBLIC_TEST_HOOKS=1`), `.next-emu` (emulators) | `NEXT_PUBLIC_*` values are inlined at build, so test hooks can never leak into a prod build | §10.4 |
+| D-004 | 2026-11-01 | Unit coverage is measured on logic modules (`src/engine`, `src/lib`, `src/state`, `src/presets`); React UI is covered by Playwright e2e and G-TRACE. Thresholds: engine ≥ 90 % lines/branches, lib ≥ 80 %, logic overall ≥ 80 % lines / 75 % branches. | Unit-covering JSX with jsdom is low-value. The original "global ≥ 70 %" assumed UI in scope. | §7 G-UNIT |
+| D-005 | 2026-11-01 | Cloud Functions logic lives in pure modules (`functions/src/logic`) tested by Vitest against the Firestore/Auth/Storage emulators via the admin SDK. The functions emulator is not used in tests. | Faster, more reliable tests; the deploy wiring is thin | G-FUNCS |
+| D-006 | 2026-11-01 | `@typescript-eslint/no-non-null-assertion` off | Required ergonomics with `noUncheckedIndexedAccess` | §0.4 |
+| D-007 | 2026-11-01 | ESLint uses `typescript-eslint` `strict` (not type-checked variants) | Keeps lint fast for parallel lanes; `tsc --noEmit` covers type safety | §8 |
+| D-008 | 2026-11-01 | i18n: one JSON file per feature namespace in `src/i18n/en/*.json`, registered in `src/lib/i18n/index.ts` | Avoids merge conflicts across lanes | T0.6 |
+| D-009 | 2026-11-01 | Owner authorized merging the finished work to `main` | Owner message after "go" | §11 |
+| D-010 | 2026-11-01 | `fg-subtle` token raised to `#8a909e` on dark | WCAG AA contrast (axe) | A11Y-002 |
+| D-011 | 2026-11-01 | SW `controllerchange` reloads only after the user taps "Reload" | The first-install `clientsClaim` was reloading pages (it would interrupt games) | PWA-004 |

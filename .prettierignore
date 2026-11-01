@@ -1,0 +1,15 @@
+node_modules
+.next
+.next-test
+.next-emu
+coverage
+playwright-report
+test-results
+artifacts
+functions/lib
+public/sw.js
+package-lock.json
+functions/package-lock.json
+*.md
+src/i18n/en.json
+.firebase

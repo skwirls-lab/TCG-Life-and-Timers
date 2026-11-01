@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* Design tokens (T0.5). Themes switch via [data-theme] on <html>. */
+@theme {
+  --color-bg: #000000;
+  --color-surface: #16181d;
+  --color-surface-2: #22252c;
+  --color-surface-3: #2e323a;
+  --color-border: #2f333b;
+  --color-fg: #f5f6f8;
+  --color-fg-muted: #a3a8b3;
+  --color-fg-subtle: #8a909e;
+  --color-accent: #38bdf8;
+  --color-accent-fg: #00111a;
+  --color-danger: #f43f5e;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-poison: #a855f7;
+  --color-commander: #f59e0b;
+  --color-timer: #38bdf8;
+  --color-respond: #facc15;
+
+  --color-seat-1: #f472b6;
+  --color-seat-2: #60a5fa;
+  --color-seat-3: #facc15;
+  --color-seat-4: #34d399;
+  --color-seat-5: #fb923c;
+  --color-seat-6: #a78bfa;
+  --color-seat-7: #f87171;
+  --color-seat-8: #2dd4bf;
+
+  --radius-tile: 1.75rem;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef0f3;
+  --color-surface-3: #e2e5ea;
+  --color-border: #d4d8df;
+  --color-fg: #0b0d12;
+  --color-fg-muted: #4b5260;
+  --color-fg-subtle: #6b7180;
+  --color-accent: #0284c7;
+  --color-accent-fg: #ffffff;
+}
+
+[data-theme="contrast"] {
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-surface-2: #111111;
+  --color-surface-3: #1c1c1c;
+  --color-border: #ffffff;
+  --color-fg: #ffffff;
+  --color-fg-muted: #ffffff;
+  --color-fg-subtle: #d4d4d4;
+  --color-accent: #7dd3fc;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Board surfaces: no zoom/selection/callouts (INP-002). */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.safe-area {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* RotatedContainer: content sized to the container (cq units), rotated to face its player. */
+.rot-outer {
+  container-type: size;
+  position: relative;
+  overflow: hidden;
+}
+.rot-inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+.rot-0,
+.rot-180 {
+  width: 100cqw;
+  height: 100cqh;
+}
+.rot-90,
+.rot-270 {
+  width: 100cqh;
+  height: 100cqw;
+}
+.rot-0 {
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+.rot-90 {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.rot-180 {
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+.rot-270 {
+  transform: translate(-50%, -50%) rotate(270deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+html[data-reduce-motion="1"] *,
+html[data-reduce-motion="1"] *::before,
+html[data-reduce-motion="1"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
