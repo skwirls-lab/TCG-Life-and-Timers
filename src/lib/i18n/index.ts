@@ -2,13 +2,14 @@
  * Minimal typed i18n (SET-034). Each feature lane owns one JSON file in src/i18n/en/
  * with keys prefixed by its namespace (e.g. "board.*"). Register new files below.
  */
+import account from "@/i18n/en/account.json";
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";
 import history from "@/i18n/en/history.json";
 import seat from "@/i18n/en/seat.json";
 import tools from "@/i18n/en/tools.json";
 
-const dictionaries = [common, engine, seat, tools, history] as const;
+const dictionaries = [common, engine, seat, tools, history, account] as const;
 
 type Merge<T extends readonly object[]> = T extends readonly [infer H, ...infer R extends object[]]
   ? H & Merge<R>
