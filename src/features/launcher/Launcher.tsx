@@ -67,8 +67,8 @@ export function Launcher() {
     if (!last || busy) return;
     setBusy(true);
     try {
-      await startNewGame(last);
-      router.push("/play");
+      // null: the Who-won prompt was closed, so the current game stays (HIST-031)
+      if (await startNewGame(last)) router.push("/play");
     } finally {
       setBusy(false);
     }
@@ -193,6 +193,16 @@ export function Launcher() {
           {t("shell.launcher.loading")}
         </p>
       )}
+      {/* ART-005 / LEG-003: credits are one tap from the start screen */}
+      <footer className="mt-auto flex justify-center">
+        <Link
+          href="/about"
+          data-testid="launcher-link-about"
+          className="inline-flex min-h-12 items-center px-4 text-sm text-fg-muted underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          {t("shell.launcher.about")}
+        </Link>
+      </footer>
     </main>
   );
 }

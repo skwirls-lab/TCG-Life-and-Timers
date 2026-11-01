@@ -9,7 +9,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { PastGamesPanel } from "@/features/history-past/PastGamesPanel";
-import { WhoWonHost } from "@/features/history-past/WhoWonPrompt";
 import { requestReset } from "@/features/history-past/whoWon";
 import { useRecords } from "@/features/history-past/useRecords";
 import { getDb } from "@/lib/db";
@@ -82,7 +81,7 @@ export function HistoryHarness() {
         </Button>
       </div>
       <PastGamesPanel />
-      <WhoWonHost />
+      {/* WhoWonHost is mounted app-wide (Providers) */}
     </main>
   );
 }

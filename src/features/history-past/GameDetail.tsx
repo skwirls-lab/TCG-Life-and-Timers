@@ -29,10 +29,8 @@ import {
   type RecordEdit,
 } from "@/lib/records";
 import { cn } from "@/lib/ui/cn";
-import { useGameStore } from "@/state/gameStore";
 import { causeText, dateText, durationText, outcomeText } from "./format";
 import { BackButton, Card, Section } from "./parts";
-import { requestReset } from "./whoWon";
 
 const CHIP: Record<Tone, string> = {
   loss: "bg-danger text-black",
@@ -290,13 +288,8 @@ export function GameDetail({ record: r, number, onBack }: Props) {
       show({ message: t("historyPast.detail.rematchUnavailable") });
       return;
     }
-    const current = useGameStore.getState().session?.game;
-    void requestReset({
-      game: current,
-      proceed: () => {
-        void startNewGame(config).then(() => router.push("/play"));
-      },
-    });
+    // startNewGame routes the current game through the Who-won flow (HIST-031).
+    if (await startNewGame(config)) router.push("/play");
   };
 
   const remove = async () => {

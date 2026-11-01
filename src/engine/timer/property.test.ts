@@ -95,6 +95,45 @@ const configArb: fc.Arbitrary<Partial<TimerConfig>> = fc.record({
 
 const stepArb = fc.record({ gap: fc.integer({ min: 0, max: 40 * SEC }), action: actionArb });
 
+/**
+ * Fixed seeds keep CI deterministic (a random seed once produced a 1 ms mismatch: a real engine
+ * bug where an adjustment below 0:00 moved the adjusted-away time to the next holder). All times
+ * are integer ms. To explore new inputs locally, run with another seed.
+ */
+const SEED = 20261101;
+
+const BASE_CFG = {
+  bankMs: 1000,
+  incrementMs: 0,
+  delayMs: 0,
+  perTurnMs: 1000,
+  reserveMs: 0,
+  graceMs: 0,
+  addOnceMs: 1000,
+  finalAction: "lose",
+  responses: "charge",
+  warningsMs: [30 * SEC, 10 * SEC],
+  match: undefined,
+} as const satisfies Partial<TimerConfig>;
+
+/** Shrunk counterexamples from earlier random runs; always checked first. */
+const REGRESSIONS: [Partial<TimerConfig>, { gap: number; action: Input }[]][] = [
+  [
+    { ...BASE_CFG, mode: "perTurn", timeoutAction: "lose" },
+    [
+      { gap: 0, action: { type: "START_GAME" } },
+      { gap: 1000, action: { type: "TIMER_ADJUST", seatId: "s2", deltaMs: -1001 } },
+    ],
+  ],
+  [
+    { ...BASE_CFG, mode: "perTurnReserve", timeoutAction: "addOnce" },
+    [
+      { gap: 0, action: { type: "PASS_TURN" } },
+      { gap: 4001, action: { type: "TIMER_ADJUST", seatId: "s4", deltaMs: -2000 } },
+    ],
+  ],
+];
+
 /** Wall time that must be charged between two moments (independent oracle). */
 function charging(g: Game): boolean {
   const t = g.timer;
@@ -172,7 +211,7 @@ describe("timer properties", () => {
         const total = SEATS.reduce((n, id) => n + timeUsed(g, id, now), 0);
         expect(total).toBe(expectedUsed);
       }),
-      { numRuns: 400 },
+      { numRuns: 400, seed: SEED, examples: REGRESSIONS },
     );
   });
 
@@ -203,7 +242,7 @@ describe("timer properties", () => {
           expect(holder(g) === null).toBe(g.timer.status !== "running" || g.status === "ended");
         }
       }),
-      { numRuns: 200 },
+      { numRuns: 200, seed: SEED + 1 },
     );
   });
 
@@ -251,7 +290,7 @@ describe("timer properties", () => {
           }
         },
       ),
-      { numRuns: 100 },
+      { numRuns: 100, seed: SEED + 2 },
     );
   });
 });

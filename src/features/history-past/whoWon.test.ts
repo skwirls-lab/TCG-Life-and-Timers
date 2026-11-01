@@ -4,7 +4,7 @@ import { TcgDb } from "@/lib/db";
 import { listRecords } from "@/lib/records";
 import { configureRecordKeeper, recordKeeperIdle } from "@/state/recordKeeper";
 import { MIN, Play, T0, names } from "../../../tests/unit/helpers/records";
-import { requestReset, useWhoWon } from "./whoWon";
+import { confirmReset, requestReset, useWhoWon } from "./whoWon";
 
 let db: TcgDb;
 let n = 0;
@@ -67,6 +67,45 @@ describe("requestReset (HIST-031)", () => {
     expect(await requestReset({ game: trivial.g, proceed, now: trivial.now })).toBe("skip");
     expect(await requestReset({ game: null, proceed })).toBe("skip");
     expect(proceed).toHaveBeenCalledTimes(3);
+    expect(await listRecords({ db })).toHaveLength(1);
+  });
+
+  // @req HIST-031
+  it("closing the prompt runs onCancel; a newer request cancels the open one", async () => {
+    const p = meaningful();
+    const proceed = vi.fn();
+    const onCancel = vi.fn();
+    await requestReset({ game: p.g, proceed, onCancel, now: p.now });
+    const proceed2 = vi.fn();
+    await requestReset({ game: p.g, proceed: proceed2, now: p.now });
+    expect(onCancel).toHaveBeenCalledTimes(1); // replaced by the newer request
+    useWhoWon.getState().cancel();
+    expect(proceed).not.toHaveBeenCalled();
+    expect(proceed2).not.toHaveBeenCalled();
+    expect(await listRecords({ db })).toHaveLength(0);
+  });
+});
+
+describe("confirmReset (HIST-031)", () => {
+  // @req HIST-031
+  it("resolves true after the answer is saved", async () => {
+    const p = meaningful();
+    const ok = confirmReset(p.g, { now: p.now });
+    expect(useWhoWon.getState().pending?.game.id).toBe(p.g.id);
+    await useWhoWon.getState().answer({ kind: "winners", seatIds: ["s1"] });
+    await expect(ok).resolves.toBe(true);
+    expect((await listRecords({ db })).map((r) => r.winners)).toEqual([["s1"]]);
+  });
+
+  // @req HIST-031
+  it("resolves false when the prompt is closed, and true at once when nothing needs asking", async () => {
+    const p = meaningful();
+    const ok = confirmReset(p.g, { now: p.now });
+    useWhoWon.getState().cancel();
+    await expect(ok).resolves.toBe(false);
+    await expect(confirmReset(null)).resolves.toBe(true);
+    await expect(confirmReset(p.g, { now: p.now, setting: "never" })).resolves.toBe(true);
+    await recordKeeperIdle();
     expect(await listRecords({ db })).toHaveLength(1);
   });
 });

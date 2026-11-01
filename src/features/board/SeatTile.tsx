@@ -22,8 +22,9 @@ import { SeatTimerBar } from "@/features/timer/SeatTimerBar";
 import { timerBarActive, timerTileMetrics } from "@/features/timer/model";
 import { useSetting } from "@/state/settingsStore";
 import { shouldOpenCalculator } from "@/features/calculator/calc";
+import { ArtBackground } from "@/features/art/ArtBackground";
 import { Badges } from "./Badges";
-import { HOLD_REPEAT_MS, artStyle, formatDelta, formatValue, tileMetrics } from "./boardHelpers";
+import { HOLD_REPEAT_MS, formatDelta, formatValue, tileMetrics } from "./boardHelpers";
 import { useBoardUi } from "./boardStore";
 import { reducedMotion, tapFeedback } from "./feedback";
 import { QuickCmdGrid, TileMiniGrid } from "./MiniGrid";
@@ -227,10 +228,11 @@ export const SeatTile = memo(function SeatTile({
         data-eliminated={view.eliminated || undefined}
       >
         {/* Background art + scrim (LAY-007, SET-003 contrast) */}
-        <div
-          aria-hidden
+        <ArtBackground
+          art={view.art}
+          fallbackColor={view.color}
           className={cn("absolute inset-0", view.eliminated && "grayscale brightness-75")}
-          style={artStyle(view.art, view.color)}
+          testId={`seat-${index}-art`}
         />
         <div
           aria-hidden

@@ -2,7 +2,7 @@
 // §13.1-C timer rows and the seat Timer tab.
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./support/axe";
-import { gotoClockBoard, timerState } from "./support/timer";
+import { gotoClockBoard, storedTimer, timerState } from "./support/timer";
 
 async function config(page: Page) {
   return page.evaluate(() => window.__tcg!.getState().session!.game.timer.config);
@@ -93,6 +93,8 @@ test("changing the mode mid-game asks to restart the clocks", async ({ page }) =
   expect(s.status).toBe("idle");
   expect((await config(page)).mode).toBe("perTurn");
   await page.clock.runFor(1_000); // autosave
+  // the restarted (idle) clocks are on disk before the reload
+  await expect.poll(async () => (await storedTimer(page))?.status).toBe("idle");
   await page.goto("/play");
   await expect(page.getByTestId("timer-start")).toBeVisible();
 });

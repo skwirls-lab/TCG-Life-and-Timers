@@ -2,7 +2,7 @@
  * Record-keeping decisions (HIST-008, HIST-031, HIST-032). Pure.
  */
 import { hasMeaningfulActivity, type Game } from "@/engine";
-import { shouldDiscard } from "./build";
+import { shouldDiscard } from "./activity";
 
 export type WhoWonSetting = "always" | "unclear" | "never";
 
