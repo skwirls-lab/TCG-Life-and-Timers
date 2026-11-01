@@ -1,9 +1,12 @@
 /**
  * CONTRACT (shared): player profile + deck domain types (PROF-001, PROF-010).
- * Persistence (Dexie tables `profiles` / `decks`) and the repository are implemented by the
- * SEATMENU lane in src/lib/profiles/repo.ts.
+ * Persistence (Dexie tables `profiles` / `decks`) and the repository live in ./repo.ts.
  */
 import type { ArtRef } from "@/engine";
+
+/** Persisted entity versions (instructions §10.5). */
+export const PROFILE_SCHEMA_VERSION = 1;
+export const DECK_SCHEMA_VERSION = 1;
 
 export interface PlayerProfile {
   id: string;
@@ -35,3 +38,11 @@ export interface ProfileSelection {
   profile: PlayerProfile;
   deck?: Deck;
 }
+
+/** Fields accepted when creating/updating a profile (id/updatedAt are managed by the repo). */
+export type ProfileInput = Omit<PlayerProfile, "id" | "updatedAt"> & { id?: string };
+/** Fields accepted when creating/updating a deck. */
+export type DeckInput = Omit<Deck, "id" | "updatedAt" | "commanders"> & {
+  id?: string;
+  commanders?: string[];
+};
