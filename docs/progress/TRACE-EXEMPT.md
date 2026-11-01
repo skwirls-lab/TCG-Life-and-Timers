@@ -6,5 +6,4 @@
 ## Pending (temporary; must be empty for `check:trace -- --all`)
 - PWA-003: PENDING(T8.7) install prompt UX
 - INP-005: PENDING(T8.8) swipe-to-change input (P1, off by default) — not built in W2
-- PRE-002: PENDING(T3.6) duplicate a built-in preset into a custom preset (builder)
 - TOOL-013: PENDING(T5.6) icon attribution on the About page (all current icons are original or lucide/ISC)

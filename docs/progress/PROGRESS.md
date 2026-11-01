@@ -45,10 +45,10 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T3.1 | Pokémon | W3 | PRESETS | DONE | §10.3, CUS-008. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.2 | Yu-Gi-Oh! + calculator | W3 | PRESETS | DONE | §10.4, INP-007, TOOL-006. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.3 | FFTCG, Lorcana, One Piece, SWU, Digimon, Generic (+ FaB, Sorcery as P1) | W3 | PRESETS | DONE | §10.5, §10.6, PRE-010, PRE-011, TOOL-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
-| T3.4 | Per-seat overrides | W3 | PRESETS | TODO | PRE-013, GAME-013. |  |
+| T3.4 | Per-seat overrides | W3 | PRESETS | IN_PROGRESS | PRE-013, GAME-013. |  |
 | T3.5 | Preset picker | W3 | PRESETS | DONE | PRE-003, PRE-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
-| T3.7 | Roll-off | W3 | PRESETS | TODO | TOOL-004, GAME-012. |  |
-| T3.6 | Custom preset builder | W3 | BUILDER | TODO | CUS-001..008, CUS-010. |  |
+| T3.7 | Roll-off | W3 | PRESETS | IN_PROGRESS | TOOL-004, GAME-012. |  |
+| T3.6 | Custom preset builder | W3 | BUILDER | DONE | CUS-001..008, CUS-010. | builder e2e 21 ✅ Scenario 7 |
 | T4.1 | Auth | W3 | FIREBASE | TODO | AUTH-001, AUTH-002, AUTH-004. |  |
 | T4.2 | Rules and rules tests | W3 | FIREBASE | DONE | SEC-001..006, LEG-005. | rules 78 ✅ functions 21 ✅ (T4.5: server side; client export pending) |
 | T4.3 | Sync engine | W3 | FIREBASE | TODO | ARCH-007, SYNC-001..004, PROF-003, SET-014. |  |
