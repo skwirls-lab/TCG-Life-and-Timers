@@ -127,6 +127,7 @@ export function PlayScreen() {
             onClose={closeMenu}
             {...(menu?.tab ? { initialTab: menu.tab } : {})}
             {...(menu?.focusCounterId ? { focusCounterId: menu.focusCounterId } : {})}
+            {...(menu?.rotation !== undefined ? { rotation: menu.rotation } : {})}
           />
         </GameErrorBoundary>
       ) : (

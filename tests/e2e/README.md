@@ -22,3 +22,7 @@
 | Counter tile in the seat menu | `counter-{counterId}` |
 | Commander damage cell in the seat menu | `cmd-cell-{sourceSeatIndex}-{commanderIndex}` |
 | First-player overlay / game-over overlay | `first-player-overlay`, `game-over` |
+
+### Board additions (W2)
+`board`, `play`, `toolbar`, `toolbar-handle`, `seat-{i}-cmdgrid`, `seat-{i}-cmdquick`, `seat-{i}-cmd-{src}-{k}` (partner split), `players-popover`, `players-count-{n}`, `players-layout-{id}`, `players-confirm`, `players-cmd-mode`, `cmd-mode-exit`, `reset-dialog`, `reset-confirm`, `quick-tools`, `quick-d{n}`, `quick-coin`, `quick-player`, `quick-opponent`, `tool-result-value`, `tool-result-total`.
+Test builds: `/play?...&s.cameraMode=bottom&s.onePlayerMode=1` apply settings in memory.

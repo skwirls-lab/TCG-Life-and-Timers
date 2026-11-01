@@ -2,11 +2,14 @@
 /** Board-local UI state (not persisted): seat menu target, quick commander mode, popovers. */
 import { create } from "zustand";
 import type { SeatMenuTab } from "@/features/seat/SeatMenu";
+import type { Rotation } from "@/lib/ui/rotation";
 
 export interface SeatMenuTarget {
   seatId: string;
   tab?: SeatMenuTab;
   focusCounterId?: string;
+  /** the tile's on-screen rotation, so the menu faces that player */
+  rotation?: Rotation;
 }
 
 interface BoardUiState {

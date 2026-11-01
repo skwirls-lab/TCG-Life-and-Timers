@@ -129,7 +129,7 @@ export const SeatTile = memo(function SeatTile({
     { w: frameW, h: frameH },
     { wide, details: showDetails, big, chars: valueText.length, gridRows: grid.rows },
   );
-  const openSeat = () => openMenu({ seatId, tab: "player" });
+  const openSeat = () => openMenu({ seatId, tab: "player", rotation });
   const zoneLabel = (kind: "plus" | "minus") =>
     t(kind === "plus" ? "board.seat.increase" : "board.seat.decrease", {
       name: view.name,
@@ -323,7 +323,7 @@ export const SeatTile = memo(function SeatTile({
                       grid={grid}
                       looks={looks}
                       cellPx={m.cellPx}
-                      onOpen={() => openMenu({ seatId, tab: "commander" })}
+                      onOpen={() => openMenu({ seatId, tab: "commander", rotation })}
                     />
                   ) : (
                     <span />
@@ -332,7 +332,7 @@ export const SeatTile = memo(function SeatTile({
                     index={index}
                     seatId={seatId}
                     onOpen={(counterId) =>
-                      openMenu({ seatId, tab: "counters", focusCounterId: counterId })
+                      openMenu({ seatId, tab: "counters", focusCounterId: counterId, rotation })
                     }
                   />
                 </div>
