@@ -42,11 +42,11 @@ Statuses: TODO → IN_PROGRESS → VERIFYING → DONE | BLOCKED_FALLBACK | DEFER
 | T2.7 | Match timer | W3 | TIMER-UI | TODO | TMR-032. |  |
 | T2.8 | Timer settings and the seat timer tab | W3 | TIMER-UI | TODO | §13.1-C, SEAT-003, TMR-022, TMR-060 (P2: data model only, UI hidden). |  |
 | T2.9 | Reload resilience | W3 | TIMER-UI | TODO | REL-001, TMR-044. |  |
-| T3.1 | Pokémon | W3 | PRESETS | TODO | §10.3, CUS-008. |  |
-| T3.2 | Yu-Gi-Oh! + calculator | W3 | PRESETS | TODO | §10.4, INP-007, TOOL-006. |  |
-| T3.3 | FFTCG, Lorcana, One Piece, SWU, Digimon, Generic (+ FaB, Sorcery as P1) | W3 | PRESETS | TODO | §10.5, §10.6, PRE-010, PRE-011, TOOL-012. |  |
+| T3.1 | Pokémon | W3 | PRESETS | DONE | §10.3, CUS-008. | presets e2e 78 ✅ (board/setup wiring in D-046) |
+| T3.2 | Yu-Gi-Oh! + calculator | W3 | PRESETS | DONE | §10.4, INP-007, TOOL-006. | presets e2e 78 ✅ (board/setup wiring in D-046) |
+| T3.3 | FFTCG, Lorcana, One Piece, SWU, Digimon, Generic (+ FaB, Sorcery as P1) | W3 | PRESETS | DONE | §10.5, §10.6, PRE-010, PRE-011, TOOL-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.4 | Per-seat overrides | W3 | PRESETS | TODO | PRE-013, GAME-013. |  |
-| T3.5 | Preset picker | W3 | PRESETS | TODO | PRE-003, PRE-012. |  |
+| T3.5 | Preset picker | W3 | PRESETS | DONE | PRE-003, PRE-012. | presets e2e 78 ✅ (board/setup wiring in D-046) |
 | T3.7 | Roll-off | W3 | PRESETS | TODO | TOOL-004, GAME-012. |  |
 | T3.6 | Custom preset builder | W3 | BUILDER | TODO | CUS-001..008, CUS-010. |  |
 | T4.1 | Auth | W3 | FIREBASE | TODO | AUTH-001, AUTH-002, AUTH-004. |  |
