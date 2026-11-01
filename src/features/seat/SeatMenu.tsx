@@ -102,7 +102,8 @@ function SeatMenuBody({
   const current = tabs.includes(tab) ? tab : "player";
   return (
     <div className="flex flex-col gap-3">
-      <div className="sticky top-0 z-10 -mx-4 bg-surface px-4">
+      {/* A-12: an opaque bar with its own edge, so content scrolling under it never looks drawn through the tab underline. */}
+      <div className="sticky top-0 z-10 -mx-4 border-b border-border bg-surface px-4 pb-1 shadow-[0_8px_10px_-8px_rgb(0_0_0/0.7)]">
         <Tabs<SeatMenuTab>
           label={t("seat.menu.tabs")}
           value={current}
