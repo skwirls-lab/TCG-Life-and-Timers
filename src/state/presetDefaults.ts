@@ -59,11 +59,13 @@ export async function restorePresetDefaults(presetId: string, db: TcgDb = getDb(
 
 /** Game-scope values of a running game, for "Save as default for <preset>". */
 export function presetDefaultsFromGame(game: Game): PresetDefaults {
+  // TMR-060 per-seat clock extras are per game (seat ids), never a preset default.
+  const { seatExtraMs: _x, ...timer } = game.timer.config;
   return {
     players: game.seats.length,
     layoutId: game.layoutId,
     options: { ...game.options },
-    timer: { ...game.timer.config },
+    timer,
     startOverrides: { ...game.startOverrides },
     thresholdOverrides: { ...game.thresholdOverrides },
     enabledCounters: [...game.enabledCounters],

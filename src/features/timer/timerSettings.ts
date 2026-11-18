@@ -7,10 +7,11 @@
  * a `{ kind: "timer", patch }` change: the settings model applies it to the game
  * (`applyTimerPatch`) or, with no active game, to the next game's timer defaults (SET-012).
  * Structure keys (mode, time per player, per-turn time, match timer) only apply to idle clocks:
- * changing them after START asks to restart the clocks (TimerSettingsHost). Advanced modes /
- * options are gated with `timerAdvancedModes` (locked options open the paywall).
+ * changing them after START asks to restart the clocks (TimerSettingsHost). Every clock
+ * option is free (no Pro gating for timers).
  */
 import {
+  BLOCKERS_TIMEOUTS,
   TIMER_MODES,
   TIMEOUT_ACTIONS,
   RESPONSE_MODES,
@@ -28,7 +29,6 @@ import {
 import { t, type MessageKey } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 import {
-  ADVANCED_MODES,
   BANK_MINUTES,
   BANK_MODES,
   GRACE_MS,
@@ -41,6 +41,13 @@ import {
   shortDuration,
 } from "./model";
 import { warningsSummary } from "./warnings";
+import {
+  BLOCKERS_SECONDS,
+  blockersSettings,
+  modeFamily,
+  modePatch,
+  seatTimesSummary,
+} from "./seatTimes";
 import { useTimerSettingsUi } from "./timerSettingsUi";
 
 export const CUSTOM = "custom";
@@ -67,7 +74,6 @@ function patchSet(
   });
 }
 
-const locked = (ctx: SettingsContext) => !ctx.can("timerAdvancedModes");
 const on = (ctx: SettingsContext) => cfgOf(ctx).mode !== "off";
 const limitedMode = (ctx: SettingsContext) => on(ctx) && cfgOf(ctx).mode !== "countup";
 
@@ -101,13 +107,10 @@ export const TIMER_ROWS: SettingDef[] = [
     "mode",
     {
       kind: "select",
-      options: (ctx) =>
+      options: () =>
         TIMER_MODES.map((m) => ({
           value: m,
           label: t(`timer.mode.${m}`),
-          locked: ADVANCED_MODES.includes(m) && locked(ctx),
-          disabled: ADVANCED_MODES.includes(m) && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         })),
     },
     {
@@ -115,7 +118,7 @@ export const TIMER_ROWS: SettingDef[] = [
       helpKey: "timer.settings.mode.help",
       subtitleKey: "timer.settings.mode.subtitle",
       get: (ctx) => cfgOf(ctx).mode,
-      set: patchSet((v) => ({ mode: v as TimerMode })),
+      set: patchSet((v, ctx) => modePatch(cfgOf(ctx), v as TimerMode)),
     },
   ),
   row(
@@ -190,17 +193,11 @@ export const TIMER_ROWS: SettingDef[] = [
         const opts: ChoiceOption[] = MATCH_MINUTES.map((m) => ({
           value: m,
           label: m === 0 ? t("timer.settings.off") : t("timer.settings.minutes", { n: m }),
-          locked: m !== 0 && locked(ctx),
-          disabled: m !== 0 && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         }));
         const custom = cur > 0 && !MATCH_MINUTES.some((m) => m * MIN === cur);
         opts.push({
           value: CUSTOM,
           label: custom ? shortDuration(cur) : t("timer.settings.custom"),
-          locked: locked(ctx),
-          disabled: locked(ctx),
-          lockFeature: "timerAdvancedModes",
         });
         return opts;
       },
@@ -242,13 +239,10 @@ export const TIMER_ROWS: SettingDef[] = [
     "timeoutAction",
     {
       kind: "select",
-      options: (ctx) =>
+      options: () =>
         TIMEOUT_ACTIONS.map((a) => ({
           value: a,
           label: t(`timer.timeout.${a}`),
-          locked: a === "addOnce" && locked(ctx),
-          disabled: a === "addOnce" && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         })),
     },
     {
@@ -278,6 +272,60 @@ export const TIMER_ROWS: SettingDef[] = [
       set: patchSet((v, ctx) =>
         cfgOf(ctx).timeoutAction === "addOnce" ? { addOnceMs: Number(v) } : { graceMs: Number(v) },
       ),
+    },
+  ),
+  row(
+    // TMR-060: Row → sub-page (toggle + a time stepper per seat). Per game: needs a game.
+    "seatTimes",
+    { kind: "subpage", page: "seatTimes" },
+    {
+      subtitleKey: "timer.settings.seatTimes.summary",
+      subtitleVars: (ctx) => ({
+        list:
+          seatTimesSummary(cfgOf(ctx), ctx.game?.seats ?? []) ||
+          t(
+            cfgOf(ctx).seatExtraMs
+              ? "timer.settings.seatTimes.subtitle"
+              : "timer.settings.seatTimes.off",
+          ),
+      }),
+      visibleIf: (_p, game, ctx) => game !== null && modeFamily(cfgOf(ctx).mode) !== null,
+    },
+  ),
+  row(
+    "blockersWindow",
+    { kind: "toggle" },
+    {
+      default: false,
+      visibleIf: (_p, _g, ctx) => on(ctx),
+      get: (ctx) => blockersSettings(cfgOf(ctx)).on,
+      set: patchSet((v) => ({ blockersWindow: Boolean(v) })),
+    },
+  ),
+  row(
+    "blockersMs",
+    {
+      kind: "select",
+      options: () =>
+        BLOCKERS_SECONDS.map((s) => ({ value: s, label: t("timer.settings.seconds", { n: s }) })),
+    },
+    {
+      visibleIf: (_p, _g, ctx) => on(ctx) && blockersSettings(cfgOf(ctx)).on,
+      get: (ctx) => blockersSettings(cfgOf(ctx)).seconds,
+      set: patchSet((v) => ({ blockersMs: Number(v) * 1000 })),
+    },
+  ),
+  row(
+    "blockersTimeout",
+    {
+      kind: "select",
+      options: () =>
+        BLOCKERS_TIMEOUTS.map((v) => ({ value: v, label: t(`timer.blockersTimeout.${v}`) })),
+    },
+    {
+      visibleIf: (_p, _g, ctx) => on(ctx) && blockersSettings(cfgOf(ctx)).on,
+      get: (ctx) => blockersSettings(cfgOf(ctx)).timeout,
+      set: patchSet((v) => ({ blockersTimeout: v as TimerConfig["blockersTimeout"] })),
     },
   ),
   row(

@@ -15,6 +15,7 @@ import type { ProfileSelection } from "@/lib/profiles/types";
 import { applyPresetDefaults, type PresetDefaults } from "@/state/presetDefaults";
 import { normalizeLayoutId } from "@/features/settings/layoutVariants";
 import { perSeatChips } from "@/presets";
+import { modeFamily } from "@/features/timer/seatTimes";
 
 export const SETUP_STEPS = ["preset", "players", "seats", "options"] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
@@ -37,6 +38,8 @@ export interface SetupSeat {
   start?: number;
   /** PRE-013 per-seat primary threshold; undefined = the preset's threshold. */
   threshold?: number;
+  /** TMR-060 extra starting time on the clock (used while `timer.seatExtraMs` is on). */
+  clockExtraMs?: number;
 }
 
 export interface SetupState {
@@ -120,7 +123,7 @@ export function stateForPreset(
       defaults?.options?.firstPlayerRule ??
       preset.defaults.options?.firstPlayerRule ??
       preset.defaults.firstPlayerRule,
-    timer: { ...preset.defaults.timer, ...defaults?.timer },
+    timer: withoutSeatExtra({ ...preset.defaults.timer, ...defaults?.timer }),
     ...(defaults ? { defaults } : {}),
   };
 }
@@ -273,7 +276,7 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
       // Any clock mode tracks turns (as TIMER_SET_CONFIG does mid-game).
       ...(state.timer.mode !== "off" ? { turnTracking: true } : {}),
     },
-    timer: { ...state.timer },
+    timer: setupTimer(state),
     enabledCounters: [...state.enabledCounters],
     ...(state.startValue !== null ? { startOverrides: { [primary.id]: state.startValue } } : {}),
     ...perSeatMaps(state, preset),
@@ -283,7 +286,35 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
 
 /** §13.1-C: patch the setup clock (time keys are ms). */
 export function setTimer(state: SetupState, patch: Partial<TimerConfig>): SetupState {
-  return { ...state, timer: { ...state.timer, ...patch } };
+  const timer = { ...state.timer, ...patch };
+  if (patch.seatExtraMs === undefined && "seatExtraMs" in patch) delete timer.seatExtraMs;
+  // TMR-060: bank minutes make no sense as per-turn time (and back): start over at the base.
+  const reset = patch.mode !== undefined && modeFamily(patch.mode) !== modeFamily(state.timer.mode);
+  const seats = reset ? state.seats.map(({ clockExtraMs: _x, ...s }) => s) : state.seats;
+  return { ...state, timer, seats };
+}
+
+/** TMR-060: one seat's extra starting time (0 = the base time). */
+export function setSeatClockExtra(state: SetupState, index: number, ms: number): SetupState {
+  return updateSeat(state, index, { clockExtraMs: ms === 0 ? undefined : ms });
+}
+
+/** TMR-060: the timer config for the new game (per-seat extras keyed by engine seat id). */
+export function setupTimer(state: SetupState): TimerConfig {
+  const timer = withoutSeatExtra(state.timer);
+  if (state.timer.seatExtraMs === undefined) return timer;
+  const extra: Record<string, number> = {};
+  state.seats.forEach((s, i) => {
+    if (s.clockExtraMs) extra[setupSeatId(i)] = s.clockExtraMs;
+  });
+  return { ...timer, seatExtraMs: extra };
+}
+
+/** Per-seat clock extras are per game: never part of stored defaults. */
+export function withoutSeatExtra(timer: TimerConfig): TimerConfig {
+  if (!("seatExtraMs" in timer)) return timer;
+  const { seatExtraMs: _x, ...rest } = timer;
+  return rest;
 }
 
 /** Seats can name commanders when the preset has per-commander or commander-damage counters. */

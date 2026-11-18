@@ -80,7 +80,8 @@ export type PreviewSpec =
   | { type: "layout"; players: number; id: string }
   | { type: "card"; kind: AppSettings["cardLayout"] };
 
-export type SubPageId = "seats" | "perSeatStart" | "thresholds" | "counters" | "warnings";
+export type SubPageId =
+  "seats" | "perSeatStart" | "thresholds" | "counters" | "warnings" | "seatTimes";
 export type ActionId =
   | "saveDefaults"
   | "restoreDefaults"

@@ -31,6 +31,8 @@ import {
   type ThresholdRule,
 } from "./types";
 import {
+  BLOCKERS_END_REASONS,
+  BLOCKERS_TIMEOUTS,
   CLOCK_STATES,
   FINAL_ACTIONS,
   PASS_MODES,
@@ -80,6 +82,10 @@ export const TimerConfigSchema = z.object({
   showTenths: z.boolean(),
   showTurnTime: z.boolean(),
   match: z.object({ totalMs: ms(), extraTurns: nonNegInt() }).optional(),
+  seatExtraMs: z.record(z.string(), z.number().int()).optional(),
+  blockersWindow: z.boolean().optional(),
+  blockersMs: ms().optional(),
+  blockersTimeout: z.enum(BLOCKERS_TIMEOUTS).optional(),
 });
 
 export const SeatClockSchema = z.object({
@@ -89,6 +95,7 @@ export const SeatClockSchema = z.object({
   turnUsedMs: z.number().nonnegative(),
   state: z.enum(CLOCK_STATES),
   addOnceUsed: z.boolean().optional(),
+  turnMs: z.number().nonnegative().optional(),
 });
 
 export const TimerStateSchema = z.object({
@@ -109,6 +116,15 @@ export const TimerStateSchema = z.object({
     .optional(),
   holdFreeMs: z.number().nonnegative().optional(),
   turnNumber: z.number().int().positive().optional(),
+  blockers: z
+    .object({
+      seatId: z.string(),
+      durationMs: z.number().nonnegative(),
+      remainingMs: z.number(),
+      startedAt: z.number(),
+      expired: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -527,6 +543,12 @@ const actionSchemas = [
   z.object({
     type: z.literal("TIMER_RESET_CLOCKS"),
     config: TimerConfigSchema.partial().optional(),
+    now,
+  }),
+  z.object({ type: z.literal("TIMER_BLOCKERS_START"), durationMs: ms().optional(), now }),
+  z.object({
+    type: z.literal("TIMER_BLOCKERS_END"),
+    reason: z.enum(BLOCKERS_END_REASONS).optional(),
     now,
   }),
 ] as const;

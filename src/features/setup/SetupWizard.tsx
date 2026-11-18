@@ -46,6 +46,7 @@ import {
   offersStartPicker,
   setPlayers,
   setTimer,
+  setSeatClockExtra,
   stateForPreset,
   toNewGameConfig,
   toggleCounter,
@@ -421,6 +422,20 @@ export function SetupWizard() {
           <SetupClock
             timer={state.timer}
             onChange={(patch) => setState((s) => setTimer(s, patch))}
+            seats={state.seats.map((s, i) => ({
+              key: s.key,
+              name: s.name.trim() || t("shell.setup.seat.placeholder", { n: i + 1 }),
+              extraMs: s.clockExtraMs ?? 0,
+            }))}
+            onSeatExtra={(key, ms) =>
+              setState((s) =>
+                setSeatClockExtra(
+                  s,
+                  s.seats.findIndex((x) => x.key === key),
+                  ms,
+                ),
+              )
+            }
           />
         </div>
       )}

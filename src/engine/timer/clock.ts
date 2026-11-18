@@ -14,7 +14,7 @@
  */
 import type { Game, SeatId } from "../types";
 import type { ClockState, SeatClock, TimerConfig, TimerMode, TimerState } from "./types";
-import { timerWarnings } from "./types";
+import { clockTurnMs, timerWarnings } from "./types";
 
 /** Modes with a time limit (timeouts and warnings apply). */
 export function isLimited(mode: TimerMode): boolean {
@@ -29,14 +29,35 @@ export function timerEngaged(t: Pick<TimerState, "mode" | "match">): boolean {
   return t.mode !== "off" || t.match !== undefined;
 }
 
-/** The holder's clock is being charged right now (running, not frozen by a response — TMR-010). */
-export function isCharging(t: TimerState): boolean {
+/** Running with a holder whose clock may be charged (not frozen by a response — TMR-010). */
+function holderRuns(t: TimerState): boolean {
   return (
     t.status === "running" &&
     t.holder !== null &&
     t.runningSince !== null &&
     !(t.config.responses === "freeze" && t.responseStack.length > 0)
   );
+}
+
+/** The blockers window is counting (open, nobody responding). */
+export function blockersCounting(t: Pick<TimerState, "blockers" | "responseStack">): boolean {
+  return t.blockers !== undefined && t.responseStack.length === 0;
+}
+
+/**
+ * The blockers window stops the attacker's clock: while it counts, and after 0:00 too unless the
+ * "return" house rule hands the clock back (then time after 0:00 is the attacker's again).
+ */
+function blockersFreeze(t: TimerState): boolean {
+  return (
+    blockersCounting(t) &&
+    !(t.config.blockersTimeout === "return" && (t.blockers?.remainingMs ?? 0) <= 0)
+  );
+}
+
+/** The holder's clock is being charged right now (running, not frozen by a response — TMR-010). */
+export function isCharging(t: TimerState): boolean {
+  return holderRuns(t) && !blockersFreeze(t);
 }
 
 /** Grace left for a clock (undefined = the full configured grace). */
@@ -46,7 +67,7 @@ export function graceLeft(c: SeatClock, cfg: TimerConfig): number {
 
 /** perTurnReserve: per-turn time left this turn (0 in other modes). */
 export function turnLeftMs(c: SeatClock, cfg: TimerConfig): number {
-  return cfg.mode === "perTurnReserve" ? Math.max(0, cfg.perTurnMs - c.turnUsedMs) : 0;
+  return cfg.mode === "perTurnReserve" ? Math.max(0, clockTurnMs(c, cfg) - c.turnUsedMs) : 0;
 }
 
 /** Time left before the next timeout action applies (per state). */
@@ -88,8 +109,17 @@ export function projectTimer(t: TimerState, now: number): TimerState {
   const next: TimerState = { ...t, runningSince: now };
   const h = t.holder;
   const c = h === null ? undefined : t.clocks[h];
-  if (isCharging(t) && h !== null && c) {
-    const r = chargeClock(c, elapsed, t.config, t.holdFreeMs ?? 0);
+  let charged = elapsed;
+  const b = t.blockers;
+  if (b && blockersCounting(t)) {
+    // The window counts down first; only the "return" rule charges the time after 0:00.
+    const left = Math.max(0, b.remainingMs);
+    const used = Math.min(elapsed, left);
+    next.blockers = { ...b, remainingMs: left - used };
+    charged = t.config.blockersTimeout === "return" ? elapsed - used : 0;
+  }
+  if (holderRuns(t) && h !== null && c && charged > 0) {
+    const r = chargeClock(c, charged, t.config, t.holdFreeMs ?? 0);
     next.clocks = { ...t.clocks, [h]: r.clock };
     if (t.config.mode === "bankDelay") next.holdFreeMs = r.freeMs;
   }
@@ -153,6 +183,12 @@ export function holder(game: Pick<Game, "timer" | "status">): SeatId | null {
   return game.timer.status === "running" && game.status !== "ended" ? game.timer.holder : null;
 }
 
+/** Declare-blockers window time left at `now` (null when no window is open). */
+export function blockersRemaining(game: Pick<Game, "timer">, now: number): number | null {
+  if (!game.timer.blockers) return null;
+  return projectTimer(game.timer, now).blockers?.remainingMs ?? null;
+}
+
 /** Match / round timer (TMR-032): remaining time and whether time has been called. */
 export function matchRemaining(
   game: Pick<Game, "timer">,
@@ -175,7 +211,8 @@ export function dueKind(c: SeatClock, cfg: TimerConfig): "timeout" | "graceEnd" 
   return null;
 }
 
-export type SignificantEventKind = "warning" | "timeout" | "graceEnd" | "matchEnd";
+/** `blockersEnd`: the blockers window reached 0 (dispatch TIMER_BLOCKERS_END {reason: "timeout"}). */
+export type SignificantEventKind = "warning" | "timeout" | "graceEnd" | "matchEnd" | "blockersEnd";
 
 export interface SignificantEvent {
   /** Epoch ms when it happens (≤ now when already due). */
@@ -190,7 +227,8 @@ const KIND_RANK: Record<SignificantEventKind, number> = {
   timeout: 0,
   graceEnd: 1,
   matchEnd: 2,
-  warning: 3,
+  blockersEnd: 3,
+  warning: 4,
 };
 
 /**
@@ -231,6 +269,12 @@ export function nextSignificantEvent(
         out.push({ at: now + free + left, kind: "graceEnd", seatId: h });
       }
     }
+  }
+  const b = t.blockers;
+  if (b && !b.expired) {
+    if (b.remainingMs <= 0) out.push({ at: now, kind: "blockersEnd", seatId: b.seatId });
+    else if (t.status === "running" && blockersCounting(t))
+      out.push({ at: now + b.remainingMs, kind: "blockersEnd", seatId: b.seatId });
   }
   if (t.status === "running" && t.match && t.match.remainingMs > 0) {
     out.push({ at: now + t.match.remainingMs, kind: "matchEnd" });

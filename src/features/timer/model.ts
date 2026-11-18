@@ -55,6 +55,12 @@ export interface SeatTimerView {
   /** This seat's clock is the running one (holder pulse). */
   holding: boolean;
   passMode: TimerConfig["passMode"];
+  /** Declare-blockers: the turn holder may open the window (Attack). */
+  canAttack: boolean;
+  /** A blockers window is open. */
+  inWindow: boolean;
+  /** May tap Blockers declared (window open, nobody responding). */
+  canDeclare: boolean;
 }
 
 const HIDDEN: SeatTimerView = {
@@ -76,6 +82,9 @@ const HIDDEN: SeatTimerView = {
   canReturn: false,
   holding: false,
   passMode: "tap",
+  canAttack: false,
+  inWindow: false,
+  canDeclare: false,
 };
 
 const nameOf = (g: Game, id: SeatId | undefined) =>
@@ -97,6 +106,7 @@ export function seatTimerView(game: Game, seatId: SeatId): SeatTimerView {
   const isTop = top === seatId;
   const priority = top ?? active;
   const responses = t.config.responses;
+  const inWindow = started && t.blockers !== undefined;
   return {
     show: true,
     clocks,
@@ -118,6 +128,15 @@ export function seatTimerView(game: Game, seatId: SeatId): SeatTimerView {
     canReturn: started && isTurn && stack.length > 0 && !isTop,
     holding: started && priority === seatId,
     passMode: clocks ? t.config.passMode : "tap",
+    canAttack:
+      t.status === "running" &&
+      clocks &&
+      t.config.blockersWindow === true &&
+      !inWindow &&
+      isTurn &&
+      stack.length === 0,
+    inWindow,
+    canDeclare: inWindow && stack.length === 0,
   };
 }
 
@@ -247,14 +266,6 @@ export function responseElapsed(game: Game, now: number): number {
 // Settings tables (§13.1-C)
 // ---------------------------------------------------------------------------------------------
 
-/** Modes gated behind `timerAdvancedModes` (all free while the policy is ALL_FREE). */
-export const ADVANCED_MODES: readonly TimerMode[] = [
-  "bankIncrement",
-  "bankDelay",
-  "perTurn",
-  "perTurnReserve",
-];
-
 export const BANK_MODES: readonly TimerMode[] = ["bank", "bankIncrement", "bankDelay"];
 export const PER_TURN_MODES: readonly TimerMode[] = ["perTurn", "perTurnReserve"];
 
@@ -285,6 +296,7 @@ export const STRUCTURE_KEYS: readonly (keyof TimerConfig)[] = [
   "perTurnMs",
   "reserveMs",
   "match",
+  "seatExtraMs",
 ];
 
 export function isStructurePatch(patch: Partial<TimerConfig>): boolean {
@@ -327,8 +339,10 @@ const NUM_KEYS = [
   "reserveMs",
   "graceMs",
   "addOnceMs",
+  "blockersMs",
 ] as const satisfies readonly (keyof TimerConfig)[];
 const BOOL_KEYS = [
+  "blockersWindow",
   "autoPauseBackground",
   "autoPauseMenus",
   "showTenths",
@@ -339,7 +353,8 @@ const BOOL_KEYS = [
  * `t.mode`, `t.bankMs`, `t.incrementMs`, `t.delayMs`, `t.perTurnMs`, `t.reserveMs`, `t.graceMs`,
  * `t.addOnceMs`, `t.timeoutAction`, `t.finalAction`, `t.responses`, `t.passMode`,
  * `t.autoPauseBackground`, `t.autoPauseMenus`, `t.showTenths`, `t.showTurnTime` (1/0),
- * `t.warnings=300000,60000` and `t.matchMs` + `t.extraTurns`. Invalid values are dropped.
+ * `t.warnings=300000,60000`, `t.matchMs` + `t.extraTurns`, `t.blockersWindow`, `t.blockersMs`,
+ * `t.blockersTimeout` and `t.seatExtra=s2:300000,s3:-60000`. Invalid values are dropped.
  */
 export function parseTimerParams(search: URLSearchParams): Partial<TimerConfig> {
   const out: Partial<TimerConfig> = {};
@@ -374,6 +389,16 @@ export function parseTimerParams(search: URLSearchParams): Partial<TimerConfig> 
       .map(Number)
       .filter((x) => Number.isFinite(x) && x > 0);
     out.warningsMs = list.sort((a, b) => b - a);
+  }
+  const bt = get("blockersTimeout");
+  if (bt === "wait" || bt === "return") out.blockersTimeout = bt;
+  // `t.seatExtra=s2:300000,s3:-60000` (TMR-060).
+  const extra = get("seatExtra");
+  if (extra) {
+    const pairs = extra.split(",").map((p) => p.split(":"));
+    out.seatExtraMs = Object.fromEntries(
+      pairs.filter(([k, v]) => k && Number.isInteger(Number(v))).map(([k, v]) => [k!, Number(v)]),
+    );
   }
   const match = get("matchMs");
   if (match !== null && Number(match) > 0) {

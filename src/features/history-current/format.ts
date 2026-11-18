@@ -251,8 +251,14 @@ function eventLabel(event: GameEvent, game: Game): { label: string; icon: string
         timeout: "history.ev.timer.timeout",
         matchEnd: "history.ev.timer.matchEnd",
         restart: "history.ev.timer.restart",
+        blockersStart: "history.ev.timer.blockersStart",
+        blockersTimeUp: "history.ev.timer.blockersTimeUp",
+        "blockersEnd.declared": "history.ev.timer.blockersEnd.declared",
+        "blockersEnd.timeout": "history.ev.timer.blockersEnd.timeout",
+        "blockersEnd.pass": "history.ev.timer.blockersEnd.pass",
       };
-      const key = known[action];
+      const key = known[action === "blockersEnd" ? `${action}.${str(m.reason)}` : action];
+      const span = m.usedMs ?? m.durationMs;
       const delta =
         typeof event.delta === "number"
           ? `${event.delta >= 0 ? "+" : "−"}${formatTimerClock(Math.abs(event.delta), { showTenths: false })}`
@@ -265,7 +271,9 @@ function eventLabel(event: GameEvent, game: Game): { label: string; icon: string
               value:
                 typeof event.to === "number"
                   ? formatTimerClock(event.to, { showTenths: false })
-                  : "",
+                  : typeof span === "number"
+                    ? formatTimerClock(span, { showTenths: false })
+                    : "",
             })
           : t("history.ev.timer", { action: action || "—" }),
         icon: "clock",

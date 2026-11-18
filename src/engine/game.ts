@@ -11,7 +11,7 @@ import {
 } from "./options";
 import { randomId, type Rng } from "./rng";
 import { initialTurn, nextSeat, pickFirstSeat, turnOrderFor, type FirstPick } from "./turn";
-import { initialClock, initialTimerState } from "./timer/types";
+import { initialClock, initialTimerState, pruneSeatExtra } from "./timer/types";
 import type {
   CounterId,
   FirstPlayerRule,
@@ -243,7 +243,10 @@ export function addSeat(
     ...g,
     values,
     turn: { ...g.turn, order: turnOrderFor(seats, g.options.turnOrder) },
-    timer: { ...g.timer, clocks: { ...g.timer.clocks, [seat.id]: initialClock(g.timer.config) } },
+    timer: {
+      ...g.timer,
+      clocks: { ...g.timer.clocks, [seat.id]: initialClock(g.timer.config, seat.id) },
+    },
   };
   return appendEvent(
     g,
@@ -304,6 +307,11 @@ export function removeSeat(game: Game, seatId: SeatId, now: number): Game {
     },
     timer: {
       ...game.timer,
+      // TMR-060: a later seat may reuse this id; it must not inherit the extra time.
+      config: pruneSeatExtra(
+        game.timer.config,
+        seats.map((s) => s.id),
+      ),
       clocks: omitKey(game.timer.clocks, seatId),
       responseStack: game.timer.responseStack.filter((s) => s !== seatId),
       holder: game.timer.holder === seatId ? null : game.timer.holder,

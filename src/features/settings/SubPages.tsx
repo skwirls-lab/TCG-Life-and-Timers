@@ -12,6 +12,7 @@ import { primaryCounter, type TimerConfig } from "@/engine";
 import { setPerSeatValue } from "@/features/setup/setupModel";
 import { StartValuePicker } from "@/features/setup/StartValuePicker";
 import { WarningsPage } from "@/features/timer/WarningsPage";
+import { SeatTimesPage } from "@/features/timer/SeatTimesPage";
 import { t } from "@/lib/i18n";
 import { perSeatChips } from "@/presets";
 import { useDispatch } from "@/state/gameStore";
@@ -33,6 +34,7 @@ const TITLES = {
   thresholds: "shell.settings.thresholds.title",
   counters: "shell.settings.counters.title",
   warnings: "timer.settings.warnings.title",
+  seatTimes: "timer.settings.seatTimes.title",
 } as const;
 
 export function SettingsSubPage({ page, ctx, onClose, applyDraft, applyTimer }: Props) {
@@ -47,6 +49,16 @@ export function SettingsSubPage({ page, ctx, onClose, applyDraft, applyTimer }: 
       {page === "counters" && <CountersPage ctx={ctx} onApply={done} />}
       {page === "perSeatStart" && <PerSeatStartPage ctx={ctx} onApply={done} />}
       {page === "warnings" && <WarningsPage ctx={ctx} onPatch={applyTimer} />}
+      {page === "seatTimes" && (
+        <SeatTimesPage
+          ctx={ctx}
+          onApply={(patch) => {
+            // Apply first: a restart confirm opens on the main page once this closes.
+            applyTimer(patch);
+            onClose();
+          }}
+        />
+      )}
     </PageShell>
   );
 }

@@ -2,7 +2,7 @@
  * Engine domain types — PRD §6 (domain model), §8 (life/counter features), §10.1 (presets).
  * Pure data: everything here is JSON-serializable. Mirrored by Zod schemas in `./schemas.ts`.
  */
-import type { TimerConfig, TimerState } from "./timer/types";
+import type { BlockersEndReason, TimerConfig, TimerState } from "./timer/types";
 
 export type SeatId = string;
 export type CounterId = string;
@@ -629,7 +629,19 @@ export type TimerAction =
    * START begins again) with the current config plus an optional patch (structure keys such as
    * mode/bank apply here). One undo step; logs a timer event `{action: "restart"}`.
    */
-  | ({ type: "TIMER_RESET_CLOCKS"; config?: Partial<TimerConfig> } & Timed);
+  | ({ type: "TIMER_RESET_CLOCKS"; config?: Partial<TimerConfig> } & Timed)
+  /**
+   * Declare-blockers window (additive): the turn holder declared attackers. Their clock stops
+   * and a shared countdown of `durationMs` (default config.blockersMs ?? 30 s) runs instead.
+   * Only while running, on the turn holder's own priority (no open response). One undo step.
+   */
+  | ({ type: "TIMER_BLOCKERS_START"; durationMs?: number } & Timed)
+  /**
+   * Ends the window ("declared", default) and the attacker's clock runs again. "timeout" is
+   * dispatched by the scheduler at 0:00: with config.blockersTimeout "return" it ends the window,
+   * otherwise ("wait") it only marks it expired (logs "time is up"; the window stays open).
+   */
+  | ({ type: "TIMER_BLOCKERS_END"; reason?: BlockersEndReason } & Timed);
 
 export type GameAction =
   | CounterAction

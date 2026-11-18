@@ -33,7 +33,14 @@ import {
   projectTimer,
   timerEngaged,
 } from "./clock";
-import { initialTimerState, type SeatClock, type TimerConfig, type TimerState } from "./types";
+import {
+  DEFAULT_BLOCKERS_MS,
+  clockTurnMs,
+  initialTimerState,
+  type SeatClock,
+  type TimerConfig,
+  type TimerState,
+} from "./types";
 
 export const TIMER_ACTION_TYPES = [
   "TIMER_RESPOND",
@@ -46,6 +53,8 @@ export const TIMER_ACTION_TYPES = [
   "TIMER_TIMEOUT",
   "TIMER_SET_CONFIG",
   "TIMER_RESET_CLOCKS",
+  "TIMER_BLOCKERS_START",
+  "TIMER_BLOCKERS_END",
 ] as const satisfies readonly TimerAction["type"][];
 
 /** Non-timer actions the timer reducer also sees, so clock accounting can hook them. */
@@ -146,7 +155,7 @@ function newTurn(g: Game): Game {
   for (const [id, c] of Object.entries(t.clocks)) {
     let next: SeatClock = c.turnUsedMs === 0 ? c : { ...c, turnUsedMs: 0 };
     if (cfg.mode === "perTurn" && c.state !== "timedOut") {
-      next = { ...next, bankMs: cfg.perTurnMs, state: "normal" };
+      next = { ...next, bankMs: clockTurnMs(c, cfg), state: "normal" };
     }
     clocks[id] = next;
   }
@@ -190,7 +199,7 @@ export function syncTimer(game: Game, now: number, lagMs = 0): Game {
   if (g.status === "ended") {
     if (t0.status === "ended") return game;
     g = settle(g, now);
-    const { pausedReason: _p, holdFreeMs: _h, ...rest } = g.timer;
+    const { pausedReason: _p, holdFreeMs: _h, blockers: _b, ...rest } = g.timer;
     return withTimer(g, {
       ...rest,
       status: "ended",
@@ -202,6 +211,13 @@ export function syncTimer(game: Game, now: number, lagMs = 0): Game {
   if (t0.status === "ended") {
     if (g.status !== "running") return game;
     g = withTimer(g, { ...t0, status: "running", runningSince: now });
+  }
+  // The blockers window belongs to the attacker's turn: drop it once the turn moved on.
+  const bw = g.timer.blockers;
+  if (bw && (bw.seatId !== g.turn.activeSeat || !isAlive(g, bw.seatId))) {
+    g = settle(g, now);
+    const { blockers: _b, ...rest } = g.timer;
+    g = withTimer(g, rest);
   }
   // Clocks only run for living seats: the turn holder must be alive (also without turn tracking).
   if (!isAlive(g, g.turn.activeSeat) && g.seats.some((s) => !s.eliminated)) {
@@ -351,6 +367,9 @@ const RUNTIME_KEYS = [
   "autoPauseMenus",
   "showTenths",
   "showTurnTime",
+  "blockersWindow",
+  "blockersMs",
+  "blockersTimeout",
 ] as const satisfies readonly (keyof TimerConfig)[];
 
 function setConfig(game: Game, patch: Partial<TimerConfig>, now: number): Game {
@@ -502,10 +521,55 @@ function timerTransition(game: Game, action: TimerAction, now: number): Game | n
       if (!c || !isAlive(game, action.seatId) || !dueKind(c, t.config)) return null;
       return settle(game, now);
     }
+    case "TIMER_BLOCKERS_START": {
+      const seat = game.turn.activeSeat;
+      const ms = action.durationMs ?? t.config.blockersMs ?? DEFAULT_BLOCKERS_MS;
+      if (t.status !== "running" || t.mode === "off" || t.blockers) return null;
+      if (t.responseStack.length > 0 || t.holder !== seat || !isAlive(game, seat)) return null;
+      if (!Number.isFinite(ms) || ms <= 0) return null;
+      const g = settle(game, now);
+      const blockers = { seatId: seat, durationMs: ms, remainingMs: ms, startedAt: now };
+      return timerEvent(
+        withTimer(g, { ...g.timer, blockers }),
+        now,
+        { action: "blockersStart", durationMs: ms },
+        { seatId: seat },
+      );
+    }
+    case "TIMER_BLOCKERS_END": {
+      if (!started(t) || !t.blockers) return null;
+      const g = settle(game, now);
+      const b = g.timer.blockers!;
+      const reason = action.reason ?? "declared";
+      if (reason === "timeout") {
+        if (b.expired || b.remainingMs > 0) return null;
+        if (g.timer.config.blockersTimeout !== "return") {
+          return timerEvent(
+            withTimer(g, { ...g.timer, blockers: { ...b, expired: true } }),
+            now,
+            { action: "blockersTimeUp" },
+            { seatId: b.seatId },
+          );
+        }
+      }
+      return endBlockers(g, now, reason);
+    }
     case "TIMER_SET_CONFIG":
     case "TIMER_RESET_CLOCKS":
       return null;
   }
+}
+
+/** Close the blockers window on a settled game (the attacker's clock runs again). Logged. */
+function endBlockers(g: Game, now: number, reason: string): Game {
+  const { blockers: b, ...rest } = g.timer;
+  if (!b) return g;
+  return timerEvent(
+    withTimer(g, rest),
+    now,
+    { action: "blockersEnd", reason, usedMs: b.durationMs - Math.max(0, b.remainingMs) },
+    { seatId: b.seatId },
+  );
 }
 
 /** PASS_TURN hook (TMR-003, TMR-009): stop the passer, apply the increment, log the time used. */
@@ -515,7 +579,7 @@ function passTurn(game: Game, prev: Game, now: number): Game {
   if (!started(t)) return game;
   const passer = prev.turn.activeSeat;
   if (t.responseStack.length > 0 && t.responseStack.at(-1) !== passer) return prev;
-  let g = settle(game, now);
+  let g = endBlockers(settle(game, now), now, "pass");
   const due = resolveDue(g, now);
   g = due.game;
   if (g.timer.responseStack.length > 0) g = withTimer(g, { ...g.timer, responseStack: [] });

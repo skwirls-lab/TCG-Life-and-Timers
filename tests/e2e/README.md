@@ -34,7 +34,9 @@ Test-only timer config after a quick start on `/play` (applied with `TIMER_SET_C
 `t.incrementMs`, `t.delayMs`, `t.perTurnMs`, `t.reserveMs`, `t.graceMs`, `t.addOnceMs`,
 `t.timeoutAction` (lose/grace/flag/addOnce), `t.finalAction`, `t.responses` (charge/freeze/disabled),
 `t.passMode` (tap/hold), `t.autoPauseBackground`, `t.autoPauseMenus`, `t.showTenths`,
-`t.showTurnTime` (1/0), `t.warnings=300000,60000`, `t.matchMs` + `t.extraTurns`.
+`t.showTurnTime` (1/0), `t.warnings=300000,60000`, `t.matchMs` + `t.extraTurns`,
+`t.blockersWindow` (1/0), `t.blockersMs`, `t.blockersTimeout` (wait/return) and the TMR-060 handicap
+`t.seatExtra=s2:300000,s3:-60000` (extra ms per seat id).
 Example: `/play?quick=mtg.commander&players=4&seed=7&t.mode=bank&t.bankMs=600000&t.timeoutAction=grace&t.graceMs=10000`.
 
 Helpers in `support/timer.ts`: `gotoClockBoard` (installs `page.clock` before navigation, then

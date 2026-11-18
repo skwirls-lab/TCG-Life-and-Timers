@@ -70,14 +70,6 @@ export const COMPARISON_ROWS: readonly ComparisonRow[] = [
     features: [],
   },
   {
-    id: "timersAdvanced",
-    area: "timers",
-    label: "pay.row.timersAdvanced",
-    free: no,
-    pro: yes,
-    features: ["timerAdvancedModes"],
-  },
-  {
     id: "presets",
     area: "customize",
     label: "pay.row.presets",

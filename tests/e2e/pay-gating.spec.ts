@@ -59,19 +59,17 @@ test.describe("paywall enabled (pw=1, free user)", () => {
   });
 
   // @req PAY-004
-  test("advanced timer modes open the paywall; basic modes stay free", async ({ page }) => {
+  test("every clock mode is free (no paywall)", async ({ page }) => {
     await tiered(page, "/play?quick=mtg.commander&players=4&seed=7");
     await page.getByTestId("toolbar-settings").click();
     await expect(page.getByTestId("settings")).toBeVisible();
     const mode = page.getByTestId("setting-timer.mode-control");
     await expect(mode).toBeEnabled();
-    await mode.selectOption("bankIncrement");
-    await expectPaywall(page, "timerAdvancedModes");
-    await closePaywall(page);
-    await expect(mode).not.toHaveValue("bankIncrement");
-    await mode.selectOption("bank");
-    await expect(mode).toHaveValue("bank");
-    await expect(page.getByTestId("paywall")).toHaveCount(0);
+    for (const m of ["bankIncrement", "bankDelay", "perTurn", "perTurnReserve", "bank"]) {
+      await mode.selectOption(m);
+      await expect(mode).toHaveValue(m);
+      await expect(page.getByTestId("paywall")).toHaveCount(0);
+    }
   });
 
   // @req PAY-004

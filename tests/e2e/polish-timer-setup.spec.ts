@@ -101,12 +101,15 @@ test("without a game, timer rows edit the next game's timer defaults", async ({ 
 });
 
 // @req TMR-001
-test("advanced clock modes in setup open the paywall when locked", async ({ page }) => {
+test("every clock mode in setup is free, even with the paywall on", async ({ page }) => {
   await page.goto("/setup?pw=1");
   await page.waitForFunction(() => window.__tcgPay?.state().policy === "TIERED");
   for (let i = 0; i < 3; i++) await page.getByTestId("setup-next").click();
-  await page.getByTestId("setup-clock-mode").selectOption("perTurn");
-  await expect(page.getByTestId("paywall")).toBeVisible();
-  await page.getByTestId("paywall-close").click();
-  await expect(page.getByTestId("setup-clock-mode")).toHaveValue("off");
+  for (const m of ["perTurn", "perTurnReserve", "bankIncrement", "bankDelay"]) {
+    await page.getByTestId("setup-clock-mode").selectOption(m);
+    await expect(page.getByTestId("setup-clock-mode")).toHaveValue(m);
+  }
+  await page.getByTestId("setup-clock-timeout").selectOption("addOnce");
+  await expect(page.getByTestId("setup-clock-timeout")).toHaveValue("addOnce");
+  await expect(page.getByTestId("paywall")).toHaveCount(0);
 });

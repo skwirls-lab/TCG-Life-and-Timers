@@ -64,6 +64,13 @@ function useTimerServices() {
           if (sig.seatId) flash(sig.seatId, "timeout");
           playTone("timeout");
           buzz("timeout");
+        } else if (sig.kind === "blockersEnd") {
+          // Declare-blockers time is up: the warning alerts on every seat (Sounds / Haptics).
+          const g = useGameStore.getState().session?.game;
+          for (const s of g?.seats ?? []) if (!s.eliminated) flash(s.id, "warning");
+          playTone("warn");
+          buzz("warn");
+          useSnackbar.getState().show({ message: t("timer.blockersUp"), durationMs: 4000 });
         } else if (sig.kind === "matchEnd") {
           playTone("timeout");
           buzz("timeout");
