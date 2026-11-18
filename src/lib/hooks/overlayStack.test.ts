@@ -59,6 +59,26 @@ function fakeEnv() {
 }
 
 describe("overlay stack", () => {
+  it("forget drops an entry without closing it or moving history (MENU: page from the menu)", () => {
+    const h = fakeEnv();
+    const s = createOverlayStack(h.env);
+    const menu = vi.fn();
+    const id = s.push(menu);
+    s.forget(id);
+    s.forget("unknown");
+    s.release(id); // no-op once forgotten
+    h.flush();
+    expect(s.snapshot()).toEqual([]);
+    expect(menu).not.toHaveBeenCalled();
+    expect(h.index).toBe(1);
+    expect(h.listeners).toBe(0);
+    // A later overlay on the next page trims only itself.
+    const keypad = s.push(vi.fn());
+    s.release(keypad);
+    h.flush();
+    expect(h.index).toBe(1);
+  });
+
   it("Back closes only the top overlay", () => {
     const h = fakeEnv();
     const s = createOverlayStack(h.env);

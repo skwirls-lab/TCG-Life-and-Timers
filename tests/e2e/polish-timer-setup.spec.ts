@@ -1,6 +1,7 @@
 // Timer config in setup, preset defaults and next-game settings (D-058, §13.1-C).
 // @req GAME-001 @req SET-012 @req TMR-001 @req SET-010
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 
 const CORNER = { position: { x: 12, y: 12 } };
 
@@ -67,14 +68,14 @@ test("setup with a 20-min chess clock → START and 20:00 clocks; saved as defau
   await expect(page).toHaveURL(/\/play$/);
   await expect.poll(() => page.evaluate(() => !!window.__tcg?.getState().session)).toBe(true);
   await dismissFirstPlayer(page);
-  await expect(page.getByTestId("timer-start")).toBeVisible();
+  await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "start");
   await expect(page.getByTestId("seat-0-clock-time")).toHaveText("20:00");
   expect(
     await page.evaluate(() => window.__tcg!.getState().session!.game.timer.config.bankMs),
   ).toBe(20 * 60_000);
 
   // Save as default for Commander includes the clock (SET-012).
-  await page.getByTestId("toolbar-settings").click();
+  await menuTap(page, "toolbar-settings");
   await expect(page.getByTestId("settings")).toBeVisible();
   await page.getByTestId("setting-saveDefaults-control").click();
   await expect.poll(() => storedTimer(page)).toMatchObject({ mode: "bank", bankMs: 20 * 60_000 });

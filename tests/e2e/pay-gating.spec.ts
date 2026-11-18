@@ -2,6 +2,7 @@
 // it across navigations. Without it the build default applies (paywall disabled → all free).
 // @req PAY-001 @req PAY-002 @req PAY-004 @req ART-007 @req A11Y-002
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoHarness, openSeatMenu } from "./support/seatHarness";
 
@@ -53,7 +54,7 @@ test.describe("paywall enabled (pw=1, free user)", () => {
     await closePaywall(page);
 
     await page.goto("/play?quick=mtg.commander&players=4&seed=7");
-    await page.getByTestId("toolbar-players").click();
+    await menuTap(page, "toolbar-players");
     await page.getByTestId("players-count-8").click();
     await expectPaywall(page, "players7to8");
   });
@@ -61,7 +62,7 @@ test.describe("paywall enabled (pw=1, free user)", () => {
   // @req PAY-004
   test("every clock mode is free (no paywall)", async ({ page }) => {
     await tiered(page, "/play?quick=mtg.commander&players=4&seed=7");
-    await page.getByTestId("toolbar-settings").click();
+    await menuTap(page, "toolbar-settings");
     await expect(page.getByTestId("settings")).toBeVisible();
     const mode = page.getByTestId("setting-timer.mode-control");
     await expect(mode).toBeEnabled();
@@ -182,7 +183,7 @@ test.describe("paywall disabled (default build)", () => {
     await expect(page.getByTestId("builder-limit")).toHaveCount(0);
 
     await page.goto("/play?quick=mtg.commander&players=4&seed=7");
-    await page.getByTestId("toolbar-settings").click();
+    await menuTap(page, "toolbar-settings");
     await expect(page.getByTestId("settings")).toBeVisible();
     await page.getByTestId("setting-timer.mode-control").selectOption("bankIncrement");
     await expect(page.getByTestId("setting-timer.mode-control")).toHaveValue("bankIncrement");

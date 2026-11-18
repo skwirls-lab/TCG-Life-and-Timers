@@ -1,5 +1,6 @@
 // @req TMR-001 @req TMR-002 @req TMR-020 @req TMR-021 @req SET-013
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, setHidden, timerState } from "./support/timer";
 
@@ -9,10 +10,10 @@ test("START → Pause (PAUSED overlay freezes all clocks) → Resume", async ({ 
   await gotoClockBoard(page, BANK);
   const a = (await timerState(page)).active;
   await expect(page.getByTestId("toolbar-clock")).toHaveCount(0);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect(page.getByTestId("timer-start")).toHaveCount(0);
   await page.clock.runFor(12_000);
-  await page.getByTestId("toolbar-clock").click();
+  await menuTap(page, "toolbar-clock");
   const overlay = page.getByTestId("timer-paused");
   await expect(overlay).toBeVisible();
   await expect(overlay).toHaveAttribute("data-reason", "user");
@@ -30,8 +31,8 @@ test("START → Pause (PAUSED overlay freezes all clocks) → Resume", async ({ 
 
 test("PAUSED overlay is accessible", async ({ page }) => {
   await gotoClockBoard(page, BANK);
-  await page.getByTestId("timer-start").click();
-  await page.getByTestId("toolbar-clock").click();
+  await menuTap(page, "timer-start");
+  await menuTap(page, "toolbar-clock");
   await expect(page.getByTestId("timer-paused")).toBeVisible();
   await page.clock.resume();
   await expectNoSeriousA11yViolations(page);
@@ -42,9 +43,9 @@ test("opening Settings pauses the clocks; the board asks to resume on return (SE
 }) => {
   await gotoClockBoard(page, BANK);
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(5_000);
-  await page.getByTestId("toolbar-settings").click();
+  await menuTap(page, "toolbar-settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.getByTestId("settings")).toBeVisible();
   await expect.poll(async () => (await timerState(page)).pausedReason).toBe("menu");
@@ -61,7 +62,7 @@ test("opening Settings pauses the clocks; the board asks to resume on return (SE
 
 test("opening a seat menu pauses; closing it shows the resume prompt", async ({ page }) => {
   await gotoClockBoard(page, BANK);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.getByTestId("seat-0-name").click();
   await expect(page.getByTestId("seat-menu")).toBeVisible();
   expect((await timerState(page)).pausedReason).toBe("menu");
@@ -72,9 +73,10 @@ test("opening a seat menu pauses; closing it shows the resume prompt", async ({ 
 });
 
 test("with auto-pause for menus off, Settings does not pause", async ({ page }) => {
-  await gotoClockBoard(page, `${BANK}&t.autoPauseMenus=0`);
-  await page.getByTestId("timer-start").click();
-  await page.getByTestId("toolbar-settings").click();
+  // Strip style: the center menu always pauses (MENU); the strip follows the setting.
+  await gotoClockBoard(page, `${BANK}&t.autoPauseMenus=0&s.menuStyle=strip`);
+  await menuTap(page, "timer-start");
+  await menuTap(page, "toolbar-settings");
   await expect(page.getByTestId("settings")).toBeVisible();
   await page.clock.runFor(1_000);
   expect((await timerState(page)).status).toBe("running");
@@ -84,7 +86,7 @@ test("hiding the app pauses (background notice) when auto-pause is on (TMR-021)"
   page,
 }) => {
   await gotoClockBoard(page, BANK);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(4_000);
   await setHidden(page, true);
   await page.clock.runFor(20_000);

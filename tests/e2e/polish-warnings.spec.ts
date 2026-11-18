@@ -1,6 +1,7 @@
 // Low-time warnings sub-page (TMR-031): add / remove thresholds, per-threshold sound/vibrate/flash.
 // @req TMR-031 @req SET-010
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, timerState } from "./support/timer";
 
@@ -51,7 +52,7 @@ test("edit thresholds on the sub-page; a threshold with flash off doesn't flash"
   page,
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000&t.warnings=60000");
-  await page.getByTestId("toolbar-settings").click();
+  await menuTap(page, "toolbar-settings");
   await expect(page.getByTestId("settings")).toBeVisible();
   await expect(page.getByTestId("setting-timer.warnings")).toContainText("1:00");
   await page.getByTestId("setting-timer.warnings-control").click();
@@ -82,7 +83,7 @@ test("edit thresholds on the sub-page; a threshold with flash off doesn't flash"
   // The IndexedDB write itself is async: wait until it landed before leaving the page.
   await expect.poll(() => storedWarnings(page)).toEqual([120_000, 60_000]);
   await page.goto("/play");
-  await expect(page.getByTestId("timer-start")).toBeVisible();
+  await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "start");
   expect((await warnings(page)).warningsMs).toEqual([120_000, 60_000]);
   // The resumed game re-announces its first player: tap through the overlay.
   const overlay = page.getByTestId("first-player-overlay");
@@ -92,7 +93,7 @@ test("edit thresholds on the sub-page; a threshold with flash off doesn't flash"
   }
   await expect(overlay).toHaveCount(0);
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await setBank(page, a, 121_000);
   await page.clock.runFor(1_100);
   await expect(page.getByTestId(`seat-${a}-clock`)).toHaveAttribute("data-flash", "warning");

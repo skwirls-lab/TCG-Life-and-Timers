@@ -1,6 +1,7 @@
 // Cross-lane integration (W2): board ↔ seat menu ↔ quick tools ↔ history.
 // @req SEAT-001 @req SEAT-005 @req LIFE-003 @req CMD-002 @req TOOL-010 @req HIST-012 @req LAY-007
 import { expect, test } from "@playwright/test";
+import { openMenu } from "./support/menu";
 
 const QUICK = "/play?quick=mtg.commander&players=4&seed=7&names=Conner,Josh,JP,Bethany";
 
@@ -36,6 +37,7 @@ test.describe("board integration", () => {
   test("holding the dice button opens quick tools; a d20 roll is logged to history", async ({
     page,
   }) => {
+    await openMenu(page);
     const tools = page.getByTestId("toolbar-tools");
     const box = (await tools.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

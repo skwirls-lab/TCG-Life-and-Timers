@@ -17,7 +17,8 @@
 | Seat badges row / badge | `seat-{i}-badges`, `seat-{i}-badge-{counterId}` |
 | Commander mini-grid cell | `seat-{i}-cmd-{sourceSeatIndex}` |
 | Eliminated / winner overlay | `seat-{i}-eliminated`, `seat-{i}-winner` |
-| Toolbar buttons | `toolbar-reset`, `toolbar-players`, `toolbar-history`, `toolbar-clock`, `toolbar-tools`, `toolbar-settings`, `toolbar-daynight` |
+| Toolbar buttons (center menu items by default; open it first with `openMenu` / `menuTap` from `support/menu.ts`) | `toolbar-reset`, `toolbar-players`, `toolbar-history`, `toolbar-clock`, `toolbar-tools`, `toolbar-settings`, `toolbar-daynight` |
+| Center menu (MENU) | `center-menu` (`data-clock`), `center-menu-badge` (`data-kind` start/paused), `center-menu-panel`, `center-menu-resume`, `center-menu-backdrop`, `center-menu-status`, `center-menu-fullscreen`, `center-menu-calc`; legacy strip: `s.menuStyle=strip` |
 | Seat menu | `seat-menu` (+ `seat-menu-tab-{tab}`, `seat-menu-close`) |
 | Counter tile in the seat menu | `counter-{counterId}` |
 | Commander damage cell in the seat menu | `cmd-cell-{sourceSeatIndex}-{commanderIndex}` |

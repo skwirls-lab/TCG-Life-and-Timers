@@ -6,7 +6,7 @@
  * first tap PWA-006/INP-008).
  */
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GameFlowOverlays } from "@/features/game-flow/GameFlowOverlays";
 // TIMER-UI (W3): scheduler, signals, auto-pause and the PAUSED overlay; test-only `t.*` params.
 import { TimerLayer } from "@/features/timer/TimerLayer";
@@ -20,9 +20,12 @@ import { useGameStore } from "@/state/gameStore";
 import { mergeSettings, useSettingsStore } from "@/state/settingsStore";
 import { TEST_HOOKS_ENABLED } from "@/state/testHooksFlag";
 import { Board } from "./Board";
-import { PlayersSheet, QuickToolsMenu } from "./Toolbar";
+import { CENTER_MENU_CSS } from "./CenterMenuButton";
+import { CenterMenuHost } from "./CenterMenuHost";
+import { closeCenterMenu, resumeAfterReturn } from "./centerMenu";
+import { CenterMenuPanel, PlayersSheet, QuickToolsMenu, Toolbar } from "./lazySheets";
 import { parseSettingsParams } from "./boardHelpers";
-import { useBoardUi } from "./boardStore";
+import { isCenterMenu, useBoardUi } from "./boardStore";
 import { lazyComponent } from "@/lib/hooks/lazyComponent";
 
 // PERF-003: sheets that are not needed for the first paint of the board load on demand.
@@ -107,9 +110,15 @@ function usePrefetchSheets(active: boolean) {
   useEffect(() => {
     if (!active) return;
     const warm = () => {
-      for (const c of [SeatMenu, CalculatorSheet, QuickToolsMenu, PlayersSheet]) {
-        void c.preload().catch(() => undefined);
-      }
+      const strip = useSettingsStore.getState().settings.menuStyle === "strip";
+      const loaders = [
+        SeatMenu.preload,
+        CalculatorSheet.preload,
+        QuickToolsMenu.preload,
+        PlayersSheet.preload,
+        strip ? Toolbar.preload : CenterMenuPanel.preload,
+      ];
+      for (const load of loaders) void load().catch(() => undefined);
     };
     const w = window as Window & {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
@@ -154,6 +163,12 @@ export function PlayScreen() {
     [],
   );
 
+  // MENU: back from a page opened from the center menu → apply its closing rule before paint
+  // (resume the clocks it paused), so the PAUSED overlay does not flash.
+  useLayoutEffect(() => {
+    if (ready && hasSession) resumeAfterReturn();
+  }, [ready, hasSession]);
+
   useDeviceServices(ready && hasSession);
   usePrefetchSheets(ready && hasSession);
 
@@ -163,7 +178,7 @@ export function PlayScreen() {
       data-testid="play"
       aria-label={t("board.label")}
     >
-      <style>{BOARD_CSS}</style>
+      <style>{BOARD_CSS + CENTER_MENU_CSS}</style>
       {ready && hasSession ? (
         <GameErrorBoundary>
           <h1 className="sr-only">{t("board.label")}</h1>
@@ -173,7 +188,8 @@ export function PlayScreen() {
           <GameFlowOverlays />
           {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
           <TimerLayer />
-          {menu !== null && (
+          <CenterMenuHost />
+          {menu !== null && !isCenterMenu(menu) && (
             <SeatMenu
               seatId={menu.seatId}
               open
@@ -187,7 +203,11 @@ export function PlayScreen() {
             <CalculatorSheet
               seatId={calc.seatId}
               open
-              onClose={closeCalc}
+              onClose={() => {
+                closeCalc();
+                // Opened from the center menu: its closing rule applies now (MENU).
+                closeCenterMenu();
+              }}
               {...(calc.rotation !== undefined ? { rotation: calc.rotation } : {})}
             />
           )}

@@ -1,6 +1,7 @@
 // @req TMR-030 @req TMR-031 @req TMR-023 @req TMR-040
 // Appendix B Scenario 4 (grace → eliminated by time, the turn advances) and §9.5 visuals.
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { gotoClockBoard, timerState } from "./support/timer";
 
 async function setBank(page: Page, index: number, bankMs: number) {
@@ -20,7 +21,7 @@ test("Scenario 4: P2 at 0:05 with 0:10 grace → overtime (red) → eliminated b
   const p1 = (await timerState(page)).active;
   const p2 = (p1 + 1) % 4;
   const p3 = (p1 + 2) % 4;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.getByTestId(`seat-${p1}-pass`).click();
   await setBank(page, p2, 5_000);
   // Under 10 s the chip shows tenths and is red.
@@ -59,7 +60,7 @@ test("flag only: the clock keeps counting negative in red; nobody is eliminated"
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000&t.timeoutAction=flag&t.showTenths=0");
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await setBank(page, a, 2_000);
   await page.clock.runFor(47_000);
   await expect(page.getByTestId(`seat-${a}-clock`)).toHaveAttribute("data-state", "flagged");
@@ -74,7 +75,7 @@ test("add time once: a one-time extension with a notice", async ({ page }) => {
     "t.mode=bank&t.bankMs=600000&t.timeoutAction=addOnce&t.addOnceMs=60000",
   );
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await setBank(page, a, 1_000);
   await page.clock.runFor(1_500);
   await expect(page.getByTestId("snackbar")).toContainText("+1:00 added (once per game)");
@@ -86,7 +87,7 @@ test("add time once: a one-time extension with a notice", async ({ page }) => {
 test("low-time warning flashes the seat (TMR-031)", async ({ page }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000&t.warnings=60000");
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await setBank(page, a, 61_000);
   await expect(page.getByTestId(`seat-${a}-frame`)).not.toHaveClass(/ring-warning/);
   await page.clock.runFor(1_100);

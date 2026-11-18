@@ -1,5 +1,6 @@
 // @req TURN-001 @req LIFE-006 @req TMR-003 @req TMR-004 @req TMR-009
 import { expect, test } from "@playwright/test";
+import { closeMenu, menuTap, openMenu } from "./support/menu";
 import { activeIndex, gotoClockBoard, timerState } from "./support/timer";
 
 test("turn tracking without clocks: ▶ Turn chip, pass, undo snackbar, eliminated seats skipped", async ({
@@ -7,7 +8,9 @@ test("turn tracking without clocks: ▶ Turn chip, pass, undo snackbar, eliminat
 }) => {
   await gotoClockBoard(page, "");
   // Clocks off: the toolbar clock stays the disabled placeholder.
+  await openMenu(page);
   await expect(page.getByTestId("toolbar-clock")).toBeDisabled();
+  await closeMenu(page);
   await expect(page.getByTestId("seat-0-timerbar")).toHaveCount(0);
   await page.evaluate(() =>
     window.__tcg!.dispatch({ type: "SET_OPTION", key: "turnTracking", value: true }),
@@ -55,7 +58,7 @@ test("clocks: PASS TURN moves the clock; disabled while a response is open (TMR-
   const a = await activeIndex(page);
   // Before START no seat can pass (TMR-001).
   await expect(page.getByTestId(`seat-${a}-pass`)).toHaveCount(0);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(5000);
   const r = (a + 2) % 4;
   await page.getByTestId(`seat-${r}-respond`).click();
@@ -79,7 +82,7 @@ test("clocks: PASS TURN moves the clock; disabled while a response is open (TMR-
 test("hold-to-pass (600 ms) when the pass mode is 'hold'", async ({ page }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000&t.passMode=hold");
   const a = await activeIndex(page);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   const pass = page.getByTestId(`seat-${a}-pass`);
   await expect(pass).toHaveAttribute("data-hold", "1");
   // A tap only explains the gesture.

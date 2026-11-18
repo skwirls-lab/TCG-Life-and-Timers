@@ -63,6 +63,11 @@ function seatTileAnchor(index: number): SnackAnchor | null {
  */
 function toolbarAnchor(): SnackAnchor | null {
   if (typeof document === "undefined") return null;
+  // MENU: with the center menu style the snackbar sits just beside the center button instead.
+  const center = document.querySelector('[data-testid="board"] [data-testid="center-menu"]');
+  if (center && center.getBoundingClientRect().width > 0) {
+    return { rect: rectOf(center), rotation: 0, region: "above" };
+  }
   const el = document.querySelector('[data-testid="board"] [data-testid="toolbar"]');
   if (!el || el.getBoundingClientRect().width === 0) return null;
   const vertical = el.getAttribute("aria-orientation") === "vertical";

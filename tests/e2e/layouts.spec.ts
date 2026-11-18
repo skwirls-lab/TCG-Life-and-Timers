@@ -38,8 +38,7 @@ for (const vp of [
         }
         boxes.push(b);
       }
-      const bar = (await page.getByTestId("toolbar").boundingBox())!;
-      boxes.push(bar);
+      // MENU: no strip by default — the seats share the board; the center button sits between.
       for (let i = 0; i < boxes.length; i++)
         for (let j = i + 1; j < boxes.length; j++) {
           const a = boxes[i]!;

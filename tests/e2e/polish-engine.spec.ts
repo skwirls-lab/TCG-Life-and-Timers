@@ -1,6 +1,7 @@
 // Engine actions that replaced store patches: SET_LAYOUT (sticky) and TIMER_RESET_CLOCKS.
 // @req LAY-003 @req TMR-001 @req GAME-015
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { gotoClockBoard, timerState } from "./support/timer";
 
 const BASE =
@@ -14,7 +15,7 @@ test("a layout switch is not an undo step: undo reverts life, the layout stays",
   await expect(page.getByTestId("seat-0-name")).toBeVisible();
   await page.getByTestId("seat-0-minus").click();
   await expect(page.getByTestId("seat-0-value")).toHaveText("39");
-  await page.getByTestId("toolbar-players").click();
+  await menuTap(page, "toolbar-players");
   await page.getByTestId("players-layout-topBottom").click();
   await page.getByTestId("players-popover-close").click();
   await page.evaluate(() => window.__tcg!.dispatch({ type: "UNDO" }));
@@ -29,9 +30,9 @@ test("restarting the clocks from settings logs 'Clocks restarted' and is undoabl
   page,
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(10_000);
-  await page.getByTestId("toolbar-settings").click();
+  await menuTap(page, "toolbar-settings");
   await page.getByTestId("setting-timer.bank-control-20").click();
   await page.getByTestId("timer-restart-continue").click();
   const s = await timerState(page);

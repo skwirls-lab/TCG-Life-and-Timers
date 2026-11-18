@@ -1,6 +1,7 @@
 // @req TMR-005 @req TMR-006 @req TMR-007 @req TMR-008 @req TMR-010 @req TMR-011 @req TMR-041 @req TMR-042 @req TMR-002
 // Appendix B Scenario 3 through the UI (page.clock).
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, mss, timerState } from "./support/timer";
 
@@ -18,7 +19,7 @@ test("Scenario 3: clock with nested responses (remaining clocks to the second)",
 
   // TMR-001: waiting chips before START.
   await expect(page.getByTestId(`seat-${p2}-clock`)).toContainText("Waiting to start");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect(page.getByTestId(`seat-${p1}-clock`)).toHaveAttribute("data-running", "true");
   await expect(page.getByTestId(`seat-${p1}-clock`)).toHaveAttribute("data-holder", "true");
 
@@ -99,7 +100,7 @@ for (const players of [2, 4]) {
   }) => {
     await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN_MIN}`, players);
     const a = (await timerState(page)).active;
-    await page.getByTestId("timer-start").click();
+    await menuTap(page, "timer-start");
     const sizes = await page.evaluate((i) => {
       const fs = (id: string) =>
         parseFloat(getComputedStyle(document.querySelector(`[data-testid="${id}"]`)!).fontSize);
@@ -119,7 +120,7 @@ for (const players of [2, 4]) {
 test("freeze mode charges nobody (TMR-010)", async ({ page }) => {
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN_MIN}&t.responses=freeze`);
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(10_000);
   await page.getByTestId(`seat-${(a + 1) % 4}-respond`).click();
   await page.clock.runFor(20_000);
@@ -130,6 +131,6 @@ test("freeze mode charges nobody (TMR-010)", async ({ page }) => {
 
 test("responses 'disabled' hides Respond (TMR-010)", async ({ page }) => {
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN_MIN}&t.responses=disabled`);
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect(page.locator('[data-testid$="-respond"]')).toHaveCount(0);
 });

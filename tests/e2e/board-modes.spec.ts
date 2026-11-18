@@ -1,5 +1,6 @@
 // @req SET-032 @req SET-033 @req CMD-002 @req CMD-004 @req CMD-006 @req LIFE-004 @req LIFE-005 @req SET-030
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 
 const BASE =
   "/play?quick=mtg.commander&players=4&seed=7&names=Conner,Josh,JP,Bethany&s.hideSystemBars=0";
@@ -59,7 +60,7 @@ test("quick commander-damage mode: tap adds 1 from that source, hold removes 1, 
 }) => {
   await page.goto(BASE);
   await expect(page.getByTestId("seat-0-name")).toBeVisible();
-  await page.getByTestId("toolbar-players").click();
+  await menuTap(page, "toolbar-players");
   await page.getByTestId("players-cmd-mode").click();
   const cell = page.getByTestId("seat-2-cmd-0");
   await cell.click();

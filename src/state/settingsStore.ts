@@ -14,6 +14,9 @@ export const AppSettingsSchema = z.object({
   colorizeMiniGrids: z.boolean(),
   badges: z.enum(["nonDefault", "always", "hidden"]),
   bubbleMs: z.number().int().min(500).max(10_000),
+  /** MENU: the board's center button (default) or the legacy toolbar strip. */
+  menuStyle: z.enum(["center", "strip"]),
+  /** SET-031: strip style only. */
   autoHideMenu: z.boolean(),
   diceAnimations: z.boolean(),
   reduceMotion: z.enum(["system", "always", "never"]),
@@ -45,6 +48,7 @@ export function defaultAppSettings(): AppSettings {
     colorizeMiniGrids: true,
     badges: "nonDefault",
     bubbleMs: 2000,
+    menuStyle: "center",
     autoHideMenu: false,
     diceAnimations: true,
     reduceMotion: "system",

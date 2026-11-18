@@ -1,6 +1,7 @@
 // Seat-anchored pass-turn Undo snackbar (TMR-004, D-043/D-058).
 // @req TMR-004 @req GAME-015
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { gotoClockBoard, timerState } from "./support/timer";
 
 // @req TMR-004
@@ -8,7 +9,7 @@ test("the pass-turn Undo snackbar appears at the passing seat, facing its player
   page,
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   const a = (await timerState(page)).active;
   const tile = await page.getByTestId(`seat-${a}`).boundingBox();
   await page.getByTestId(`seat-${a}-pass`).click();

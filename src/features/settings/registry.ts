@@ -665,7 +665,19 @@ const BASE_ROWS: SettingDef[] = [
     },
     { default: 2000 },
   ),
-  appRow("autoHideMenu", "D", { kind: "toggle" }, { default: false }),
+  appRow(
+    "menuStyle",
+    "D",
+    { kind: "segmented", options: opts(["center", "strip"], "shell.menuStyle") },
+    { default: "center", helpKey: "shell.settings.menuStyle.help" },
+  ),
+  // SET-031: the auto-hide option only applies to the toolbar strip.
+  appRow(
+    "autoHideMenu",
+    "D",
+    { kind: "toggle" },
+    { default: false, visibleIf: (_p, _g, ctx) => ctx.app.menuStyle === "strip" },
+  ),
   appRow("diceAnimations", "D", { kind: "toggle" }, { default: true }),
   appRow(
     "reduceMotion",
