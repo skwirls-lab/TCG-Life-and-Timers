@@ -7,24 +7,27 @@ runConfig:
   memoryMiB: 512
 
 env:
-  # Public Firebase web config (owner fills these in; values are not secret).
+  # Public Firebase web config for project "tcgtempo" (client keys, not secret).
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "REPLACE_ME"
+    value: "AIzaSyC-Zr9pG7KrioS8dgylefMmBnmSDNu3VcY"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: "REPLACE_ME"
+    value: "tcgtempo.firebaseapp.com"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: "REPLACE_ME"
+    value: "tcgtempo"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: "REPLACE_ME"
+    value: "tcgtempo.firebasestorage.app"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "REPLACE_ME"
+    value: "726097197982"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: "REPLACE_ME"
+    value: "1:726097197982:web:23278537501a963abaf48f"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: "G-W9VJDCXYV2"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
     value: ""

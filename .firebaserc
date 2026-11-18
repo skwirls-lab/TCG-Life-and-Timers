@@ -1,1 +1,1 @@
-{ "projects": { "default": "demo-tcg-life" } }
+{ "projects": { "default": "tcgtempo", "demo": "demo-tcg-life" } }

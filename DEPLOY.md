@@ -31,7 +31,7 @@ This guide walks you, the owner, through putting the app on the internet with Fi
    - After the app has run for a day with App Check reporting "verified" requests, click **Enforce** for Firestore, Storage, and Authentication.
 
 ## Part 3: Configure environment variables
-Edit `apphosting.yaml` in the repo. Replace each `REPLACE_ME` with the values from Part 1 step 3 (these are **public** client keys, safe to commit):
+✅ **Done for project `tcgtempo`**: the Firebase web config (including the measurement id) is already in `apphosting.yaml`. These are **public** client keys, safe to commit. Edit that file only to add the optional values below:
 
 | Variable | Where it comes from | Required |
 |---|---|---|
@@ -50,7 +50,7 @@ Edit `apphosting.yaml` in the repo. Replace each `REPLACE_ME` with the values fr
 
 > If cloud config is missing, the app still works fully offline and as a guest. Account features show "Cloud features aren't configured on this deployment".
 
-Also edit `.firebaserc` and change `demo-tcg-life` to your real project id (keep a `demo` alias if you like).
+✅ `.firebaserc` already points at `tcgtempo` (default), with a `demo` alias for `demo-tcg-life`. The test and emulator scripts always pass `--project demo-tcg-life`, so they never touch the real project.
 
 ## Part 4: Connect App Hosting (deploys the website)
 1. Console → **Build → App Hosting → Get started / Create backend**.
