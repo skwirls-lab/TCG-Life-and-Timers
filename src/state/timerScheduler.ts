@@ -81,12 +81,18 @@ export function startTimerScheduler(
     if (now() < ev.at) return arm();
     const g = game();
     if (!g) return;
-    if (ev.kind === "timeout" || ev.kind === "graceEnd") {
+    if (ev.kind === "timeout" || ev.kind === "graceEnd" || ev.kind === "blockersEnd") {
       const key = `${ev.kind}:${ev.seatId}`;
       if (lastDue && lastDue.game === g && lastDue.key === key) return;
       lastDue = { game: g, key };
       emit(ev);
-      store.getState().dispatch({ type: "TIMER_TIMEOUT", seatId: ev.seatId! });
+      store
+        .getState()
+        .dispatch(
+          ev.kind === "blockersEnd"
+            ? { type: "TIMER_BLOCKERS_END", reason: "timeout" }
+            : { type: "TIMER_TIMEOUT", seatId: ev.seatId! },
+        );
     } else {
       emit(ev);
     }

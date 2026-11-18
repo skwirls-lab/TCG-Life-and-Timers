@@ -11,6 +11,7 @@
  * options are gated with `timerAdvancedModes` (locked options open the paywall).
  */
 import {
+  BLOCKERS_TIMEOUTS,
   TIMER_MODES,
   TIMEOUT_ACTIONS,
   RESPONSE_MODES,
@@ -41,6 +42,13 @@ import {
   shortDuration,
 } from "./model";
 import { warningsSummary } from "./warnings";
+import {
+  BLOCKERS_SECONDS,
+  blockersSettings,
+  modeFamily,
+  modePatch,
+  seatTimesSummary,
+} from "./seatTimes";
 import { useTimerSettingsUi } from "./timerSettingsUi";
 
 export const CUSTOM = "custom";
@@ -115,7 +123,7 @@ export const TIMER_ROWS: SettingDef[] = [
       helpKey: "timer.settings.mode.help",
       subtitleKey: "timer.settings.mode.subtitle",
       get: (ctx) => cfgOf(ctx).mode,
-      set: patchSet((v) => ({ mode: v as TimerMode })),
+      set: patchSet((v, ctx) => modePatch(cfgOf(ctx), v as TimerMode)),
     },
   ),
   row(
@@ -278,6 +286,60 @@ export const TIMER_ROWS: SettingDef[] = [
       set: patchSet((v, ctx) =>
         cfgOf(ctx).timeoutAction === "addOnce" ? { addOnceMs: Number(v) } : { graceMs: Number(v) },
       ),
+    },
+  ),
+  row(
+    // TMR-060: Row → sub-page (toggle + a time stepper per seat). Per game: needs a game.
+    "seatTimes",
+    { kind: "subpage", page: "seatTimes" },
+    {
+      subtitleKey: "timer.settings.seatTimes.summary",
+      subtitleVars: (ctx) => ({
+        list:
+          seatTimesSummary(cfgOf(ctx), ctx.game?.seats ?? []) ||
+          t(
+            cfgOf(ctx).seatExtraMs
+              ? "timer.settings.seatTimes.subtitle"
+              : "timer.settings.seatTimes.off",
+          ),
+      }),
+      visibleIf: (_p, game, ctx) => game !== null && modeFamily(cfgOf(ctx).mode) !== null,
+    },
+  ),
+  row(
+    "blockersWindow",
+    { kind: "toggle" },
+    {
+      default: false,
+      visibleIf: (_p, _g, ctx) => on(ctx),
+      get: (ctx) => blockersSettings(cfgOf(ctx)).on,
+      set: patchSet((v) => ({ blockersWindow: Boolean(v) })),
+    },
+  ),
+  row(
+    "blockersMs",
+    {
+      kind: "select",
+      options: () =>
+        BLOCKERS_SECONDS.map((s) => ({ value: s, label: t("timer.settings.seconds", { n: s }) })),
+    },
+    {
+      visibleIf: (_p, _g, ctx) => on(ctx) && blockersSettings(cfgOf(ctx)).on,
+      get: (ctx) => blockersSettings(cfgOf(ctx)).seconds,
+      set: patchSet((v) => ({ blockersMs: Number(v) * 1000 })),
+    },
+  ),
+  row(
+    "blockersTimeout",
+    {
+      kind: "select",
+      options: () =>
+        BLOCKERS_TIMEOUTS.map((v) => ({ value: v, label: t(`timer.blockersTimeout.${v}`) })),
+    },
+    {
+      visibleIf: (_p, _g, ctx) => on(ctx) && blockersSettings(cfgOf(ctx)).on,
+      get: (ctx) => blockersSettings(cfgOf(ctx)).timeout,
+      set: patchSet((v) => ({ blockersTimeout: v as TimerConfig["blockersTimeout"] })),
     },
   ),
   row(

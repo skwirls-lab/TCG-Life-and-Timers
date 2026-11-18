@@ -36,6 +36,20 @@ export type ResponseMode = (typeof RESPONSE_MODES)[number];
 export const PASS_MODES = ["tap", "hold"] as const;
 export type PassMode = (typeof PASS_MODES)[number];
 
+/**
+ * Declare-blockers window house rule at 0:00: keep waiting (just alert) or hand the clock back
+ * to the attacker automatically.
+ */
+export const BLOCKERS_TIMEOUTS = ["wait", "return"] as const;
+export type BlockersTimeout = (typeof BLOCKERS_TIMEOUTS)[number];
+
+/** TIMER_BLOCKERS_END reasons ("pass" / "cancel" are logged by the engine itself). */
+export const BLOCKERS_END_REASONS = ["declared", "timeout"] as const;
+export type BlockersEndReason = (typeof BLOCKERS_END_REASONS)[number];
+
+/** Default blockers window length. */
+export const DEFAULT_BLOCKERS_MS = 30_000;
+
 /** TMR-031: one low-time warning threshold and how it alerts. */
 export interface TimerWarning {
   /** Remaining time at which the warning fires. */
@@ -89,6 +103,20 @@ export interface TimerConfig {
   showTurnTime: boolean;
   /** Optional global round timer, combinable with any per-seat mode. */
   match?: MatchTimerConfig;
+  /**
+   * TMR-060 handicap (additive): signed extra starting time per seat id, added to the seat's
+   * base allotment — the bank in bank modes, the per-turn time in per-turn modes (the
+   * perTurnReserve reserve stays shared). Increment and delay are the same for every seat.
+   * A structure key (applies to idle clocks, restarts, resets and new games). Entries for seats
+   * that are not in the game are pruned.
+   */
+  seatExtraMs?: Record<SeatIdLike, number>;
+  /** Declare-blockers window offered on the attacker's tile (additive; absent = off). */
+  blockersWindow?: boolean;
+  /** Blockers window length (default DEFAULT_BLOCKERS_MS). */
+  blockersMs?: number;
+  /** What happens when the blockers window reaches 0 (default "wait"). */
+  blockersTimeout?: BlockersTimeout;
 }
 
 export const CLOCK_STATES = ["normal", "overtime", "flagged", "timedOut"] as const;
@@ -106,6 +134,8 @@ export interface SeatClock {
   state: ClockState;
   /** 'addOnce' extension already consumed. */
   addOnceUsed?: boolean;
+  /** TMR-060: this seat's per-turn allowance when it differs from config.perTurnMs. */
+  turnMs?: number;
 }
 
 export const TIMER_STATUSES = ["idle", "running", "paused", "ended"] as const;
@@ -118,6 +148,22 @@ export interface MatchTimerState {
   totalMs: number;
   remainingMs: number;
   extraTurnsRemaining?: number;
+}
+
+/**
+ * Declare-blockers window (additive): the attacker's clock stops and a shared countdown runs
+ * instead. Nobody is charged while it counts (overtime included); a response pauses it and runs
+ * the responder's clock. `remainingMs` is exact as of `runningSince`, like the clocks.
+ */
+export interface BlockersWindow {
+  /** The attacker (turn holder when the window opened). */
+  seatId: SeatIdLike;
+  durationMs: number;
+  remainingMs: number;
+  /** Epoch ms the window opened. */
+  startedAt: number;
+  /** "wait" rule: the time-up alert has been applied (the window stays open). */
+  expired?: boolean;
 }
 
 /**
@@ -142,6 +188,8 @@ export interface TimerState {
   holdFreeMs?: number;
   /** The turn number the clocks were last reset for (per-turn modes, turn time, extra turns). */
   turnNumber?: number;
+  /** Open declare-blockers window, if any. */
+  blockers?: BlockersWindow;
 }
 
 const MIN = 60_000;
@@ -204,25 +252,49 @@ export function defaultTimerConfig(overrides: Partial<TimerConfig> = {}): TimerC
   };
 }
 
-/** Starting bank for a seat under a config (count-up starts at 0). */
-export function initialBankMs(config: TimerConfig): number {
+const perTurnMode = (mode: TimerMode) => mode === "perTurn" || mode === "perTurnReserve";
+
+/** TMR-060: the base allotment a seat's extra time is added to (bank, or per-turn time). */
+export function baseAllotmentMs(config: TimerConfig): number {
+  return perTurnMode(config.mode) ? config.perTurnMs : config.bankMs;
+}
+
+/** TMR-060: a seat's starting allotment (base + its extra time, never below 0). */
+export function seatAllotmentMs(config: TimerConfig, seatId?: SeatIdLike): number {
+  const extra = seatId === undefined ? 0 : (config.seatExtraMs?.[seatId] ?? 0);
+  return Math.max(0, baseAllotmentMs(config) + (Number.isFinite(extra) ? extra : 0));
+}
+
+/** Starting bank for a seat under a config (count-up starts at 0; `seatId` adds TMR-060 extra). */
+export function initialBankMs(config: TimerConfig, seatId?: SeatIdLike): number {
   switch (config.mode) {
     case "off":
     case "countup":
       return 0;
-    case "perTurn":
-      return config.perTurnMs;
     case "perTurnReserve":
       return config.reserveMs;
     default:
-      return config.bankMs;
+      return seatAllotmentMs(config, seatId);
   }
 }
 
+/** TMR-060: keep only the extra-time entries of the given seats. */
+export function pruneSeatExtra(config: TimerConfig, seatIds: readonly SeatIdLike[]): TimerConfig {
+  const extra = config.seatExtraMs;
+  if (!extra) return config;
+  const keep = Object.keys(extra).filter((id) => seatIds.includes(id));
+  if (keep.length === Object.keys(extra).length) return config;
+  return { ...config, seatExtraMs: Object.fromEntries(keep.map((id) => [id, extra[id]!])) };
+}
+
 /** Fresh idle timer state for a set of seats (used by createGame / RESET_GAME / SEAT_ADD). */
-export function initialTimerState(config: TimerConfig, seatIds: readonly SeatIdLike[]): TimerState {
+export function initialTimerState(
+  config0: TimerConfig,
+  seatIds: readonly SeatIdLike[],
+): TimerState {
+  const config = pruneSeatExtra(config0, seatIds);
   const clocks: Record<SeatIdLike, SeatClock> = {};
-  for (const id of seatIds) clocks[id] = initialClock(config);
+  for (const id of seatIds) clocks[id] = initialClock(config, id);
   return {
     mode: config.mode,
     config,
@@ -243,6 +315,21 @@ export function initialTimerState(config: TimerConfig, seatIds: readonly SeatIdL
   };
 }
 
-export function initialClock(config: TimerConfig): SeatClock {
-  return { bankMs: initialBankMs(config), usedMs: 0, turnUsedMs: 0, state: "normal" };
+export function initialClock(config: TimerConfig, seatId?: SeatIdLike): SeatClock {
+  const clock: SeatClock = {
+    bankMs: initialBankMs(config, seatId),
+    usedMs: 0,
+    turnUsedMs: 0,
+    state: "normal",
+  };
+  if (perTurnMode(config.mode)) {
+    const turnMs = seatAllotmentMs(config, seatId);
+    if (turnMs !== config.perTurnMs) clock.turnMs = turnMs;
+  }
+  return clock;
+}
+
+/** TMR-060: a clock's per-turn allowance. */
+export function clockTurnMs(c: Pick<SeatClock, "turnMs">, config: TimerConfig): number {
+  return c.turnMs ?? config.perTurnMs;
 }

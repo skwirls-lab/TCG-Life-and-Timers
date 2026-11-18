@@ -95,5 +95,10 @@
   "history.ev.timer.resume": "Clocks resumed",
   "history.ev.timer.timeout": "{name} ran out of time",
   "history.ev.timer.matchEnd": "Round time is up",
-  "history.ev.timer.restart": "Clocks restarted"
+  "history.ev.timer.restart": "Clocks restarted",
+  "history.ev.timer.blockersStart": "⚔ {name} attacked · {value} for blockers",
+  "history.ev.timer.blockersTimeUp": "Blockers time is up",
+  "history.ev.timer.blockersEnd.declared": "{name} declared attackers · blockers {value}",
+  "history.ev.timer.blockersEnd.timeout": "Blockers time is up · clock back to {name}",
+  "history.ev.timer.blockersEnd.pass": "Blockers window closed · {value}"
 }

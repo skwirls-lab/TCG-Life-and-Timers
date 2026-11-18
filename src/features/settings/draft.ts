@@ -190,6 +190,8 @@ export function configFromDraft(
 
 /** Stored preset defaults for a draft ("Save as default for <preset>"). */
 export function presetDefaultsFromDraft(draft: GameDraft): PresetDefaults {
+  // TMR-060 per-seat clock extras are per game (seat ids), never a preset default.
+  const { seatExtraMs: _x, ...timer } = draft.timer;
   return {
     players: draft.players,
     layoutId: draft.layoutId,
@@ -197,6 +199,6 @@ export function presetDefaultsFromDraft(draft: GameDraft): PresetDefaults {
     startOverrides: { ...draft.startOverrides },
     thresholdOverrides: { ...draft.thresholdOverrides },
     enabledCounters: [...draft.enabledCounters],
-    timer: { ...draft.timer },
+    timer,
   };
 }

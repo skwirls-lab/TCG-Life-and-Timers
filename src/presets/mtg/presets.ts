@@ -57,7 +57,12 @@ export const commander: Preset = {
   capabilities: ["commanderDamage", "partners", "commanderTax", ...SHARED_CAPS],
   defaults: {
     // Casual default: clocks off. Suggested clock: 25 min bank + 15 s increment (⚠ product guess).
-    timer: defaultTimerConfig({ mode: "off", bankMs: 25 * MIN, incrementMs: 15_000 }),
+    timer: defaultTimerConfig({
+      mode: "off",
+      blockersWindow: true,
+      bankMs: 25 * MIN,
+      incrementMs: 15_000,
+    }),
     firstPlayerRule: "random",
     options: { commanderDamageLifeLoss: true, partnersAllowed: true },
   },
@@ -91,7 +96,7 @@ export const constructed: Preset = {
   capabilities: [...SHARED_CAPS],
   defaults: {
     // Suggested clock: 25 min each (best-of-1).
-    timer: defaultTimerConfig({ mode: "off", bankMs: 25 * MIN }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true, bankMs: 25 * MIN }),
     firstPlayerRule: "random",
   },
   builtIn: true,
@@ -113,7 +118,7 @@ export const limited: Preset = {
   quickStartValues: QUICK_START,
   capabilities: [...SHARED_CAPS],
   defaults: {
-    timer: defaultTimerConfig({ mode: "off", bankMs: 25 * MIN }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true, bankMs: 25 * MIN }),
     firstPlayerRule: "random",
   },
   builtIn: true,
@@ -143,7 +148,7 @@ export const brawl: Preset = {
   quickStartValues: QUICK_START,
   capabilities: ["partners", "commanderTax", ...SHARED_CAPS],
   defaults: {
-    timer: defaultTimerConfig({ mode: "off", bankMs: 25 * MIN }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true, bankMs: 25 * MIN }),
     firstPlayerRule: "random",
   },
   builtIn: true,
@@ -174,7 +179,7 @@ export const oathbreaker: Preset = {
   quickStartValues: QUICK_START,
   capabilities: ["commanderTax", ...SHARED_CAPS],
   defaults: {
-    timer: defaultTimerConfig({ mode: "off", bankMs: 25 * MIN }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true, bankMs: 25 * MIN }),
     firstPlayerRule: "random",
   },
   builtIn: true,
@@ -205,7 +210,7 @@ export const twoHeadedGiant: Preset = {
   quickStartValues: QUICK_START,
   capabilities: ["dayNight", "perTurnFlags"],
   defaults: {
-    timer: defaultTimerConfig({ mode: "off" }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true }),
     firstPlayerRule: "random",
   },
   builtIn: true,
@@ -230,7 +235,7 @@ export const archenemy: Preset = {
   quickStartValues: QUICK_START,
   capabilities: ["perSeatStart", "perTurnFlags"],
   defaults: {
-    timer: defaultTimerConfig({ mode: "off" }),
+    timer: defaultTimerConfig({ mode: "off", blockersWindow: true }),
     firstPlayerRule: "random",
   },
   builtIn: true,

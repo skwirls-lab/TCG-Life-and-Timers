@@ -16,7 +16,7 @@
  * (§10.2).
  */
 import { Hand, TriangleAlert, Undo2, Zap } from "lucide-react";
-import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, memo, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { formatClock, turnTimeUsed, type Game, type SeatId } from "@/engine";
 import { useSnackbar, type SnackAnchor } from "@/components/ui/Snackbar";
 import { useHold } from "@/lib/hooks/useHold";
@@ -29,6 +29,12 @@ import { responseElapsed, seatTimerView, type TimerTileMetrics } from "./model";
 import { passTurn, playTone } from "./actions";
 import { useTimerUi } from "./timerUi";
 import { useTickNow } from "./useTickNow";
+
+// Declare-blockers UI: its own chunk, fetched only when the window is enabled or open (PERF-003).
+const blockers = () => import("./Blockers");
+const BlockersBanner = lazy(() => blockers().then((m) => ({ default: m.BlockersBanner })));
+const AttackButton = lazy(() => blockers().then((m) => ({ default: m.AttackButton })));
+const DeclaredButton = lazy(() => blockers().then((m) => ({ default: m.DeclaredButton })));
 
 export const PASS_HOLD_MS = 600;
 export const PASS_UNDO_MS = 3000;
@@ -64,6 +70,9 @@ export const SeatTimerBar = memo(function SeatTimerBar({
   const compact = !band;
   const showBanner = view.depth > 0 && !view.isTop;
   const px = view.holding ? metrics.clockPx : metrics.smallClockPx;
+  // Two big buttons side by side need room: narrow bands get the compact (icon + caption) look.
+  const tight = compact || metrics.buttons.maxW < 300;
+  const twoUp = view.canAttack || (view.canDeclare && (view.canPass || view.canRespond));
 
   const onChip = () => {
     // TMR-011: tapping a chip never does anything destructive; it shows the details for 2 s.
@@ -85,6 +94,12 @@ export const SeatTimerBar = memo(function SeatTimerBar({
     ) : null;
   } else if (showBanner) {
     chip = <ResponseBanner index={index} view={view} px={metrics.smallClockPx} compact={compact} />;
+  } else if (view.inWindow && view.depth === 0) {
+    chip = (
+      <Suspense fallback={null}>
+        <BlockersBanner index={index} px={metrics.smallClockPx} compact={compact} />
+      </Suspense>
+    );
   } else {
     chip = (
       <ClockChip
@@ -117,8 +132,14 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           seatId={seatId}
           rotation={rotation}
           hold={view.passMode === "hold"}
-          short={compact}
+          short={compact || (twoUp && tight)}
         />
+      )}
+      {(view.canAttack || view.canDeclare) && (
+        <Suspense fallback={null}>
+          {view.canAttack && <AttackButton index={index} compact={tight} />}
+          {view.canDeclare && <DeclaredButton index={index} compact={tight} />}
+        </Suspense>
       )}
       {view.canReturn && (
         <BarButton
@@ -147,7 +168,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
         <BarButton
           testId={`seat-${index}-respond`}
           tone="respond"
-          compact={compact || view.canReturn}
+          compact={compact || view.canReturn || (view.canDeclare && tight)}
           label={t("timer.respond")}
           short={view.canReturn ? undefined : t("timer.respondShort")}
           onClick={() => dispatch({ type: "TIMER_RESPOND", seatId })}

@@ -4,8 +4,14 @@
  * increment / delay, time per turn and the timeout action for the new game. Advanced modes (and
  * "Add time once") are gated by `timerAdvancedModes`: a locked choice opens the paywall.
  */
-import { ChipRow } from "@/components/ui";
-import { TIMEOUT_ACTIONS, TIMER_MODES, type TimerConfig, type TimerMode } from "@/engine";
+import { ChipRow, Toggle } from "@/components/ui";
+import {
+  BLOCKERS_TIMEOUTS,
+  TIMEOUT_ACTIONS,
+  TIMER_MODES,
+  type TimerConfig,
+  type TimerMode,
+} from "@/engine";
 import { Select } from "@/features/settings/Select";
 import {
   ADVANCED_MODES,
@@ -17,6 +23,8 @@ import {
   STEP_SECONDS,
   shortDuration,
 } from "@/features/timer/model";
+import { BLOCKERS_SECONDS, blockersSettings, seatTimesOn } from "@/features/timer/seatTimes";
+import { SeatTimesEditor, type SeatTimeRow } from "@/features/timer/SeatTimesEditor";
 import { useCan } from "@/lib/entitlements/store";
 import { openPaywall } from "@/lib/entitlements/paywall";
 import { t } from "@/lib/i18n";
@@ -24,11 +32,14 @@ import { t } from "@/lib/i18n";
 interface Props {
   timer: TimerConfig;
   onChange: (patch: Partial<TimerConfig>) => void;
+  /** TMR-060: the seats (setup order) with their extra clock time. */
+  seats?: readonly SeatTimeRow[];
+  onSeatExtra?: (key: string, extraMs: number) => void;
 }
 
 const LOCK = " 🔒";
 
-export function SetupClock({ timer, onChange }: Props) {
+export function SetupClock({ timer, onChange, seats = [], onSeatExtra }: Props) {
   const advanced = useCan("timerAdvancedModes");
   const mode = timer.mode;
   const bankKey = mode === "perTurnReserve" ? "reserveMs" : "bankMs";
@@ -123,6 +134,70 @@ export function SetupClock({ timer, onChange }: Props) {
           />
         </div>
       )}
+      {limited && (
+        <SeatTimesEditor
+          config={timer}
+          on={seatTimesOn(timer)}
+          rows={seats}
+          testId="setup-seat-times"
+          onToggle={(on) => onChange({ seatExtraMs: on ? {} : undefined })}
+          onSeat={(key, ms) => onSeatExtra?.(key, ms)}
+        />
+      )}
+      {mode !== "off" && <BlockersSetup timer={timer} onChange={onChange} />}
     </section>
+  );
+}
+
+/** Declare-blockers window: on/off, length and the 0:00 house rule (free). */
+export function BlockersSetup({ timer, onChange }: Props) {
+  const b = blockersSettings(timer);
+  return (
+    <div className="flex flex-col gap-1" data-testid="setup-blockers">
+      <div className="flex min-h-14 items-center gap-3">
+        <span className="flex flex-1 flex-col">
+          <span>{t("timer.settings.blockersWindow.title")}</span>
+          <span className="text-sm text-fg-muted">
+            {t("timer.settings.blockersWindow.subtitle")}
+          </span>
+        </span>
+        <Toggle
+          checked={b.on}
+          onChange={(on) => onChange({ blockersWindow: on })}
+          label={t("timer.settings.blockersWindow.title")}
+          testId="setup-blockers-toggle"
+        />
+      </div>
+      {b.on && (
+        <>
+          <div className="flex min-h-14 items-center gap-3">
+            <span className="flex-1">{t("timer.settings.blockersMs.title")}</span>
+            <Select
+              label={t("timer.settings.blockersMs.title")}
+              value={String(b.seconds)}
+              testId="setup-blockers-ms"
+              options={BLOCKERS_SECONDS.map((s) => ({
+                value: String(s),
+                label: t("timer.settings.seconds", { n: s }),
+              }))}
+              onChange={(s) => onChange({ blockersMs: Number(s) * 1000 })}
+            />
+          </div>
+          <div className="flex min-h-14 items-center gap-3">
+            <span className="flex-1">{t("timer.settings.blockersTimeout.title")}</span>
+            <Select
+              label={t("timer.settings.blockersTimeout.title")}
+              value={b.timeout}
+              testId="setup-blockers-timeout"
+              options={BLOCKERS_TIMEOUTS.map((v) => ({
+                value: v,
+                label: t(`timer.blockersTimeout.${v}`),
+              }))}
+              onChange={(v) => onChange({ blockersTimeout: v })}
+            />
+          </div>
+        </>
+      )}
+    </div>
   );
 }

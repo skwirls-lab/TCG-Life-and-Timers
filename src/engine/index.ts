@@ -28,7 +28,12 @@
  *   Additive W6 changes (DECISIONS): SET_LAYOUT {layoutId} (LAY-003; sticky like the seat
  *   cosmetics: not an undo step, not logged) and TIMER_RESET_CLOCKS {config?} (§13.1-C: back to
  *   an idle timer with the current config + optional patch; one undo step; logs timer "restart").
- *   TimerConfig.warnings (TMR-031 per-threshold sound/vibrate/flash; warningsMs kept). Timer helpers (timer/clock.ts): remaining, timeUsed,
+ *   TimerConfig.warnings (TMR-031 per-threshold sound/vibrate/flash; warningsMs kept).
+ *   Additive (lane/timers): TimerConfig.seatExtraMs (TMR-060 handicap; seatAllotmentMs,
+ *   baseAllotmentMs, pruneSeatExtra, clockTurnMs, SeatClock.turnMs) and the declare-blockers
+ *   window: TimerConfig.blockersWindow/blockersMs/blockersTimeout, TimerState.blockers,
+ *   TIMER_BLOCKERS_START {durationMs?} / TIMER_BLOCKERS_END {reason?}, significant event
+ *   kind "blockersEnd", blockersCounting(), blockersRemaining(). Timer helpers (timer/clock.ts): remaining, timeUsed,
  *   turnTimeUsed, displayMs, holder, matchRemaining, nextSignificantEvent, formatClock, turnStats.
  *
  * Selectors (selectors.ts): value, counterValue, counterDef, enabledCounters, primaryCounter,
@@ -109,6 +114,8 @@ export {
   clockState,
   holder,
   isCharging,
+  blockersCounting,
+  blockersRemaining,
   isLimited,
   matchRemaining,
   nextSignificantEvent,
