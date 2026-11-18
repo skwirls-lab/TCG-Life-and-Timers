@@ -59,3 +59,19 @@ Commit `2c77488`, run on a fresh worktree after `npm ci` (root and `functions/`)
 | G-LH | `npm run lhci` | ✅ 100/100/100/100 on /, /settings and /setup (3 runs each) |
 | G-TRACE | `npm run check:trace -- --all` | ✅ 229 P0/P1 requirements in scope, all traced or exempt |
 | Acceptance | `npm run test:acceptance` | ✅ Scenarios 1–12: 171 e2e + 21 unit + 93 rules |
+
+## v1.1.0 (owner feedback round: BRAND + MENU + TIMERS + PROFILES), clean checkout
+The first full run was at 82fe215 after `npm ci`. The second run, at c5dd972, covered the gates the fix touched.
+
+| Gate | Result |
+|---|---|
+| G-STATIC | ✅ |
+| G-UNIT | ✅ 1281 tests in 137 files; lines 97.68%, statements 96.63% |
+| G-PRESETS | ✅ 20 presets |
+| G-RULES / G-FUNCS / G-SYNC | ✅ 93 / 48 / 9 |
+| G-BUILD | ✅ /play 297.4 KB gzip total (cap 300), / 275.9 KB; no Firebase SDK in /play |
+| G-E2E + G-A11Y | ✅ 959 passed, 1 flaky (pay-gating 7–8 chips, passed on retry) |
+| G-E2E-EMU | ✅ 39 passed, including the welcome screen |
+| G-LH | ✅ |
+| G-TRACE | ✅ `--all`; 229 in scope |
+| Acceptance | ✅ Scenarios 1–12 |
