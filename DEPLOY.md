@@ -100,6 +100,23 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
      --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$REPO"
    ```
    The attribute condition means only this repository can use the pool.
+   **One-time project setup** (same Cloud Shell). It turns on the APIs a deploy needs and makes the permission grants a first functions deploy would otherwise try, and fail, to make itself:
+   ```bash
+   gcloud services enable firebasestorage.googleapis.com storage.googleapis.com \
+     firestore.googleapis.com firebaserules.googleapis.com cloudfunctions.googleapis.com \
+     cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
+     eventarc.googleapis.com pubsub.googleapis.com firebaseextensions.googleapis.com \
+     cloudresourcemanager.googleapis.com --project=$PROJECT_ID
+
+   COMPUTE_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
+   GCS_SA=$(gcloud storage service-agent --project=$PROJECT_ID)
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$GCS_SA" --role=roles/pubsub.publisher
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/eventarc.eventReceiver
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/run.invoker
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/cloudbuild.builds.builder
+   ```
+   Also make sure **Storage** is set up in the Firebase console (Build → Storage → Get started; it needs the Blaze plan).
 3. GitHub repo → **Settings → Secrets and variables → Actions → Variables** tab. Add three **variables** (they are not secrets):
    - `GCP_WIF_PROVIDER` = `projects/726097197982/locations/global/workloadIdentityPools/github/providers/github-repo`
    - `GCP_SERVICE_ACCOUNT` = `github-deployer@tcgtempo.iam.gserviceaccount.com`
