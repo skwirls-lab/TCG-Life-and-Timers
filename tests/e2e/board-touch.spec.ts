@@ -27,9 +27,12 @@ test("four simultaneous touches on four seats all register (INP-001)", async ({ 
 });
 
 test("press-and-hold applies the hold step, then repeats (INP-004)", async ({ page }) => {
-  await page.clock.install();
+  const t0 = new Date("2026-01-01T12:00:00Z");
+  await page.clock.install({ time: t0 });
   await page.goto(URL4);
   await expect(page.getByTestId("seat-0-name")).toBeVisible();
+  // Freeze the fake clock so real time can't add an extra repeat during the hold.
+  await page.clock.pauseAt(new Date(t0.getTime() + 60_000));
   await expect(value(page, 1)).toHaveText("40");
   const c = await centre(page, "seat-1-plus");
   await page.mouse.move(c.x, c.y);

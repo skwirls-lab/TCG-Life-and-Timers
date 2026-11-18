@@ -3,6 +3,30 @@
 All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
+## [1.1.0] - 2026-11-18
+
+### New name and look
+
+- The app is now **TCGTempo**, with a new icon on every page and on your home screen.
+- A welcome screen offers Google sign-in up front, so profiles and history sync across devices. You can still continue without an account.
+- Full screen during games is now opt-in (Settings), so the browser no longer goes full screen on its own.
+
+### Game board
+
+- The toolbar strip is gone, giving every seat more room. Tap the TCGTempo button in the middle of the board to pause the clocks and open the game menu (reset, players, history, dice, settings, full screen). Closing the menu resumes the clocks. The old strip is still available in Settings.
+
+### Timers
+
+- Every clock mode is now free.
+- Different time per seat: give a newer player more time in Setup or Settings.
+- Declare-blockers window: the active player taps Attack to stop their clock while defenders have a shared countdown (30 s by default) to declare blockers. A house rule decides what happens at 0:00.
+
+### Profiles and decks
+
+- Profiles and decks can have a default background, which loads with the player.
+- Commanders are picked from Scryfall, and a deck's background defaults to its commander's art.
+- "Set seat backgrounds to commanders" in Setup applies every seat's commander art when the game starts.
+
 ## [1.0.0] - 2026-11-01
 
 ### Board and life tracking
