@@ -38,6 +38,12 @@ interface Entry {
 export interface OverlayStack {
   push(close: () => void): string;
   release(id: string): void;
+  /**
+   * Drop an entry whose history entry the page is about to replace or leave (MENU: a page opened
+   * from the center menu): no close callback and no history traversal, ever. The caller removes
+   * the `{ overlay: id }` mark from the current history entry.
+   */
+  forget(id: string): void;
   /** Ids from bottom to top, with open flags (tests/diagnostics). */
   snapshot(): { id: string; open: boolean }[];
 }
@@ -127,6 +133,12 @@ export function createOverlayStack(env: OverlayEnv): OverlayStack {
       if (!e || !e.open) return;
       e.open = false;
       scheduleTrim();
+    },
+    forget(id) {
+      const i = stack.findIndex((x) => x.id === id);
+      if (i < 0) return;
+      stack.splice(i, 1);
+      maybeUnlisten();
     },
     snapshot: () => stack.map((e) => ({ id: e.id, open: e.open })),
   };

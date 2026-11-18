@@ -140,4 +140,13 @@ describe("diffAnnouncements (A11Y-001)", () => {
     const s1 = run(s0, [{ type: "PASS_TURN", now: T0 + 1 }]);
     expect(diffAnnouncements(s0.game, s1.game).immediate).toEqual([]);
   });
+
+  it("announces clocks paused / resumed, not after the game ended", () => {
+    const g = newGame();
+    const at = (status: "running" | "paused") => ({ ...g, timer: { ...g.timer, status } });
+    expect(diffAnnouncements(at("running"), at("paused")).immediate).toEqual(["Clocks paused"]);
+    expect(diffAnnouncements(at("paused"), at("running")).immediate).toEqual(["Clocks resumed"]);
+    const ended = { ...at("paused"), status: "ended" as const };
+    expect(diffAnnouncements(at("running"), ended).immediate).toEqual([]);
+  });
 });

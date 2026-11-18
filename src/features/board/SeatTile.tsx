@@ -30,6 +30,7 @@ import { useBoardUi } from "./boardStore";
 import { reducedMotion, tapFeedback } from "./feedback";
 import { QuickCmdGrid, TileMiniGrid } from "./MiniGrid";
 import type { SeatLook } from "./useSeatLooks";
+import { notchRow, type NotchRow } from "./notch";
 import { useSwipe } from "./useSwipe";
 import { firstMarkerKey } from "@/features/game-flow/flow";
 import { useFlowUi } from "@/features/game-flow/flowUi";
@@ -47,6 +48,8 @@ export interface SeatTileProps {
   grid: MiniGridPlacement;
   looks: SeatLook[];
   showMiniGrid: boolean;
+  /** MENU: where the center menu button cuts into the name row ([from, to] px, player frame). */
+  notch?: readonly [number, number] | null;
 }
 
 function selectView(seat: Seat, game: Game) {
@@ -87,6 +90,7 @@ export const SeatTile = memo(function SeatTile({
   grid,
   looks,
   showMiniGrid,
+  notch = null,
 }: SeatTileProps) {
   const view = useSeat(seatId, selectView);
   const dispatch = useDispatch();
@@ -349,47 +353,49 @@ export const SeatTile = memo(function SeatTile({
               {glyph("plus")}
               {/* Name pill (opens the seat menu; INP-009 visually distinct from the +/− zones) */}
               {/* A-9: tall tiles have nothing beside the pill, so the name may use the width. */}
-              <div
-                className={cn(
-                  "absolute inset-x-0 top-0 flex items-center justify-center",
-                  wide ? "px-14" : "px-2",
-                )}
-                style={{ height: m.topH }}
-              >
-                <button
-                  type="button"
-                  data-testid={`seat-${index}-name`}
-                  aria-label={t("board.seat.menu", { name: view.name })}
-                  onClick={openSeat}
-                  className="pointer-events-auto flex h-full min-w-12 max-w-full items-center justify-center"
-                >
-                  <span
-                    className={cn(
-                      "max-w-full truncate rounded-full bg-black/60 px-3 py-1 font-semibold",
-                      big ? "text-xs" : "text-sm",
-                    )}
+              {/* MENU: the center menu button may cut into this row (`notch`): go around it. */}
+              <NameRow
+                notch={notchRow(notch, frameW)}
+                pad={wide ? 56 : 8}
+                height={m.topH}
+                name={
+                  <button
+                    type="button"
+                    data-testid={`seat-${index}-name`}
+                    aria-label={t("board.seat.menu", { name: view.name })}
+                    onClick={openSeat}
+                    className="pointer-events-auto flex h-full min-w-12 max-w-full items-center justify-center"
                   >
-                    {view.name}
-                  </span>
-                </button>
-                {firstMarker && (
-                  <span
-                    data-testid={`seat-${index}-first`}
-                    role="status"
-                    className="ml-1 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-fg shadow"
-                  >
-                    <span className="sr-only">
-                      {t("board.seat.goesFirstLabel", { name: view.name })}
+                    <span
+                      className={cn(
+                        "max-w-full truncate rounded-full bg-black/60 px-3 py-1 font-semibold",
+                        big ? "text-xs" : "text-sm",
+                      )}
+                    >
+                      {view.name}
                     </span>
-                    <span aria-hidden>▶</span>
-                    <span aria-hidden>
-                      {frameW - (wide ? 112 : 16) < 260
-                        ? t("board.seat.goesFirstShort")
-                        : t("board.seat.goesFirst")}
+                  </button>
+                }
+                chip={
+                  firstMarker && (
+                    <span
+                      data-testid={`seat-${index}-first`}
+                      role="status"
+                      className="ml-1 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-fg shadow"
+                    >
+                      <span className="sr-only">
+                        {t("board.seat.goesFirstLabel", { name: view.name })}
+                      </span>
+                      <span aria-hidden>▶</span>
+                      <span aria-hidden>
+                        {frameW - (wide ? 112 : 16) < 260 || notch
+                          ? t("board.seat.goesFirstShort")
+                          : t("board.seat.goesFirst")}
+                      </span>
                     </span>
-                  </span>
-                )}
-              </div>
+                  )
+                }
+              />
               {/* Primary number (LIFE-001, LAY-008 auto-fit) + bubble (INP-006) */}
               <div
                 className="absolute inset-x-0 flex items-center justify-center"
@@ -615,4 +621,53 @@ function useFirstMarker(seatId: string): boolean {
     return () => clearTimeout(timer);
   }, [key, done, waiting, markerDone]);
   return !!key && !done;
+}
+
+/**
+ * The tile's top row (name pill + "goes first" chip). Centred by default; with the center menu
+ * button cutting in (MENU), split around it or padded so the pill stays clear of it.
+ */
+function NameRow({
+  notch,
+  pad,
+  height,
+  name,
+  chip,
+}: {
+  notch: NotchRow;
+  pad: number;
+  height: number;
+  name: React.ReactNode;
+  chip: React.ReactNode;
+}) {
+  if (notch.kind === "split") {
+    return (
+      <div
+        className="absolute inset-x-0 top-0 flex items-center"
+        style={{ height }}
+        data-notch="split"
+      >
+        <div
+          className="flex h-full min-w-0 shrink-0 items-center justify-end"
+          style={{ width: notch.from, paddingLeft: Math.min(pad, notch.from / 4) }}
+        >
+          {name}
+        </div>
+        <div aria-hidden className="h-full shrink-0" style={{ width: notch.to - notch.from }} />
+        <div className="flex h-full min-w-0 flex-1 items-center justify-start">{chip}</div>
+      </div>
+    );
+  }
+  const cut = (s: "left" | "right") =>
+    notch.kind === "pad" && notch.side === s ? Math.max(pad, notch.pad) : pad;
+  return (
+    <div
+      className="absolute inset-x-0 top-0 flex items-center justify-center"
+      style={{ height, paddingLeft: cut("left"), paddingRight: cut("right") }}
+      data-notch={notch.kind === "pad" ? "pad" : undefined}
+    >
+      {name}
+      {chip}
+    </div>
+  );
 }

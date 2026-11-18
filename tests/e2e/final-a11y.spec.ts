@@ -5,6 +5,7 @@
  * the skull with accessible text, lethal commander damage has an icon.
  */
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { activeIndex, gotoClockBoard, timerState } from "./support/timer";
 
 test("turn tracking without clocks: the active seat shows ▶ Turn text, not just a ring", async ({
@@ -29,7 +30,7 @@ test("clocks: holder ▶, responder ⚡, low time icon, skull + text when elimin
   page,
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=15000&t.timeoutAction=grace&t.graceMs=60000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect.poll(async () => (await timerState(page)).status).toBe("running");
   const a = await activeIndex(page);
   const holder = page.getByTestId(`seat-${a}-clock`);

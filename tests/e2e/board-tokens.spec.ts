@@ -1,5 +1,6 @@
 // @req TOK-001 @req TOK-003 @req TOK-004 @req LIFE-002 @req LIFE-003 @req CMD-010
 import { expect, test, type Page } from "@playwright/test";
+import { openMenu } from "./support/menu";
 
 const BASE =
   "/play?quick=mtg.commander&players=4&seed=7&names=Conner,Josh,JP,Bethany&s.hideSystemBars=0";
@@ -38,6 +39,7 @@ test("day/night shows in the toolbar only when enabled and cycles Neither → Da
 }) => {
   await page.goto(BASE);
   await expect(page.getByTestId("seat-0-name")).toBeVisible();
+  await openMenu(page);
   await expect(page.getByTestId("toolbar-daynight")).toHaveCount(0);
   await page.evaluate(() =>
     window.__tcg!.dispatch({ type: "COUNTER_ENABLE", counterId: "mtg.dayNight", enabled: true }),

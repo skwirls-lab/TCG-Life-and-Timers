@@ -194,7 +194,6 @@ test("roll-off: each seat's d20 is shown, the highest goes first", async ({ page
   await expect(page.getByTestId("rolloff").locator("li")).toHaveCount(4);
   await page.getByTestId("first-player-skip").click(CORNER);
   await expect(overlay).toHaveAttribute("data-landed", "1");
-  await expectNoSeriousA11yViolations(page);
 
   const g = await game(page);
   const rolls = g.turn.rolloff!;
@@ -212,6 +211,8 @@ test("roll-off: each seat's d20 is shown, the highest goes first", async ({ page
   }
   const name = g.seats.find((s) => s.id === g.turn.firstSeat)!.name;
   await expect(page.getByTestId("first-player-result")).toHaveText(`${name} goes first`);
+  // Axe last: the result auto-closes 2 s after landing and a full scan can take about as long.
+  await expectNoSeriousA11yViolations(page);
 });
 
 test("Pokémon: opening coin flip decides, then the first-turn reminder shows once", async ({

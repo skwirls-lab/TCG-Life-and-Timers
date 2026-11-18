@@ -37,6 +37,13 @@ export function diffAnnouncements(prev: Game | null | undefined, next: Game): An
       immediate.push(t(`board.announce.clock.${is}`, { name: seat.name }));
     }
   }
+  // MENU: pausing / resuming the clocks (center menu, PAUSED overlay, toolbar) is spoken too.
+  if (next.status !== "ended") {
+    const was = prev.timer.status;
+    const is = next.timer.status;
+    if (was === "running" && is === "paused") immediate.push(t("board.announce.paused"));
+    else if (was === "paused" && is === "running") immediate.push(t("board.announce.resumed"));
+  }
   const active = next.turn.activeSeat;
   const tracking = next.options.turnTracking || next.timer.mode !== "off";
   if (tracking && active && active !== prev.turn.activeSeat && next.status !== "ended") {

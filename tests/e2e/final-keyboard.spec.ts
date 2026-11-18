@@ -5,6 +5,7 @@
  * closes sheets; a visible focus ring. The polite live region (A11Y-001) reads the results.
  */
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { activeIndex, gotoClockBoard, timerState } from "./support/timer";
 
 test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false, isMobile: false });
@@ -76,7 +77,7 @@ test("arrow keys adjust the focused seat, with a visible focus ring and live ann
 
 test("Space passes the turn on the active seat; R responds from another seat", async ({ page }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect.poll(async () => (await timerState(page)).status).toBe("running");
   const a = await activeIndex(page);
   const b = (a + 1) % 4;

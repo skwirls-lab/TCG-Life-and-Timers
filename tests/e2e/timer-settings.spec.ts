@@ -1,6 +1,7 @@
 // @req SET-010 @req TMR-022 @req SEAT-003 @req TURN-002 @req TMR-030 @req TMR-004
 // §13.1-C timer rows and the seat Timer tab.
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, storedTimer, timerState } from "./support/timer";
 
@@ -9,7 +10,7 @@ async function config(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.getByTestId("toolbar-settings").click();
+  await menuTap(page, "toolbar-settings");
   await expect(page.getByTestId("settings")).toBeVisible();
 }
 
@@ -73,12 +74,12 @@ test("section C: rows follow the mode and change the game's timer config", async
 
   // Back on the board: START is offered with the configured clocks.
   await page.goto("/play");
-  await expect(page.getByTestId("timer-start")).toBeVisible();
+  await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "start");
 });
 
 test("changing the mode mid-game asks to restart the clocks", async ({ page }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(10_000);
   await openSettings(page);
   await page.getByTestId("setting-timer.mode-control").selectOption("perTurn");
@@ -100,7 +101,7 @@ test("changing the mode mid-game asks to restart the clocks", async ({ page }) =
   // the restarted (idle) clocks are on disk before the reload
   await expect.poll(async () => (await storedTimer(page))?.status).toBe("idle");
   await page.goto("/play");
-  await expect(page.getByTestId("timer-start")).toBeVisible();
+  await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "start");
 });
 
 test("seat Timer tab: remaining, adjust (logged as adjusted in history), set exact, concede", async ({
@@ -108,7 +109,7 @@ test("seat Timer tab: remaining, adjust (logged as adjusted in history), set exa
 }) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
   const a = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(30_000);
   await page.getByTestId(`seat-${a}-name`).click();
   await page.getByTestId("seat-menu-tab-timer").click();
@@ -137,7 +138,7 @@ test("seat Timer tab: remaining, adjust (logged as adjusted in history), set exa
   expect(adjusted).toEqual(["adjust", "adjust", "set"]);
   await page.getByTestId("seat-menu-close").click();
   await page.getByTestId("timer-resume").click();
-  await page.getByTestId("toolbar-history").click();
+  await menuTap(page, "toolbar-history");
   await expect(page.getByTestId("log-list")).toContainText("adjust");
 
   await page.clock.runFor(1_000); // autosave

@@ -7,19 +7,15 @@ import { Dices, Ellipsis, History, RotateCcw, Settings, Users, X } from "lucide-
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { Sheet } from "@/components/ui/Sheet";
-import { useSnackbar } from "@/components/ui/Snackbar";
 import { GameIcon } from "@/components/icons/GameIcon";
 import type { Rect, ToolbarOrientation } from "@/engine/layout";
 import type { Rotation } from "@/lib/ui/rotation";
 import { enumLabel, globalValue, type CounterDefinition } from "@/engine";
-import { requestReset } from "@/features/history-past/whoWon";
-import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
 import { ClockControl, MatchClock, clockControlKind } from "@/features/timer/ClockToolbar";
 import { useHold } from "@/lib/hooks/useHold";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
-import { useDispatch, useGameStore, useGameValue } from "@/state/gameStore";
+import { useDispatch, useGameValue } from "@/state/gameStore";
 import { historyVisible } from "@/lib/records/policy";
 import { useSetting, useSettingsStore } from "@/state/settingsStore";
 import {
@@ -31,24 +27,21 @@ import {
 } from "./boardHelpers";
 import { TrackGauge, type TrackOwner } from "./TrackGauge";
 import { useBoardUi } from "./boardStore";
-import { lazyComponent } from "@/lib/hooks/lazyComponent";
-
-// PERF-003: loaded on demand (and prefetched when the board is idle, see PlayScreen).
-export const QuickToolsMenu = lazyComponent(() =>
-  import("@/features/tools/QuickToolsMenu").then((m) => m.QuickToolsMenu),
-);
-export const PlayersSheet = lazyComponent(() =>
-  import("./PlayersSheet").then((m) => m.PlayersSheet),
-);
+import { PlayersSheet, QuickToolsMenu } from "./lazySheets";
+import { ResetButton } from "./ResetButton";
 
 const AUTO_HIDE_MS = 5000;
-const RESET_HOLD_MS = 1000;
 
 interface Props {
   rect: Rect;
   orientation: ToolbarOrientation;
   /** Seat rotations by seat index (owners of a shared track, A-4). */
   seatRotations?: readonly Rotation[];
+  /**
+   * MENU: with the center menu style the strip only carries a shared track (D-073); this node
+   * (the center menu button) replaces the strip's buttons.
+   */
+  centerSlot?: ReactNode;
 }
 
 const btnBase =
@@ -100,7 +93,7 @@ function useMainAxis(ref: React.RefObject<HTMLElement | null>, vertical: boolean
   return len;
 }
 
-export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
+export function Toolbar({ rect, orientation, seatRotations = [], centerSlot }: Props) {
   const router = useRouter();
   const dispatch = useDispatch();
   const players = useGameValue((g) => g.seats.length) ?? 0;
@@ -130,7 +123,7 @@ export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
   const showHistory = useGameValue((g) => historyVisible(settings, g)) ?? true;
   const cmdMode = useBoardUi((s) => s.cmdMode);
   const setCmdMode = useBoardUi((s) => s.setCmdMode);
-  const autoHide = useSetting("autoHideMenu");
+  const autoHide = useSetting("autoHideMenu") && !centerSlot;
   const [playersOpen, setPlayersOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -166,7 +159,7 @@ export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
     width: `${rect.w * 100}%`,
     height: `${rect.h * 100}%`,
   };
-  const pill = players === 2 && !cmdMode;
+  const pill = players === 2 && !cmdMode && !centerSlot;
   const track = trackKey
     ? (JSON.parse(trackKey) as {
         defs: CounterDefinition[];
@@ -176,7 +169,9 @@ export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
 
   let content: ReactNode;
   let dense = false;
-  if (cmdMode) {
+  if (centerSlot) {
+    content = centerSlot;
+  } else if (cmdMode) {
     content = (
       <Button
         variant="primary"
@@ -231,7 +226,11 @@ export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
     dense = compact;
     const hidden = new Set(fit.overflow);
     const nodes: Record<string, ReactNode> = {
-      reset: <ResetButton key="reset" compact={compact} />,
+      reset: (
+        <ResetButton key="reset" className={btnCls(compact)}>
+          <RotateCcw size={24} className="relative" />
+        </ResetButton>
+      ),
       players: (
         <ToolButton
           key="players"
@@ -378,106 +377,5 @@ export function Toolbar({ rect, orientation, seatRotations = [] }: Props) {
       {playersOpen && <PlayersSheet open onClose={() => setPlayersOpen(false)} />}
       {toolsOpen && <QuickToolsMenu open onClose={() => setToolsOpen(false)} />}
     </div>
-  );
-}
-
-/** GAME-010 / LAY-011: hold-to-confirm (default) or a confirm dialog, then RESET_GAME. */
-function ResetButton({ compact }: { compact: boolean }) {
-  const style = useSetting("confirmStyle");
-  const dispatch = useDispatch();
-  const show = useSnackbar((s) => s.show);
-  const [dialog, setDialog] = useState(false);
-  const [holding, setHolding] = useState(false);
-
-  const doReset = () => {
-    const game = useGameStore.getState().session?.game;
-    if (!game) return;
-    // HIST-031: the Who-won flow saves the game first (or the prompt is closed: no reset).
-    // The "Game reset · Undo" snackbar is shown by GameFlowOverlays for every reset (D-039).
-    void requestReset({ game, proceed: () => dispatch({ type: "RESET_GAME" }) });
-  };
-
-  const hold = useHold({
-    delay: RESET_HOLD_MS,
-    onTap: () => {
-      setHolding(false);
-      show({ message: t("board.reset.holdHint"), durationMs: 2000 });
-    },
-    onHold: () => {
-      setHolding(false);
-      doReset();
-    },
-  });
-
-  const label = t("board.toolbar.reset");
-  const holdMode = style === "hold";
-  return (
-    <>
-      <button
-        type="button"
-        aria-label={holdMode ? t("board.toolbar.resetHold") : label}
-        title={holdMode ? t("board.toolbar.resetHold") : label}
-        data-testid="toolbar-reset"
-        className={cn(btnCls(compact), "overflow-hidden")}
-        {...(holdMode
-          ? {
-              ...hold,
-              onPointerDown: (e: React.PointerEvent) => {
-                setHolding(true);
-                hold.onPointerDown(e);
-              },
-              onPointerUp: (e: React.PointerEvent) => {
-                setHolding(false);
-                hold.onPointerUp(e);
-              },
-              onPointerCancel: (e: React.PointerEvent) => {
-                setHolding(false);
-                hold.onPointerCancel(e);
-              },
-              onPointerLeave: (e: React.PointerEvent) => {
-                setHolding(false);
-                hold.onPointerLeave(e);
-              },
-              onClick: (e: React.MouseEvent) => {
-                if (e.detail === 0) setDialog(true); // keyboard: confirm via dialog
-              },
-            }
-          : { onClick: () => setDialog(true) })}
-      >
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 bg-danger/40"
-          style={{
-            width: holding ? "100%" : "0%",
-            transition: holding ? `width ${RESET_HOLD_MS}ms linear` : "none",
-          }}
-        />
-        <RotateCcw size={24} className="relative" />
-      </button>
-      <Sheet
-        open={dialog}
-        onClose={() => setDialog(false)}
-        title={t("board.reset.title")}
-        testId="reset-dialog"
-      >
-        <p className="mb-4 text-fg-muted">{t("board.reset.body")}</p>
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setDialog(false)}>
-            {t("common.cancel")}
-          </Button>
-          <Button
-            variant="danger"
-            data-testid="reset-confirm"
-            onClick={() => {
-              setDialog(false);
-              // The Who-won prompt may open next: wait until this sheet has left history.
-              afterOverlayClose(doReset);
-            }}
-          >
-            {t("common.reset")}
-          </Button>
-        </div>
-      </Sheet>
-    </>
   );
 }

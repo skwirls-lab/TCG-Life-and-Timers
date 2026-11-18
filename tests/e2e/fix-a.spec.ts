@@ -5,6 +5,7 @@
  * pips, the compact response banner, snackbar placement, camera-mode names, SWU base HP, copy.
  */
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap, openMenu } from "./support/menu";
 import { T0 } from "./support/timer";
 
 const NAMES = "Conner,Josh,JP,Bethany,Ann,Bo";
@@ -76,7 +77,7 @@ test.describe("A-1 first player on the board", () => {
     await expect(page.getByTestId(`seat-${first2}-first`)).toBeHidden();
   });
 
-  test("the reset Undo snackbar does not cover the result or the toolbar", async ({ page }) => {
+  test("the reset Undo snackbar does not cover the result or the menu button", async ({ page }) => {
     await page.goto(play("quick=mtg.constructed&players=2"));
     await expect(page.getByTestId("seat-0-value")).toHaveText("20");
     await page.evaluate(() => window.__tcg!.dispatch({ type: "RESET_GAME" }));
@@ -88,7 +89,7 @@ test.describe("A-1 first player on the board", () => {
     await expect(snack).toHaveAttribute("data-anchored", "1");
     const s = (await snack.boundingBox())!;
     const result = (await page.getByTestId("first-player-result").boundingBox())!;
-    const toolbar = (await page.getByTestId("toolbar").boundingBox())!;
+    const toolbar = (await page.getByTestId("center-menu").boundingBox())!;
     const overlaps = (a: typeof s, b: typeof s) =>
       a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
     expect(overlaps(s, result)).toBe(false);
@@ -171,8 +172,8 @@ test.describe("A-3 match timer with per-seat clocks off", () => {
     await expect(page.getByTestId("match-clock-time")).toHaveText("50:00");
     // No per-seat clocks.
     await expect(page.locator('[data-testid$="-clock"][data-testid^="seat-"]')).toHaveCount(0);
-    await page.getByTestId("timer-start").click();
-    await expect(page.getByTestId("toolbar-clock")).toHaveAttribute("data-state", "running");
+    await menuTap(page, "timer-start");
+    await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "running");
     await page.clock.fastForward(10 * 60_000);
     await expect(page.getByTestId("match-clock-time")).toHaveText("40:00");
     await page.clock.fastForward(40 * 60_000);
@@ -186,9 +187,9 @@ test.describe("A-3 match timer with per-seat clocks off", () => {
   }) => {
     await page.goto(play("quick=ygo.advanced&players=2"));
     await expect(page.getByTestId("match-clock-time")).toHaveText("40:00");
-    await expect(page.getByTestId("timer-start")).toBeVisible();
+    await expect(page.getByTestId("center-menu")).toHaveAttribute("data-clock", "start");
     // Open Settings from the board (the live game is the one being edited).
-    await page.getByTestId("toolbar-settings").click();
+    await menuTap(page, "toolbar-settings");
     await expect(page.getByTestId("setting-timer.mode-control")).toHaveValue("off");
     await expect(page.getByTestId("setting-timer.match-control")).toHaveValue("40");
     await expect(page.getByTestId("setting-timer.extraTurns-control")).toHaveValue("2");
@@ -218,7 +219,18 @@ test.describe("A-4 Digimon memory track", () => {
     for (let i = 0; i < 5; i++) await page.getByTestId(`track-digimon.memory-${josh}`).click();
     await expect(track).toHaveAttribute("data-value", "-3");
     await expect(page.getByTestId("track-digimon.memory-marker")).toHaveText("3");
-    // Every toolbar button is still on screen.
+    // MENU: the center button sits on the strip beside the track, clear of the gauge.
+    const btn = (await page.getByTestId("center-menu").boundingBox())!;
+    expect(btn.y).toBeGreaterThanOrEqual(toolbar.y - 1);
+    expect(btn.y + btn.height).toBeLessThanOrEqual(toolbar.y + toolbar.height + 1);
+    const apart =
+      btn.y >= tb.y + tb.height - 1 ||
+      btn.y + btn.height <= tb.y + 1 ||
+      btn.x >= tb.x + tb.width - 1 ||
+      btn.x + btn.width <= tb.x + 1;
+    expect(apart).toBe(true);
+    // Every menu item is on screen.
+    await openMenu(page);
     for (const id of ["toolbar-reset", "toolbar-settings", "toolbar-tools"]) {
       const b = (await page.getByTestId(id).boundingBox())!;
       expect(b.x + b.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
@@ -242,7 +254,7 @@ test.describe("A-6 FFTCG pips", () => {
 test.describe("A-7 response banner", () => {
   test("compact tiles keep the responder's name and label the buttons", async ({ page }) => {
     await page.goto(play("quick=mtg.commander&players=4&t.mode=bank&t.bankMs=600000"));
-    await page.getByTestId("timer-start").click();
+    await menuTap(page, "timer-start");
     const g = await game(page);
     const active = g.seats.findIndex((s) => s.id === g.turn.activeSeat);
     const responder = (active + 1) % 4;
@@ -280,12 +292,12 @@ test.describe("A-8 snackbars", () => {
     expect(cy).toBeLessThan(tile.y + tile.height);
     await snack.getByTestId("snackbar-action").click();
 
-    await page.getByTestId("timer-start").click();
+    await menuTap(page, "timer-start");
     const g = await game(page);
     const active = g.seats.findIndex((x) => x.id === g.turn.activeSeat);
     await page.getByTestId(`seat-${active}-pass`).click();
     await expect(page.getByTestId("snackbar")).toContainText("Passed to");
-    await page.getByTestId("toolbar-clock").click();
+    await menuTap(page, "toolbar-clock");
     await expect(page.getByTestId("timer-paused")).toBeVisible();
     await expect(page.getByTestId("snackbar")).toBeHidden();
     await page.getByTestId("timer-resume").click();
@@ -367,7 +379,7 @@ test.describe("A-11 copy", () => {
   test("History calls the current game 'Game N'", async ({ page }) => {
     await start(page, "quick=mtg.commander&players=4");
     await page.getByTestId("seat-0-minus").click();
-    await page.getByTestId("toolbar-history").click();
+    await menuTap(page, "toolbar-history");
     await expect(page.getByTestId("history-game-title")).toHaveText(/^Game \d+$/);
   });
 });

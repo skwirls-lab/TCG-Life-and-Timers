@@ -2,7 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const BASE =
-  "/play?quick=mtg.commander&players=4&seed=7&names=Conner,Josh,JP,Bethany&s.hideSystemBars=0";
+  "/play?quick=mtg.commander&players=4&seed=7&names=Conner,Josh,JP,Bethany&s.hideSystemBars=0&s.menuStyle=strip";
 
 async function holdOn(page: Page, testId: string, until: () => Promise<void>) {
   const box = (await page.getByTestId(testId).boundingBox())!;

@@ -2,6 +2,7 @@
 // app-wide, so real reset / new-game paths save games without any dev harness.
 // @req HIST-003 @req HIST-008 @req HIST-031 @req HIST-020
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap, openMenu } from "./support/menu";
 import { dispatch, gameId, life } from "./support/records";
 
 const BASE = "/play?quick=mtg.commander&seed=7&s.hideSystemBars=0";
@@ -72,6 +73,7 @@ test.describe("game records on the board", () => {
     await dispatch(page, life("s1", -5), life("s2", -3), life("s3", -7));
     await expect(page.getByTestId("seat-0-value")).toHaveText("35");
 
+    await openMenu(page);
     await holdOn(page, "toolbar-reset", () =>
       expect(page.getByTestId("who-won")).toBeVisible({ timeout: 3000 }),
     );
@@ -92,7 +94,7 @@ test.describe("game records on the board", () => {
     await expect(page.getByTestId("seat-0-name")).toBeVisible();
     const id = await gameId(page);
     await dispatch(page, life("s1", -1), life("s2", -1), life("s3", -1));
-    await page.getByTestId("toolbar-reset").click();
+    await menuTap(page, "toolbar-reset");
     await page.getByTestId("reset-confirm").click();
     await expect(page.getByTestId("who-won")).toBeVisible();
     await page.keyboard.press("Escape");
@@ -108,7 +110,7 @@ test.describe("game records on the board", () => {
     await expect(page.getByTestId("seat-0-name")).toBeVisible();
     const id = await gameId(page);
     await dispatch(page, life("s1", -1), life("s2", -1), life("s3", -1));
-    await page.getByTestId("toolbar-players").click();
+    await menuTap(page, "toolbar-players");
     await page.getByTestId("players-count-3").click();
     await page.getByTestId("players-confirm").click();
     await page.getByTestId("who-won-draw").click();
@@ -121,11 +123,13 @@ test.describe("game records on the board", () => {
   // @req HIST-008
   test("with game history off: no history button and no record", async ({ page }) => {
     await page.goto(`${BASE}&players=2&names=Ana,Ben`);
+    await openMenu(page);
     await expect(page.getByTestId("toolbar-history")).toBeVisible();
     await dispatch(page, { type: "SET_OPTION", key: "historyEnabled", value: false });
     await expect(page.getByTestId("toolbar-history")).toHaveCount(0);
     await dispatch(page, life("s1", -1), life("s2", -1), life("s1", -1));
     // a reset neither prompts nor saves
+    await openMenu(page);
     await holdOn(page, "toolbar-reset", () =>
       expect(page.getByTestId("seat-0-value")).toHaveText("40", { timeout: 3000 }),
     );

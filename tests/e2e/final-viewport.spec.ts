@@ -58,9 +58,36 @@ async function expectToolbarTargets(page: Page) {
   }
 }
 
+/** MENU: the center menu's items are ≥ 44 px and on screen. */
+async function expectMenuTargets(page: Page) {
+  await page.getByTestId("center-menu").click();
+  const panel = page.getByTestId("center-menu-panel");
+  await expect(panel).toBeVisible();
+  const p = (await panel.boundingBox())!;
+  expect(p.x).toBeGreaterThanOrEqual(-1);
+  expect(p.x + p.width).toBeLessThanOrEqual(321);
+  expect(p.y + p.height).toBeLessThanOrEqual(569);
+  const buttons = panel.locator("button:visible");
+  const n = await buttons.count();
+  expect(n).toBeGreaterThan(5);
+  for (let k = 0; k < n; k++) {
+    const b = (await buttons.nth(k).boundingBox())!;
+    const label = await buttons.nth(k).getAttribute("data-testid");
+    expect(Math.min(b.width, b.height), `${label} target size`).toBeGreaterThanOrEqual(44);
+  }
+}
+
 for (const players of [2, 4]) {
   test(`board with ${players} players fits 320×568`, async ({ page }) => {
     await page.goto(`${PLAY}&players=${players}`);
+    await expect(page.getByTestId("seat-0-value")).toHaveText("40");
+    await expectNoHorizontalScroll(page);
+    await expectSeatsFit(page, players);
+    await expectMenuTargets(page);
+  });
+
+  test(`board with ${players} players fits 320×568 (toolbar strip)`, async ({ page }) => {
+    await page.goto(`${PLAY}&players=${players}&s.menuStyle=strip`);
     await expect(page.getByTestId("seat-0-value")).toHaveText("40");
     await expectNoHorizontalScroll(page);
     await expectSeatsFit(page, players);
@@ -82,7 +109,7 @@ for (const [w, h] of [
       const label = extra.includes("matchMs") ? "clock + match timer" : "clock";
       test(`toolbar with a ${label} fits ${w}×${h}, ${players} players`, async ({ page }) => {
         await page.setViewportSize({ width: w, height: h });
-        await page.goto(`${PLAY}&players=${players}&${extra}`);
+        await page.goto(`${PLAY}&players=${players}&${extra}&s.menuStyle=strip`);
         await expect(page.getByTestId("timer-start")).toBeVisible();
         await expectNoHorizontalScroll(page);
         const toolbar = page.getByTestId("toolbar");

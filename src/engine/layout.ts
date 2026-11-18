@@ -56,7 +56,12 @@ export interface LayoutInput {
   onePlayer?: boolean;
   /** LAY-004 per-seat manual rotation (Seat.rotationOverride), by seat index. */
   overrides?: readonly (Rotation | undefined)[];
-  /** Toolbar strip thickness, px (default TOOLBAR_PX; thicker when a shared track sits in it). */
+  /**
+   * Toolbar strip thickness, px. Default 0 (MENU lane): no strip — the seats meet at a seam and
+   * `toolbar.rect` is that zero-thickness seam (its centre is where the center menu button sits).
+   * The legacy strip passes TOOLBAR_PX, a shared track more; positive values below TOOLBAR_PX are
+   * raised to it.
+   */
   toolbarPx?: number;
 }
 
@@ -141,7 +146,8 @@ interface Cell {
   rotation: Rotation;
 }
 
-function toolbarFraction(px: number, size = TOOLBAR_PX): number {
+function toolbarFraction(px: number, size = 0): number {
+  if (!(size > 0)) return 0;
   const cap = size > TOOLBAR_PX ? 0.25 : 0.2;
   return Math.min(cap, Math.max(size, TOOLBAR_PX) / Math.max(1, px));
 }

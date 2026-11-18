@@ -1,6 +1,7 @@
 // @req REL-001 @req TMR-044 @req TMR-021
 // Appendix B Scenario 5: reload with P2's clock running, auto-pause on and off.
 import { expect, test } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { gotoClockBoard, mss, setHidden, storedTimer, timerState } from "./support/timer";
 
 const TEN = 600_000;
@@ -11,7 +12,7 @@ test("auto-pause on: hiding then reloading restores a paused game at the time of
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN}`);
   const p1 = (await timerState(page)).active;
   const p2 = (p1 + 1) % 4;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.getByTestId(`seat-${p1}-pass`).click();
   await page.clock.runFor(20_000);
   await setHidden(page, true);
@@ -38,7 +39,7 @@ test("auto-pause off: after a reload P2's remaining time accounts for the elapse
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN}&t.autoPauseBackground=0`);
   const p1 = (await timerState(page)).active;
   const p2 = (p1 + 1) % 4;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.getByTestId(`seat-${p1}-pass`).click();
   await page.clock.runFor(20_000);
   const before = await storedTimer(page);

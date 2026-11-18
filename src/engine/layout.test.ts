@@ -30,8 +30,12 @@ function expectValid(l: BoardLayout) {
     expect(r.y).toBeGreaterThanOrEqual(-EPS);
     expect(r.x + r.w).toBeLessThanOrEqual(1 + EPS);
     expect(r.y + r.h).toBeLessThanOrEqual(1 + EPS);
-    expect(r.w).toBeGreaterThan(0);
-    expect(r.h).toBeGreaterThan(0);
+    // The toolbar may be a zero-thickness seam (default: no strip); seats never are.
+    if (r === l.toolbar.rect) expect(Math.max(r.w, r.h)).toBeGreaterThan(0);
+    else {
+      expect(r.w).toBeGreaterThan(0);
+      expect(r.h).toBeGreaterThan(0);
+    }
   }
   for (let i = 0; i < rects.length; i++)
     for (let j = i + 1; j < rects.length; j++) expect(overlap(rects[i]!, rects[j]!)).toBe(0);
@@ -86,18 +90,20 @@ describe("getLayout geometry invariants", () => {
         ["portrait", PORTRAIT],
         ["landscape", LANDSCAPE],
       ] as const) {
-        it(`${n} players / ${v.id} / ${name}`, () => {
-          const l = getLayout({ players: n, variantId: v.id, viewport: vp });
-          expect(l.seats).toHaveLength(n);
-          expect(l.variantId).toBe(v.id);
-          expectValid(l);
-          expectClockwise(l);
-          // Every tile is big enough to hold a 48 px target in both directions.
-          for (const s of l.seats) {
-            const f = seatFrameSize(s, vp);
-            expect(Math.min(f.w, f.h)).toBeGreaterThanOrEqual(100);
-          }
-        });
+        for (const toolbarPx of [undefined, TOOLBAR_PX]) {
+          it(`${n} players / ${v.id} / ${name} / strip ${toolbarPx ?? 0}`, () => {
+            const l = getLayout({ players: n, variantId: v.id, viewport: vp, toolbarPx });
+            expect(l.seats).toHaveLength(n);
+            expect(l.variantId).toBe(v.id);
+            expectValid(l);
+            expectClockwise(l);
+            // Every tile is big enough to hold a 48 px target in both directions.
+            for (const s of l.seats) {
+              const f = seatFrameSize(s, vp);
+              expect(Math.min(f.w, f.h)).toBeGreaterThanOrEqual(100);
+            }
+          });
+        }
       }
     }
   }
@@ -108,7 +114,7 @@ describe("LAY-002 default portrait layouts", () => {
     getLayout({ players: n, variantId, viewport: PORTRAIT }).seats.map((s) => s.rotation);
 
   it("1 player: one upright tile above the toolbar", () => {
-    const l = getLayout({ players: 1, viewport: PORTRAIT });
+    const l = getLayout({ players: 1, viewport: PORTRAIT, toolbarPx: TOOLBAR_PX });
     expect(l.seats[0]!.rotation).toBe(0);
     expect(l.seats[0]!.rect).toMatchObject({ x: 0, y: 0, w: 1 });
     expect(l.seats[0]!.rect.h).toBeCloseTo(1 - TOOLBAR_PX / 740, 5);
@@ -198,7 +204,7 @@ describe("LAY-006 landscape re-flow", () => {
   });
 
   it("2 players face each other across the long axis (90° / 270°)", () => {
-    const l = getLayout({ players: 2, viewport: LANDSCAPE });
+    const l = getLayout({ players: 2, viewport: LANDSCAPE, toolbarPx: TOOLBAR_PX });
     expect(l.seats.map((s) => s.rotation)).toEqual([90, 270]);
     expect(l.toolbar.rect.w).toBeCloseTo(TOOLBAR_PX / 915);
   });
@@ -254,9 +260,32 @@ describe("SET-032 one-player mode", () => {
   });
 
   it("caps the toolbar on tiny viewports", () => {
-    const l = getLayout({ players: 2, viewport: { w: 100, h: 100 } });
+    const l = getLayout({ players: 2, viewport: { w: 100, h: 100 }, toolbarPx: TOOLBAR_PX });
     expect(l.toolbar.rect.h).toBeCloseTo(0.2);
     expectValid(l);
+  });
+});
+
+describe("MENU: no strip by default (center menu button on the seam)", () => {
+  it("seats get the strip's space back; the toolbar is a zero-thickness seam", () => {
+    const l = getLayout({ players: 2, viewport: PORTRAIT });
+    expect(l.toolbar.rect).toEqual({ x: 0, y: 0.5, w: 1, h: 0 });
+    expect(l.seats[0]!.rect.h).toBeCloseTo(0.5);
+    const land = getLayout({ players: 2, viewport: LANDSCAPE });
+    expect(land.toolbar.rect).toEqual({ x: 0.5, y: 0, w: 0, h: 1 });
+    expect(land.toolbar.orientation).toBe("vertical");
+    expect(getLayout({ players: 6, viewport: PORTRAIT }).toolbar.rect).toMatchObject({
+      x: 0.5,
+      w: 0,
+    });
+  });
+
+  it("explicit thicknesses still work (0 = none, small values are raised to TOOLBAR_PX)", () => {
+    expect(getLayout({ players: 2, viewport: PORTRAIT, toolbarPx: 0 }).toolbar.rect.h).toBe(0);
+    const small = getLayout({ players: 2, viewport: PORTRAIT, toolbarPx: 10 });
+    expect(small.toolbar.rect.h).toBeCloseTo(TOOLBAR_PX / 740, 5);
+    const track = getLayout({ players: 2, viewport: PORTRAIT, toolbarPx: TOOLBAR_PX * 2 });
+    expect(track.toolbar.rect.h).toBeCloseTo((TOOLBAR_PX * 2) / 740, 5);
   });
 });
 
