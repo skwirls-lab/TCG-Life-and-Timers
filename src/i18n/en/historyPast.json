@@ -159,7 +159,7 @@
   "historyPast.ex.hint": "Exports use the current filter ({count} games).",
   "historyPast.ex.imported": "Imported {added} games ({skipped} already here)",
   "historyPast.ex.importInvalid": "{count} entries were invalid and skipped",
-  "historyPast.ex.importError": "This file is not a TCG Life & Timers export",
+  "historyPast.ex.importError": "This file is not a TCGTempo export",
   "historyPast.who.title": "Who won?",
   "historyPast.who.body": "Save this game to your stats with its result.",
   "historyPast.who.seat": "{name} won",

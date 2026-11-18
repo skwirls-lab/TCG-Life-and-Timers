@@ -7,6 +7,7 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { AppMark } from "@/components/brand/AppMark";
 import { PageShell } from "@/components/ui";
 import type { ArtRef } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
@@ -61,8 +62,13 @@ export function AboutScreen() {
   return (
     <PageShell title={t("art.about.title")} backHref="/settings" testId="about-page">
       <div className="flex flex-col gap-4 pt-4">
-        <section className="flex flex-col items-center gap-1 py-2 text-center">
+        <section
+          className="flex flex-col items-center gap-1 py-2 text-center"
+          data-testid="about-brand"
+        >
+          <AppMark size={72} className="mb-2" />
           <p className="text-2xl font-semibold">{t("art.about.app")}</p>
+          <p className="text-fg-muted">{t("app.tagline")}</p>
           <p className="text-fg-muted" data-testid="about-version">
             {t("art.about.version", { version })}
           </p>

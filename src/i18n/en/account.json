@@ -68,8 +68,8 @@
   "account.feedback.failed": "Couldn't send ({error}). Your message is kept here.",
   "account.feedback.share": "Share the app",
   "account.feedback.shareHint": "Send the app link to a friend",
-  "account.feedback.shareTitle": "TCG Life & Timers",
-  "account.feedback.shareText": "Life tracking and table clocks for any card game.",
+  "account.feedback.shareTitle": "TCGTempo",
+  "account.feedback.shareText": "Life & timers for any card game. Works offline.",
   "account.feedback.shared": "Thanks for sharing!",
   "account.feedback.copied": "Link copied to the clipboard",
   "account.feedback.shareFailed": "Couldn't share the link"

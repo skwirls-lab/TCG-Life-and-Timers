@@ -265,7 +265,7 @@ describe("export / import (CUS-007)", () => {
       ["{oops", /not valid JSON/],
       ["[1,2]", /does not contain a preset/],
       ['"text"', /does not contain a preset/],
-      [JSON.stringify({ format: "other", version: 1, preset: {} }), /not a TCG Life/],
+      [JSON.stringify({ format: "other", version: 1, preset: {} }), /not a TCGTempo/],
       [JSON.stringify({ format: PRESET_EXPORT_FORMAT, version: 99, preset: {} }), /newer version/],
       [JSON.stringify({ format: PRESET_EXPORT_FORMAT, version: 1, preset: 5 }), /does not contain/],
       [JSON.stringify({ ...loreRace(), counters: [] }), /counters/],

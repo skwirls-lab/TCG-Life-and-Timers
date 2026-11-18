@@ -50,6 +50,13 @@ describe("app settings", () => {
     });
   });
 
+  // @req PWA-006 full screen is opt-in for new users; an explicit stored choice is kept
+  it("full screen during games is off by default but stored values are kept", () => {
+    expect(defaultAppSettings().hideSystemBars).toBe(false);
+    expect(mergeSettings({}).hideSystemBars).toBe(false);
+    expect(mergeSettings({ hideSystemBars: true }).hideSystemBars).toBe(true);
+  });
+
   it("merges stored values field by field, dropping invalid ones", () => {
     expect(mergeSettings(null)).toEqual(defaultAppSettings());
     const m = mergeSettings({

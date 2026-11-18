@@ -4,18 +4,28 @@
  * New game → /setup, and links to History, Tools, Settings and Profiles.
  */
 import { Dices, History, Layers, Play, Plus, Settings, Users, Zap } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { AppMark } from "@/components/brand/AppMark";
 import { Button } from "@/components/ui";
 import type { NewGameConfig } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
 import { loadLastConfig } from "@/features/setup/gameConfig";
 import { startNewGame } from "@/features/setup/startGame";
+import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 import { canResume, quickStartSummary, resumeSummary } from "./summary";
 import { useNow } from "./useNow";
+
+// Sign-in first (welcome + "Sign in to sync"): its own chunk, loaded only where cloud is configured.
+const LauncherAccount = dynamic(() => import("@/features/welcome/LauncherAccount"), {
+  ssr: false,
+  // Same height as the sign-in entry, so the buttons below don't jump when it arrives.
+  loading: () => <div className="min-h-12" />,
+});
 
 function NavTile({
   href,
@@ -52,6 +62,7 @@ export function Launcher() {
   const now = useNow();
   const [last, setLast] = useState<NewGameConfig | null>(null);
   const [busy, setBusy] = useState(false);
+  const cloud = isCloudConfigured();
 
   useEffect(() => {
     let alive = true;
@@ -83,10 +94,13 @@ export function Launcher() {
       className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-5 px-4 py-8 safe-area"
       data-testid="launcher"
     >
-      <header className="text-center">
+      <header className="flex flex-col items-center text-center" data-testid="launcher-brand">
+        <AppMark size={64} className="mb-2" />
         <h1 className="text-3xl font-semibold">{t("app.name")}</h1>
         <p className="mt-1 text-fg-muted">{t("app.tagline")}</p>
       </header>
+
+      {cloud && <LauncherAccount />}
 
       {notice === "corrupt" && (
         <div

@@ -47,7 +47,7 @@ export async function buildExport(
 }
 
 export function exportFilename(now: number = Date.now()): string {
-  return `tcg-life-export-${new Date(now).toISOString().slice(0, 10)}.json`;
+  return `tcgtempo-export-${new Date(now).toISOString().slice(0, 10)}.json`;
 }
 
 interface DownloadEnv {

@@ -1,4 +1,4 @@
-# DEPLOY.md: Taking TCG Life & Timers live
+# DEPLOY.md: Taking TCGTempo live
 
 This guide walks you, the owner, through putting the app on the internet with Firebase App Hosting. Everything was built and tested against the Firebase **emulators** (project `demo-tcg-life`), so none of the steps below were needed during development. You need them now to go live.
 
@@ -182,7 +182,7 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
 1. Create a Stripe account (start in **Test mode**).
-2. Stripe → **Products** → create "TCG Life & Timers Pro" with three prices:
+2. Stripe → **Products** → create "TCGTempo Pro" with three prices:
    - Monthly recurring
    - Yearly recurring
    - Lifetime one-time

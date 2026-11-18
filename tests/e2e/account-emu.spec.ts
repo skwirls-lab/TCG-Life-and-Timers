@@ -136,7 +136,7 @@ test.describe("account @emu", () => {
       page.waitForEvent("download"),
       page.getByTestId("account-export").click(),
     ]);
-    expect(download.suggestedFilename()).toMatch(/^tcg-life-export-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(download.suggestedFilename()).toMatch(/^tcgtempo-export-\d{4}-\d{2}-\d{2}\.json$/);
     const json = JSON.parse(await readFile((await download.path())!, "utf8")) as {
       format: string;
       profiles: { name: string }[];

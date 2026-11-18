@@ -116,7 +116,7 @@ describe("JSON export / import", () => {
   });
 
   it("names files by date", () => {
-    expect(exportFileName("csv", Date.UTC(2026, 10, 1))).toBe("tcg-life-games-2026-11-01.csv");
-    expect(exportFileName("json", 0)).toBe("tcg-life-games-1970-01-01.json");
+    expect(exportFileName("csv", Date.UTC(2026, 10, 1))).toBe("tcgtempo-games-2026-11-01.csv");
+    expect(exportFileName("json", 0)).toBe("tcgtempo-games-1970-01-01.json");
   });
 });

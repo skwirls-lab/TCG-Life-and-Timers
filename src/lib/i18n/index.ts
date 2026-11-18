@@ -7,6 +7,7 @@ import engine from "@/i18n/en/engine.json";
 import account from "@/i18n/en/account.json";
 import art from "@/i18n/en/art.json";
 import board from "@/i18n/en/board.json";
+import brand from "@/i18n/en/brand.json";
 import builder from "@/i18n/en/builder.json";
 import history from "@/i18n/en/history.json";
 import historyPast from "@/i18n/en/historyPast.json";
@@ -25,6 +26,7 @@ const dictionaries = [
   account,
   art,
   board,
+  brand,
   builder,
   history,
   historyPast,

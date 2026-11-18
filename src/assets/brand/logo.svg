@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="0" fill="#0b0d12"/>
-  <circle cx="256" cy="256" r="196" fill="none" stroke="#38bdf8" stroke-width="28"/>
-  <path d="M256 360 C 160 296 132 252 132 210 a62 62 0 0 1 124 -10 a62 62 0 0 1 124 10 c0 42 -28 86 -124 150z" fill="#f43f5e"/>
-  <path d="M256 150 V 236 L 310 268" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- TCGTempo app icon: same geometry as src/components/brand/AppMark.tsx (64-unit grid × 7). -->
+  <rect width="512" height="512" fill="#0b0d12"/>
+  <g transform="translate(256 256) scale(7) translate(-32 -32)">
+    <circle cx="32" cy="32" r="30" fill="#0b0d12" stroke="#38bdf8" stroke-width="3"/>
+    <rect x="13" y="16" width="22" height="31" rx="4" fill="#38bdf8" transform="rotate(-14 24 31.5)"/>
+    <g transform="rotate(10 38 30.5)">
+      <rect x="27" y="15" width="22" height="31" rx="4" fill="#f5f6f8" stroke="#0b0d12" stroke-width="2"/>
+      <circle cx="38" cy="30.5" r="7.5" fill="none" stroke="#0b0d12" stroke-width="2.6"/>
+      <path d="M38 30.5 V23 A7.5 7.5 0 0 1 45.5 30.5 Z" fill="#0b0d12"/>
+    </g>
+  </g>
 </svg>

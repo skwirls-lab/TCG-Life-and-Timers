@@ -3,7 +3,7 @@ import { SharedPresetScreen } from "@/features/paywall/SharedPresetScreen";
 import { t } from "@/lib/i18n";
 
 export const metadata: Metadata = {
-  title: `${t("pay.shared.title")} · ${t("app.name")}`,
+  title: t("pay.shared.title"),
   // Share codes are unguessable links, not public content (LEG-005).
   robots: { index: false, follow: false },
 };

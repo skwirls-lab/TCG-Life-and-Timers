@@ -15,13 +15,14 @@ import {
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { Button, ListRow, PageShell, SectionHeader } from "@/components/ui";
-import { resolveMerge, startCloud, useCloud, deleteMyAccount } from "@/lib/account/cloud";
+import { startCloud, deleteMyAccount } from "@/lib/account/cloud";
 import { downloadExport } from "@/lib/account/export";
 import { useEntitlements } from "@/lib/entitlements/store";
 import { signInWithGoogle, signOut, useAuth } from "@/lib/auth/store";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
 import { describeSyncStatus, useSyncStatus } from "@/lib/sync/status";
+import { MergePrompt } from "./MergePrompt";
 
 export function AccountScreen() {
   const configured = isCloudConfigured();
@@ -299,42 +300,6 @@ function DeleteAccount() {
         </div>
       )}
     </div>
-  );
-}
-
-function MergePrompt() {
-  const plan = useCloud((s) => s.mergePrompt);
-  if (!plan) return null;
-  return (
-    <section
-      aria-labelledby="merge-title"
-      className="mt-4 flex flex-col gap-3 rounded-xl border border-accent/50 bg-surface p-4"
-      data-testid="account-merge"
-    >
-      <h2 id="merge-title" className="text-xl">
-        {t("account.merge.title")}
-      </h2>
-      <p className="text-fg-muted">
-        {t("account.merge.body", { local: plan.counts.local, remote: plan.counts.remote })}
-      </p>
-      <Button
-        variant="primary"
-        size="lg"
-        onClick={() => resolveMerge("merge")}
-        data-testid="account-merge-merge"
-      >
-        {t("account.merge.merge")}
-      </Button>
-      <p className="text-sm text-fg-muted">{t("account.merge.mergeHint")}</p>
-      <Button
-        variant="outline"
-        onClick={() => resolveMerge("cloudOnly")}
-        data-testid="account-merge-cloud"
-      >
-        {t("account.merge.cloudOnly")}
-      </Button>
-      <p className="text-sm text-fg-muted">{t("account.merge.cloudOnlyHint")}</p>
-    </section>
   );
 }
 

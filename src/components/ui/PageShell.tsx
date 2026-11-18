@@ -2,6 +2,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { AppMark } from "@/components/brand/AppMark";
 import { t } from "@/lib/i18n";
 import { IconButton } from "./Button";
 
@@ -15,7 +16,7 @@ interface Props {
   testId?: string;
 }
 
-/** Full-screen page with a back arrow and centered title (LifeTap Settings/History/Dice pages). */
+/** Full-screen page with a back arrow and a centered, brand-marked title. */
 export function PageShell({ title, children, backHref = "/", onBack, actions, testId }: Props) {
   const router = useRouter();
   const back = () => {
@@ -29,7 +30,11 @@ export function PageShell({ title, children, backHref = "/", onBack, actions, te
         <IconButton label={t("common.back")} onClick={back} data-testid="page-back">
           <ArrowLeft size={28} />
         </IconButton>
-        <h1 className="truncate text-center text-2xl">{title}</h1>
+        <h1 className="flex min-w-0 items-center justify-center gap-2 text-2xl">
+          {/* small brand mark: decorative, the page title stays the accessible name */}
+          <AppMark size={24} className="shrink-0" />
+          <span className="truncate">{title}</span>
+        </h1>
         <div className="flex justify-end">{actions}</div>
       </header>
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">{children}</main>

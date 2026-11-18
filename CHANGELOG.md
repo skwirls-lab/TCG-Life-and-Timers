@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to TCG Life & Timers are listed here. The format follows
+All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
 ## [1.0.0] - 2026-11-01
