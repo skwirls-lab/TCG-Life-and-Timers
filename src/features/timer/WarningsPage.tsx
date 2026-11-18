@@ -2,14 +2,13 @@
 /**
  * Settings › Timers › Low-time warnings (TMR-031, §13.1-C): presets, plus add / remove thresholds
  * with per-threshold sound / vibrate / flash. Edits apply live (the clocks' runtime config, or the
- * next game's timer defaults). Custom edits and the "more" preset need `timerAdvancedModes`.
+ * next game's timer defaults). All free.
  */
 import { Trash2 } from "lucide-react";
 import { ChipRow, IconButton, Toggle } from "@/components/ui";
 import { formatClock, timerWarnings, type TimerConfig } from "@/engine";
 import { Select, type SelectOption } from "@/features/settings/Select";
 import type { SettingsContext } from "@/features/settings/registry";
-import { openPaywall } from "@/lib/entitlements/paywall";
 import { t, type MessageKey } from "@/lib/i18n";
 import { WARNING_PRESETS, shortDuration, warningPresetId } from "./model";
 import {
@@ -31,15 +30,12 @@ interface Props {
 export function WarningsPage({ ctx, onPatch }: Props) {
   const cfg = ctx.draft.timer;
   const list = timerWarnings(cfg);
-  const pro = ctx.can("timerAdvancedModes");
-  /** Custom edits are Pro (locked → paywall). */
-  const edit = (patch: () => TimerPatch) =>
-    pro ? onPatch(patch()) : openPaywall("timerAdvancedModes");
+  // Every edit is free (clock features are not Pro).
+  const edit = (patch: () => TimerPatch) => onPatch(patch());
   const presetId = warningPresetId(cfg.warningsMs);
-  const presetLocked = (id: string) => id === "more" && !pro;
   const options: SelectOption<string>[] = Object.keys(WARNING_PRESETS).map((id) => ({
     value: id,
-    label: t(`timer.warnings.${id}` as MessageKey) + (presetLocked(id) ? " 🔒" : ""),
+    label: t(`timer.warnings.${id}` as MessageKey),
   }));
   if (presetId === "custom")
     options.push({ value: "custom", label: t("timer.warnings.custom"), disabled: true });
@@ -57,8 +53,7 @@ export function WarningsPage({ ctx, onPatch }: Props) {
           onChange={(id) => {
             const ms = WARNING_PRESETS[id];
             if (!ms) return;
-            if (presetLocked(id)) openPaywall("timerAdvancedModes");
-            else onPatch(presetWarnings(ms));
+            onPatch(presetWarnings(ms));
           }}
         />
       </div>
@@ -117,7 +112,6 @@ export function WarningsPage({ ctx, onPatch }: Props) {
             options={addChoices(cfg).map((ms) => ({
               value: ms,
               label: shortDuration(ms),
-              locked: !pro,
             }))}
             onChange={(ms) => edit(() => addWarning(cfg, ms))}
           />

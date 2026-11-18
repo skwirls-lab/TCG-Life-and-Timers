@@ -103,13 +103,14 @@ describe("settings section C (§13.1-C)", () => {
   });
 
   // @req SET-010
-  it("advanced modes are locked without timerAdvancedModes", () => {
-    const def = getSetting("timer.mode")!;
-    if (def.control.kind !== "select") throw new Error("select expected");
-    const opts = def.control.options(ctx(game(), false));
-    expect(opts.find((o) => o.value === "bankIncrement")).toMatchObject({ locked: true });
-    expect(opts.find((o) => o.value === "bank")?.locked).toBe(false);
-    expect(def.control.options(ctx(game(), true)).some((o) => o.locked)).toBe(false);
+  it("every clock option is free (no Pro locks, even without Pro)", () => {
+    for (const id of ["timer.mode", "timer.match", "timer.timeoutAction"]) {
+      const def = getSetting(id)!;
+      if (def.control.kind !== "select") throw new Error("select expected");
+      expect(def.control.options(ctx(game(), false)).some((o) => o.locked || o.disabled)).toBe(
+        false,
+      );
+    }
   });
 
   // @req TMR-022

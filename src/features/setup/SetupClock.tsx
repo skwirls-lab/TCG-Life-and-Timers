@@ -1,20 +1,13 @@
 "use client";
 /**
  * Setup "Clock" section (GAME-001 options step, §13.1-C, D-058): timer mode, time per player,
- * increment / delay, time per turn and the timeout action for the new game. Advanced modes (and
- * "Add time once") are gated by `timerAdvancedModes`: a locked choice opens the paywall.
+ * increment / delay, time per turn and the timeout action for the new game. Every clock option
+ * is free.
  */
 import { ChipRow, Toggle } from "@/components/ui";
-import {
-  BLOCKERS_TIMEOUTS,
-  TIMEOUT_ACTIONS,
-  TIMER_MODES,
-  type TimerConfig,
-  type TimerMode,
-} from "@/engine";
+import { BLOCKERS_TIMEOUTS, TIMEOUT_ACTIONS, TIMER_MODES, type TimerConfig } from "@/engine";
 import { Select } from "@/features/settings/Select";
 import {
-  ADVANCED_MODES,
   BANK_MINUTES,
   BANK_MODES,
   MIN,
@@ -25,8 +18,6 @@ import {
 } from "@/features/timer/model";
 import { BLOCKERS_SECONDS, blockersSettings, seatTimesOn } from "@/features/timer/seatTimes";
 import { SeatTimesEditor, type SeatTimeRow } from "@/features/timer/SeatTimesEditor";
-import { useCan } from "@/lib/entitlements/store";
-import { openPaywall } from "@/lib/entitlements/paywall";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -37,17 +28,13 @@ interface Props {
   onSeatExtra?: (key: string, extraMs: number) => void;
 }
 
-const LOCK = " 🔒";
-
 export function SetupClock({ timer, onChange, seats = [], onSeatExtra }: Props) {
-  const advanced = useCan("timerAdvancedModes");
   const mode = timer.mode;
   const bankKey = mode === "perTurnReserve" ? "reserveMs" : "bankMs";
   const showBank = BANK_MODES.includes(mode) || mode === "perTurnReserve";
   const showStep = mode === "bankIncrement" || mode === "bankDelay";
   const showPerTurn = PER_TURN_MODES.includes(mode);
   const limited = mode !== "off" && mode !== "countup";
-  const isLocked = (m: TimerMode) => ADVANCED_MODES.includes(m) && !advanced;
 
   return (
     <section className="flex flex-col gap-3" data-testid="setup-clock">
@@ -60,11 +47,9 @@ export function SetupClock({ timer, onChange, seats = [], onSeatExtra }: Props) 
           testId="setup-clock-mode"
           options={TIMER_MODES.map((m) => ({
             value: m,
-            label: t(`timer.mode.${m}`) + (isLocked(m) ? LOCK : ""),
+            label: t(`timer.mode.${m}`),
           }))}
-          onChange={(m) =>
-            isLocked(m) ? openPaywall("timerAdvancedModes") : onChange({ mode: m })
-          }
+          onChange={(m) => onChange({ mode: m })}
         />
       </div>
       {showBank && (
@@ -124,13 +109,9 @@ export function SetupClock({ timer, onChange, seats = [], onSeatExtra }: Props) 
             testId="setup-clock-timeout"
             options={TIMEOUT_ACTIONS.map((a) => ({
               value: a,
-              label: t(`timer.timeout.${a}`) + (a === "addOnce" && !advanced ? LOCK : ""),
+              label: t(`timer.timeout.${a}`),
             }))}
-            onChange={(a) =>
-              a === "addOnce" && !advanced
-                ? openPaywall("timerAdvancedModes")
-                : onChange({ timeoutAction: a })
-            }
+            onChange={(a) => onChange({ timeoutAction: a })}
           />
         </div>
       )}

@@ -4,7 +4,6 @@
  */
 export const PRO_FEATURES = [
   "players7to8",
-  "timerAdvancedModes", // increment, delay, per-turn, hybrid, match timer, add-time-once, handicap, custom warnings
   "customPresetsUnlimited",
   "presetShareLinks",
   "profilesUnlimited",

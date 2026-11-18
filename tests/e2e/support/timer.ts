@@ -40,7 +40,9 @@ export async function timerState(page: Page): Promise<TimerSnapshot> {
     const charging =
       t.status === "running" &&
       t.runningSince !== null &&
-      !(t.config.responses === "freeze" && t.responseStack.length > 0);
+      !(t.config.responses === "freeze" && t.responseStack.length > 0) &&
+      // An open declare-blockers window (nobody responding) stops the attacker's clock.
+      !(t.blockers && t.responseStack.length === 0);
     return {
       status: t.status,
       holder: t.holder,

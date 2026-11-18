@@ -266,14 +266,6 @@ export function responseElapsed(game: Game, now: number): number {
 // Settings tables (§13.1-C)
 // ---------------------------------------------------------------------------------------------
 
-/** Modes gated behind `timerAdvancedModes` (all free while the policy is ALL_FREE). */
-export const ADVANCED_MODES: readonly TimerMode[] = [
-  "bankIncrement",
-  "bankDelay",
-  "perTurn",
-  "perTurnReserve",
-];
-
 export const BANK_MODES: readonly TimerMode[] = ["bank", "bankIncrement", "bankDelay"];
 export const PER_TURN_MODES: readonly TimerMode[] = ["perTurn", "perTurnReserve"];
 

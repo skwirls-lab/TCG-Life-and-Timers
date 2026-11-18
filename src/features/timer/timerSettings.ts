@@ -7,8 +7,8 @@
  * a `{ kind: "timer", patch }` change: the settings model applies it to the game
  * (`applyTimerPatch`) or, with no active game, to the next game's timer defaults (SET-012).
  * Structure keys (mode, time per player, per-turn time, match timer) only apply to idle clocks:
- * changing them after START asks to restart the clocks (TimerSettingsHost). Advanced modes /
- * options are gated with `timerAdvancedModes` (locked options open the paywall).
+ * changing them after START asks to restart the clocks (TimerSettingsHost). Every clock
+ * option is free (no Pro gating for timers).
  */
 import {
   BLOCKERS_TIMEOUTS,
@@ -29,7 +29,6 @@ import {
 import { t, type MessageKey } from "@/lib/i18n";
 import { useGameStore } from "@/state/gameStore";
 import {
-  ADVANCED_MODES,
   BANK_MINUTES,
   BANK_MODES,
   GRACE_MS,
@@ -75,7 +74,6 @@ function patchSet(
   });
 }
 
-const locked = (ctx: SettingsContext) => !ctx.can("timerAdvancedModes");
 const on = (ctx: SettingsContext) => cfgOf(ctx).mode !== "off";
 const limitedMode = (ctx: SettingsContext) => on(ctx) && cfgOf(ctx).mode !== "countup";
 
@@ -109,13 +107,10 @@ export const TIMER_ROWS: SettingDef[] = [
     "mode",
     {
       kind: "select",
-      options: (ctx) =>
+      options: () =>
         TIMER_MODES.map((m) => ({
           value: m,
           label: t(`timer.mode.${m}`),
-          locked: ADVANCED_MODES.includes(m) && locked(ctx),
-          disabled: ADVANCED_MODES.includes(m) && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         })),
     },
     {
@@ -198,17 +193,11 @@ export const TIMER_ROWS: SettingDef[] = [
         const opts: ChoiceOption[] = MATCH_MINUTES.map((m) => ({
           value: m,
           label: m === 0 ? t("timer.settings.off") : t("timer.settings.minutes", { n: m }),
-          locked: m !== 0 && locked(ctx),
-          disabled: m !== 0 && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         }));
         const custom = cur > 0 && !MATCH_MINUTES.some((m) => m * MIN === cur);
         opts.push({
           value: CUSTOM,
           label: custom ? shortDuration(cur) : t("timer.settings.custom"),
-          locked: locked(ctx),
-          disabled: locked(ctx),
-          lockFeature: "timerAdvancedModes",
         });
         return opts;
       },
@@ -250,13 +239,10 @@ export const TIMER_ROWS: SettingDef[] = [
     "timeoutAction",
     {
       kind: "select",
-      options: (ctx) =>
+      options: () =>
         TIMEOUT_ACTIONS.map((a) => ({
           value: a,
           label: t(`timer.timeout.${a}`),
-          locked: a === "addOnce" && locked(ctx),
-          disabled: a === "addOnce" && locked(ctx),
-          lockFeature: "timerAdvancedModes",
         })),
     },
     {

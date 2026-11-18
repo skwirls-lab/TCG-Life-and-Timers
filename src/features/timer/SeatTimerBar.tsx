@@ -16,7 +16,7 @@
  * (§10.2).
  */
 import { Hand, TriangleAlert, Undo2, Zap } from "lucide-react";
-import { lazy, memo, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { formatClock, turnTimeUsed, type Game, type SeatId } from "@/engine";
 import { useSnackbar, type SnackAnchor } from "@/components/ui/Snackbar";
 import { useHold } from "@/lib/hooks/useHold";
@@ -31,10 +31,34 @@ import { useTimerUi } from "./timerUi";
 import { useTickNow } from "./useTickNow";
 
 // Declare-blockers UI: its own chunk, fetched only when the window is enabled or open (PERF-003).
-const blockers = () => import("./Blockers");
-const BlockersBanner = lazy(() => blockers().then((m) => ({ default: m.BlockersBanner })));
-const AttackButton = lazy(() => blockers().then((m) => ({ default: m.AttackButton })));
-const DeclaredButton = lazy(() => blockers().then((m) => ({ default: m.DeclaredButton })));
+// Loaded into a module slot (not React.lazy/Suspense, whose reveal is throttled by a timer).
+type BlockersUi = typeof import("./Blockers");
+let blockersUi: BlockersUi | null = null;
+let blockersLoad: Promise<void> | null = null;
+const blockersSubs = new Set<() => void>();
+const subscribeBlockers = (cb: () => void) => {
+  blockersSubs.add(cb);
+  return () => void blockersSubs.delete(cb);
+};
+function useBlockersUi(need: boolean): BlockersUi | null {
+  useEffect(() => {
+    if (!need || blockersLoad) return;
+    blockersLoad = import("./Blockers").then(
+      (m) => {
+        blockersUi = m;
+        for (const cb of blockersSubs) cb();
+      },
+      () => {
+        blockersLoad = null;
+      },
+    );
+  }, [need]);
+  return useSyncExternalStore(
+    subscribeBlockers,
+    () => blockersUi,
+    () => null,
+  );
+}
 
 export const PASS_HOLD_MS = 600;
 export const PASS_UNDO_MS = 3000;
@@ -57,6 +81,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
   const dispatch = useGameStore((s) => s.dispatch);
   const [peek, setPeek] = useState(false);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bk = useBlockersUi(!!view && (view.canAttack || view.inWindow));
   useEffect(
     () => () => {
       if (peekTimer.current) clearTimeout(peekTimer.current);
@@ -94,12 +119,8 @@ export const SeatTimerBar = memo(function SeatTimerBar({
     ) : null;
   } else if (showBanner) {
     chip = <ResponseBanner index={index} view={view} px={metrics.smallClockPx} compact={compact} />;
-  } else if (view.inWindow && view.depth === 0) {
-    chip = (
-      <Suspense fallback={null}>
-        <BlockersBanner index={index} px={metrics.smallClockPx} compact={compact} />
-      </Suspense>
-    );
+  } else if (view.inWindow && view.depth === 0 && bk) {
+    chip = <bk.BlockersBanner index={index} px={metrics.smallClockPx} compact={compact} />;
   } else {
     chip = (
       <ClockChip
@@ -135,12 +156,8 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           short={compact || (twoUp && tight)}
         />
       )}
-      {(view.canAttack || view.canDeclare) && (
-        <Suspense fallback={null}>
-          {view.canAttack && <AttackButton index={index} compact={tight} />}
-          {view.canDeclare && <DeclaredButton index={index} compact={tight} />}
-        </Suspense>
-      )}
+      {bk && view.canAttack && <bk.AttackButton index={index} compact={tight} />}
+      {bk && view.canDeclare && <bk.DeclaredButton index={index} compact={tight} />}
       {view.canReturn && (
         <BarButton
           testId={`seat-${index}-return`}
