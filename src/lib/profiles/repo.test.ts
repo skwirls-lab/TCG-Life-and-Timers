@@ -135,6 +135,36 @@ describe("decks", () => {
     await expect(saveDeck({ profileId: p.id, name: " " }, db)).rejects.toThrow();
   });
 
+  // @req PROF-010
+  it("stores profile and deck default backgrounds (focal, artist) without the seat-only origin", async () => {
+    const db = freshDb();
+    const art = {
+      kind: "scryfall" as const,
+      value: "https://cards.scryfall.io/art_crop/front/a/b/ab.jpg?1",
+      focal: { x: 0.25, y: 0.4, zoom: 1.5 },
+      artist: "Victor Adame Minguez",
+      cardName: "Atraxa, Praetors' Voice",
+    };
+    const p = await saveProfile(
+      { name: "JP", color: "#111", contrast: false, art: { ...art, origin: "profile" } },
+      db,
+    );
+    expect((await getProfile(p.id, db))?.art).toEqual(art);
+    const d = await saveDeck(
+      {
+        profileId: p.id,
+        name: "Atraxa",
+        commanders: ["Atraxa, Praetors' Voice"],
+        art: { ...art, origin: "commander" },
+      },
+      db,
+    );
+    expect((await getDeck(d.id, db))?.art).toEqual(art);
+    const upload = { kind: "upload" as const, value: "art-1", focal: { x: 0.5, y: 0.5, zoom: 1 } };
+    await saveDeck({ ...d, art: upload }, db);
+    expect((await getDeck(d.id, db))?.art).toEqual(upload);
+  });
+
   it("normalizes malformed stored deck rows", async () => {
     const db = freshDb();
     await db.decks.put({ id: "d", schemaVersion: 1, profileId: "p", name: "D" });

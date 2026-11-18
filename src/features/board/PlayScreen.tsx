@@ -32,6 +32,10 @@ const LiveAnnouncer = lazyComponent(() => import("./LiveAnnouncer").then((m) => 
 const CalculatorSheet = lazyComponent(() =>
   import("@/features/calculator/CalculatorSheet").then((m) => m.CalculatorSheet),
 );
+// PROF-010/ART-008: automatic commander backgrounds (Scryfall client loads on demand).
+const CommanderArtLayer = lazyComponent(() =>
+  import("@/features/profiles/CommanderArtLayer").then((m) => m.CommanderArtLayer),
+);
 
 const BOARD_CSS = `
 @keyframes board-confetti {
@@ -165,6 +169,7 @@ export function PlayScreen() {
           <h1 className="sr-only">{t("board.label")}</h1>
           <Board />
           <LiveAnnouncer />
+          <CommanderArtLayer />
           <GameFlowOverlays />
           {/* TIMER-UI: clock services + PAUSED overlay (T2.5/T2.6) */}
           <TimerLayer />

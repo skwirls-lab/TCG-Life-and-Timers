@@ -11,8 +11,10 @@ import {
   SectionHeader,
   Toggle,
 } from "@/components/ui";
-import type { Preset } from "@/engine";
+import type { ArtRef, Preset } from "@/engine";
 import { PALETTE } from "@/features/backgrounds/gradients";
+import { deckArtForCommander } from "@/lib/art/commanderArt";
+import { cacheRemoteArt } from "@/lib/art/repo";
 import { t, tp } from "@/lib/i18n";
 import {
   deleteDeck,
@@ -29,6 +31,8 @@ import { cn } from "@/lib/ui/cn";
 // PAY (T7.1): free plan = 4 profiles, 3 decks each (§17.2); over-limit creation opens the paywall.
 import { canCreateDeck, canCreateProfile } from "@/lib/entitlements/quota";
 import { getBuiltInPreset, listBuiltInPresets } from "@/presets";
+import { ArtThumb, BackgroundField } from "./BackgroundField";
+import { CommanderInput, type CommanderPick } from "./CommanderInput";
 
 type View =
   | { mode: "list" }
@@ -130,11 +134,19 @@ function ProfileList({ onOpen }: { onOpen: (id: string) => void }) {
           testId={`profile-row-${i}`}
           onClick={() => onOpen(profile.id)}
           icon={
-            <span
-              aria-hidden
-              className="size-6 rounded-full"
-              style={{ background: profile.color }}
-            />
+            profile.art ? (
+              <ArtThumb
+                art={profile.art}
+                fallbackColor={profile.color}
+                testId={`profile-row-${i}-art`}
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="size-6 rounded-full"
+                style={{ background: profile.color }}
+              />
+            )
           }
           title={profile.name}
           subtitle={tp("seat.profiles.deckCount", decks)}
@@ -161,6 +173,7 @@ function ProfileEditor({
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(PALETTE[0]!);
   const [contrast, setContrast] = useState(false);
+  const [art, setArt] = useState<ArtRef | undefined>(undefined);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [error, setError] = useState(false);
 
@@ -175,6 +188,7 @@ function ProfileEditor({
       setName(p.name);
       setColor(p.color);
       setContrast(p.contrast);
+      setArt(p.art);
       setDecks(d);
     })();
     return () => {
@@ -188,12 +202,14 @@ function ProfileEditor({
       return;
     }
     if (!id && !(await canCreateProfile())) return;
+    const { art: _old, ...rest } = loaded ?? ({} as Partial<PlayerProfile>);
     const p = await saveProfile({
-      ...(loaded ?? {}),
+      ...rest,
       ...(id ? { id } : {}),
       name,
       color,
       contrast,
+      ...(art ? { art } : {}),
     });
     onSaved(p.id);
   };
@@ -247,6 +263,13 @@ function ProfileEditor({
           />
         }
       />
+      <BackgroundField
+        art={art}
+        onChange={setArt}
+        fallbackColor={color}
+        help={t("profiles.bg.profileHelp")}
+        testId="profile-bg"
+      />
       <Button variant="primary" data-testid="profile-save" onClick={() => void save()}>
         {t("seat.profiles.save")}
       </Button>
@@ -260,6 +283,13 @@ function ProfileEditor({
               key={d.id}
               testId={`deck-row-${i}`}
               onClick={() => onOpenDeck(id, d.id)}
+              {...(d.art
+                ? {
+                    icon: (
+                      <ArtThumb art={d.art} fallbackColor={color} testId={`deck-row-${i}-art`} />
+                    ),
+                  }
+                : {})}
               title={d.name}
               subtitle={[
                 d.presetId ? getBuiltInPreset(d.presetId)?.name : undefined,
@@ -305,12 +335,18 @@ function DeckEditor({
   const [c0, setC0] = useState("");
   const [c1, setC1] = useState("");
   const [partner, setPartner] = useState(false);
+  const [art, setArt] = useState<ArtRef | undefined>(undefined);
+  /** the art was filled in from a commander pick in this edit (a later pick may replace it) */
+  const [artAuto, setArtAuto] = useState(false);
+  const [profileColor, setProfileColor] = useState<string>(PALETTE[0]!);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
     let live = true;
     void (async () => {
+      const p = await getProfile(profileId);
+      if (live && p) setProfileColor(p.color);
+      if (!id) return;
       const d = (await listDecks(profileId)).find((x) => x.id === id);
       if (!live || !d) return;
       setLoaded(d);
@@ -319,6 +355,7 @@ function DeckEditor({
       setC0(d.commanders[0] ?? "");
       setC1(d.commanders[1] ?? "");
       setPartner(d.commanders.length >= 2);
+      setArt(d.art);
     })();
     return () => {
       live = false;
@@ -327,13 +364,24 @@ function DeckEditor({
 
   const showCommanders = presetUsesCommanders(preset ? getBuiltInPreset(preset) : undefined);
 
+  /** PROF-010: picking the first commander gives an art-less deck that commander's art. */
+  const pickFirst = (pick: CommanderPick) => {
+    setC0(pick.name);
+    const next = deckArtForCommander(art, artAuto, pick.card);
+    if (next !== art && next) {
+      setArt(next);
+      setArtAuto(true);
+      void cacheRemoteArt(next.value);
+    }
+  };
+
   const save = async () => {
     if (!name.trim()) {
       setError(true);
       return;
     }
     if (!id && !(await canCreateDeck(profileId))) return;
-    const { presetId: _old, ...rest } = loaded ?? ({} as Partial<Deck>);
+    const { presetId: _old, art: _oldArt, ...rest } = loaded ?? ({} as Partial<Deck>);
     await saveDeck({
       ...rest,
       profileId,
@@ -341,9 +389,13 @@ function DeckEditor({
       name,
       ...(preset ? { presetId: preset } : {}),
       commanders: showCommanders ? (partner ? [c0, c1] : [c0]) : [],
+      ...(art ? { art } : {}),
     });
     onDone();
   };
+  const commanderNames = showCommanders
+    ? [c0, partner ? c1 : ""].map((c) => c.trim()).filter(Boolean)
+    : [];
 
   return (
     <div className="flex flex-col gap-3 pt-4" data-testid="deck-editor">
@@ -383,14 +435,14 @@ function DeckEditor({
       {showCommanders && (
         <>
           <SectionHeader title={t("seat.commander.title")} />
-          <input
-            aria-label={t("seat.commander.nameN", { n: 1 })}
+          <CommanderInput
+            label={t("seat.commander.nameN", { n: 1 })}
             placeholder={t("seat.commander.placeholder")}
-            data-testid="deck-commander-0"
+            testId="deck-commander-0"
             className={inputCls}
             value={c0}
-            maxLength={80}
-            onChange={(e) => setC0(e.target.value)}
+            onChange={setC0}
+            onPick={pickFirst}
           />
           <ListRow
             title={t("seat.commander.partner")}
@@ -405,18 +457,30 @@ function DeckEditor({
             }
           />
           {partner && (
-            <input
-              aria-label={t("seat.commander.nameN", { n: 2 })}
+            <CommanderInput
+              partner
+              label={t("seat.commander.nameN", { n: 2 })}
               placeholder={t("seat.commander.placeholder2")}
-              data-testid="deck-commander-1"
+              testId="deck-commander-1"
               className={inputCls}
               value={c1}
-              maxLength={80}
-              onChange={(e) => setC1(e.target.value)}
+              onChange={setC1}
+              onPick={(pick) => setC1(pick.name)}
             />
           )}
         </>
       )}
+      <BackgroundField
+        art={art}
+        onChange={(next) => {
+          setArt(next);
+          setArtAuto(false);
+        }}
+        fallbackColor={profileColor}
+        help={t("profiles.bg.deckHelp")}
+        commanderNames={commanderNames}
+        testId="deck-bg"
+      />
       <Button variant="primary" data-testid="deck-save" onClick={() => void save()}>
         {t("seat.profiles.saveDeck")}
       </Button>

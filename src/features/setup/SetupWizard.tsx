@@ -17,6 +17,7 @@ import {
 } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
 import { rememberPresetUse } from "@/features/preset-picker";
+import { CommanderInput } from "@/features/profiles/CommanderInput";
 import { ProfilePicker } from "@/features/profiles/ProfilePicker";
 import { Select } from "@/features/settings/Select";
 import { ThumbnailPicker, layoutThumbOptions } from "@/features/settings/Thumbnails";
@@ -30,7 +31,7 @@ import {
   perSeatChips,
   presetVerifyItems,
 } from "@/presets";
-import { getPresetDefaults } from "@/state/presetDefaults";
+import { getPresetDefaults, rememberPresetOption } from "@/state/presetDefaults";
 import { PresetList } from "./PresetList";
 import { SetupClock } from "./SetupClock";
 import { StartValuePicker } from "./StartValuePicker";
@@ -274,32 +275,36 @@ export function SetupWizard() {
               </div>
               {usesCommanders(preset) && (
                 <div className="flex flex-col gap-2">
-                  {[0, ...(preset.capabilities.includes("partners") ? [1] : [])].map((ci) => (
-                    <input
-                      key={ci}
-                      type="text"
-                      value={seat.commanders[ci] ?? ""}
-                      maxLength={60}
-                      aria-label={t(
-                        ci === 0 ? "shell.setup.seat.commander" : "shell.setup.seat.partner",
-                        { n: i + 1 },
-                      )}
-                      placeholder={t(
-                        ci === 0
-                          ? "shell.setup.seat.commanderPlaceholder"
-                          : "shell.setup.seat.partnerPlaceholder",
-                      )}
-                      data-testid={`setup-seat-${i}-commander-${ci}`}
-                      onChange={(e) =>
-                        setState((s) => {
-                          const commanders = [...s.seats[i]!.commanders];
-                          commanders[ci] = e.target.value;
-                          return updateSeat(s, i, { commanders });
-                        })
-                      }
-                      className="min-h-12 rounded-xl bg-surface-2 px-3 text-base text-fg placeholder:text-fg-subtle focus-visible:outline-2 focus-visible:outline-accent"
-                    />
-                  ))}
+                  {[0, ...(preset.capabilities.includes("partners") ? [1] : [])].map((ci) => {
+                    const setCommander = (name: string) =>
+                      setState((s) => {
+                        const commanders = [...s.seats[i]!.commanders];
+                        commanders[ci] = name;
+                        return updateSeat(s, i, { commanders });
+                      });
+                    return (
+                      // PROF-010: Scryfall commander suggestions; free text offline.
+                      <CommanderInput
+                        key={ci}
+                        partner={ci === 1}
+                        value={seat.commanders[ci] ?? ""}
+                        maxLength={60}
+                        label={t(
+                          ci === 0 ? "shell.setup.seat.commander" : "shell.setup.seat.partner",
+                          { n: i + 1 },
+                        )}
+                        placeholder={t(
+                          ci === 0
+                            ? "shell.setup.seat.commanderPlaceholder"
+                            : "shell.setup.seat.partnerPlaceholder",
+                        )}
+                        testId={`setup-seat-${i}-commander-${ci}`}
+                        onChange={setCommander}
+                        onPick={(pick) => setCommander(pick.name)}
+                        className="min-h-12 w-full rounded-xl bg-surface-2 px-3 text-base text-fg placeholder:text-fg-subtle focus-visible:outline-2 focus-visible:outline-accent"
+                      />
+                    );
+                  })}
                 </div>
               )}
             </li>
@@ -406,6 +411,24 @@ export function SetupWizard() {
               </div>
             ))}
           </div>
+          {usesCommanders(preset) && (
+            // PROF-010/ART-008: remembered as the preset's default (also in Settings → Gameplay).
+            <div className="flex min-h-14 items-center gap-3" data-testid="setup-commander-art-row">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-lg">{t("profiles.commanderArt.title")}</span>
+                <span className="text-sm text-fg-muted">{t("profiles.commanderArt.subtitle")}</span>
+              </span>
+              <Toggle
+                label={t("profiles.commanderArt.title")}
+                checked={state.commanderArt}
+                onChange={(on) => {
+                  setState((s) => ({ ...s, commanderArt: on }));
+                  void rememberPresetOption(preset.id, "commanderArt", on).catch(() => undefined);
+                }}
+                testId="setup-commander-art"
+              />
+            </div>
+          )}
           <div className="flex min-h-14 items-center gap-3">
             <span className="flex-1 text-lg">{t("shell.settings.firstPlayer.title")}</span>
             <Select

@@ -9,8 +9,10 @@ import { useDispatch } from "@/state/gameStore";
 import { GRADIENTS, PALETTE, gradientFor, solidFromHue } from "./gradients";
 
 interface Props {
-  seatId: SeatId;
+  seatId?: SeatId;
   art?: ArtRef;
+  /** PROF-010: edit another background (a profile's or deck's) instead of a seat's. */
+  onApply?: (art: ArtRef | undefined, color?: string) => void;
 }
 
 type Mode = "gradients" | "solid";
@@ -19,7 +21,7 @@ type Mode = "gradients" | "solid";
  * "Colors" background picker (SET-002): 16 curated gradients, 8 palette solids + a hue slider,
  * and "Default". Applies SEAT_SET_ART and the seat accent color (history dots) via SEAT_SET_COLOR.
  */
-export function ColorsPicker({ seatId, art }: Props) {
+export function ColorsPicker({ seatId, art, onApply }: Props) {
   const dispatch = useDispatch();
   const [mode, setMode] = useState<Mode>(art?.kind === "solid" ? "solid" : "gradients");
   const [hue, setHue] = useState(200);
@@ -27,6 +29,8 @@ export function ColorsPicker({ seatId, art }: Props) {
   const selectedSolid = art?.kind === "solid" ? art.value.toLowerCase() : undefined;
 
   const apply = (next: ArtRef | undefined, color?: string) => {
+    if (onApply) return onApply(next, color);
+    if (!seatId) return;
     dispatch({ type: "SEAT_SET_ART", seatId, art: next });
     if (color) dispatch({ type: "SEAT_SET_COLOR", seatId, color });
   };

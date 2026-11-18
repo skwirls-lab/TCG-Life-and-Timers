@@ -515,6 +515,21 @@ const BASE_ROWS: SettingDef[] = [
     { kind: "toggle" },
     { default: true, visibleIf: (preset) => preset.capabilities.includes("partners") },
   ),
+  // PROF-010/ART-008 (profiles lane): "Set seat backgrounds to commanders"; on unless turned off.
+  {
+    id: "commanderArt",
+    scope: "game",
+    section: "B",
+    control: { kind: "toggle" },
+    default: true,
+    titleKey: "profiles.commanderArt.title",
+    subtitleKey: "profiles.commanderArt.subtitle",
+    helpKey: "profiles.commanderArt.help",
+    visibleIf: (preset) =>
+      preset.counters.some((c) => c.perCommander || c.scope === "playerVsOpponent"),
+    get: (ctx) => ctx.draft.options.commanderArt !== false,
+    set: (ctx, v) => withOption(ctx, "commanderArt", Boolean(v)),
+  },
   optionRow(
     "turnTracking",
     "B",

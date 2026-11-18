@@ -222,6 +222,11 @@ export interface GameOptions {
   batchWindowMs: number;
   /** HIST-030: gaps longer than this are excluded from active play time. */
   idleGapMs: number;
+  /**
+   * PROF-010/ART-008 "Set seat backgrounds to commanders" (commander-type presets). Absent = on
+   * for commander-type presets (the app decides; older saved games have no value).
+   */
+  commanderArt?: boolean;
 }
 
 export interface PresetDefaults {
@@ -266,6 +271,13 @@ export interface Preset {
 export const ART_KINDS = ["gradient", "solid", "scryfall", "upload", "default"] as const;
 export type ArtKind = (typeof ART_KINDS)[number];
 
+/**
+ * Where a seat's background came from (PROF-010, ART-008). Absent = picked by hand. Precedence
+ * (strongest first): by hand > "deck" > "commander" > "profile" (see src/lib/art/commanderArt.ts).
+ */
+export const ART_ORIGINS = ["deck", "commander", "profile"] as const;
+export type ArtOrigin = (typeof ART_ORIGINS)[number];
+
 export interface ArtFocal {
   x: number;
   y: number;
@@ -279,6 +291,8 @@ export interface ArtRef {
   focal?: ArtFocal;
   artist?: string;
   cardName?: string;
+  /** Automatic source of the art (absent = chosen by hand); seats only, never synced. */
+  origin?: ArtOrigin;
 }
 
 export type EliminationCause =
@@ -605,7 +619,7 @@ export type SeatAction =
 export type LayoutAction = { type: "SET_LAYOUT"; layoutId: string } & MaybeTimed;
 
 export type SetOptionAction = {
-  [K in keyof GameOptions]: { type: "SET_OPTION"; key: K; value: GameOptions[K]; now?: number };
+  [K in keyof GameOptions]-?: { type: "SET_OPTION"; key: K; value: GameOptions[K]; now?: number };
 }[keyof GameOptions];
 
 export type HistoryAction =

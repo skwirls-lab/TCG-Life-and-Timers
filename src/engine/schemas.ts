@@ -5,6 +5,7 @@
 import { z } from "zod";
 import {
   ART_KINDS,
+  ART_ORIGINS,
   AUTO_KO_MODES,
   COUNTER_CATEGORIES,
   COUNTER_DISPLAYS,
@@ -189,6 +190,7 @@ export const GameOptionsSchema = z.object({
   firstTurnReminder: z.boolean(),
   batchWindowMs: ms(),
   idleGapMs: ms(),
+  commanderArt: z.boolean().optional(),
 });
 
 export const PresetSchema = z.object({
@@ -230,6 +232,7 @@ export const ArtRefSchema = z.object({
   focal: z.object({ x: z.number(), y: z.number(), zoom: z.number().positive() }).optional(),
   artist: z.string().optional(),
   cardName: z.string().optional(),
+  origin: z.enum(ART_ORIGINS).optional(),
 });
 
 export const EliminationCauseSchema = z.discriminatedUnion("kind", [

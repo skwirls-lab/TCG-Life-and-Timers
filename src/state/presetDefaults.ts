@@ -3,7 +3,7 @@
  * id in the Dexie `settings` table. "Save as default" copies the current game's game-scope values;
  * "Restore defaults" deletes the override.
  */
-import { NewGameConfigSchema, type Game, type NewGameConfig } from "@/engine";
+import { NewGameConfigSchema, type Game, type GameOptions, type NewGameConfig } from "@/engine";
 import {
   deleteSetting,
   getDb,
@@ -51,6 +51,24 @@ export async function savePresetDefaults(
   db: TcgDb = getDb(),
 ): Promise<void> {
   await setSetting(presetDefaultsKey(presetId), PresetDefaultsSchema.parse(defaults), db);
+}
+
+/**
+ * Remember one game option as the preset's default without touching its other stored defaults
+ * (e.g. the setup flow's "Set seat backgrounds to commanders", PROF-010).
+ */
+export async function rememberPresetOption<K extends keyof GameOptions>(
+  presetId: string,
+  key: K,
+  value: GameOptions[K],
+  db: TcgDb = getDb(),
+): Promise<void> {
+  const current = await getPresetDefaults(presetId, db);
+  await savePresetDefaults(
+    presetId,
+    { ...current, options: { ...current?.options, [key]: value } },
+    db,
+  );
 }
 
 export async function restorePresetDefaults(presetId: string, db: TcgDb = getDb()): Promise<void> {
