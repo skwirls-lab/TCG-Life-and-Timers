@@ -1,35 +1,50 @@
 name: Deploy Firebase rules, indexes and functions
 # App Hosting deploys the web app itself from the live branch (configured in the Firebase console).
-# This workflow deploys the rest when the FIREBASE_SERVICE_ACCOUNT secret exists (DEPLOY.md, option A).
+# This workflow deploys the rest (DEPLOY.md Part 5, option A). It authenticates with keyless
+# Workload Identity Federation when the GCP_WIF_PROVIDER and GCP_SERVICE_ACCOUNT repository
+# variables are set, or with a FIREBASE_SERVICE_ACCOUNT JSON key secret. With neither, it skips.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write # needed to mint the GitHub OIDC token for Workload Identity Federation
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      USE_WIF: ${{ vars.GCP_WIF_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT != '' }}
       HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
-      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || 'tcgtempo' }}
     steps:
+      - name: Skip notice
+        if: env.USE_WIF != 'true' && env.HAS_SA != 'true'
+        run: echo "No deploy credentials configured; skipping deploy (see DEPLOY.md Part 5)."
       - uses: actions/checkout@v4
-        if: env.HAS_SA == 'true'
+        if: env.USE_WIF == 'true' || env.HAS_SA == 'true'
       - uses: actions/setup-node@v4
-        if: env.HAS_SA == 'true'
+        if: env.USE_WIF == 'true' || env.HAS_SA == 'true'
         with:
           node-version: 22
           cache: npm
-      - if: env.HAS_SA == 'true'
+      - if: env.USE_WIF == 'true' || env.HAS_SA == 'true'
         run: npm ci && npm --prefix functions ci
-      - name: Write service account
-        if: env.HAS_SA == 'true'
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+      - name: Authenticate (Workload Identity Federation, keyless)
+        if: env.USE_WIF == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Write service account key
+        if: env.USE_WIF != 'true' && env.HAS_SA == 'true'
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
       - name: Deploy
-        if: env.HAS_SA == 'true'
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        if: env.USE_WIF == 'true' || env.HAS_SA == 'true'
         run: npx firebase deploy --only firestore,storage,functions --project "$FIREBASE_PROJECT_ID" --non-interactive --force
-      - name: Skip notice
-        if: env.HAS_SA != 'true'
-        run: echo "FIREBASE_SERVICE_ACCOUNT not configured; skipping deploy (see DEPLOY.md)."

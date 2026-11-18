@@ -94,7 +94,7 @@ Traceability: `npm run check:trace -- --all` passes. Every P0/P1 requirement in 
 Follow **[DEPLOY.md](DEPLOY.md)**:
 1. Create the Firebase project and enable Auth (Google), Firestore, Storage, Functions and App Hosting (Blaze plan).
 2. Fill in the `NEXT_PUBLIC_FIREBASE_*` values in `apphosting.yaml` and connect App Hosting to `main`.
-3. Deploy the rules, indexes and functions. Either use the GitHub Action with the `FIREBASE_SERVICE_ACCOUNT` secret and the `FIREBASE_PROJECT_ID` variable, or deploy manually.
+3. Deploy the rules, indexes and functions. Either use the GitHub Action with keyless Workload Identity Federation (no service-account key), or deploy manually.
 4. Go through the post-deploy checklist in Part 6.
 5. Later: Stripe (Part 7), Sentry and analytics (Part 8), and a custom domain (Part 9).
 6. Before charging money:

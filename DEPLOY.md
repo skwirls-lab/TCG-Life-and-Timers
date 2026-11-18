@@ -66,21 +66,49 @@ From now on, every push to `main` redeploys the website automatically.
 App Hosting deploys only the website. Security rules and functions are deployed separately. **Choose one option.**
 
 ### Option A (recommended): automatic from GitHub on every push to `main`
-1. Google Cloud console → **IAM & Admin → Service Accounts** (same project) → **Create service account** `github-deployer`. Grant these roles:
+This uses **Workload Identity Federation**: GitHub proves who it is to Google, so no key file ever exists. (Downloadable service-account keys are blocked by default on new Google Cloud organizations: policy `iam.disableServiceAccountKeyCreation`. Leave that policy on.)
+
+1. Google Cloud console → **IAM & Admin → Service Accounts** (project `tcgtempo`) → **Create service account** `github-deployer`. Grant these roles:
    - Firebase Rules Admin
    - Cloud Datastore Index Admin
    - Firebase Admin (or Cloud Functions Admin + Cloud Functions Developer + Firebase Extensions Viewer)
    - Service Account User
    - Artifact Registry Writer
    - Cloud Build Editor
-2. Open the account → **Keys → Add key → JSON** → download the file.
-3. GitHub repo → **Settings → Secrets and variables → Actions**:
-   - New **secret** `FIREBASE_SERVICE_ACCOUNT` = paste the whole JSON file contents.
-   - New **variable** `FIREBASE_PROJECT_ID` = your project id.
-4. The workflow `.github/workflows/deploy.yml` now deploys Firestore rules + indexes, Storage rules and Functions on every push to `main`. You can also run it by hand: Actions → "Deploy Firebase rules, indexes and functions" → Run workflow.
-5. **Delete the downloaded key file** from your computer.
+   Do **not** create a key.
+2. Open **Cloud Shell** (the `>_` icon at the top of the console) and paste:
+   ```bash
+   PROJECT_ID=tcgtempo
+   PROJECT_NUMBER=726097197982
+   REPO=skwirls-lab/TCG-Life-and-Timers
+   SA=github-deployer@$PROJECT_ID.iam.gserviceaccount.com
 
-### Option B: by hand from your computer
+   gcloud services enable iamcredentials.googleapis.com sts.googleapis.com --project=$PROJECT_ID
+
+   gcloud iam workload-identity-pools create github \
+     --project=$PROJECT_ID --location=global --display-name="GitHub"
+
+   gcloud iam workload-identity-pools providers create-oidc github-repo \
+     --project=$PROJECT_ID --location=global --workload-identity-pool=github \
+     --display-name="GitHub repo" \
+     --issuer-uri="https://token.actions.githubusercontent.com" \
+     --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+     --attribute-condition="assertion.repository=='$REPO'"
+
+   gcloud iam service-accounts add-iam-policy-binding $SA --project=$PROJECT_ID \
+     --role=roles/iam.workloadIdentityUser \
+     --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$REPO"
+   ```
+   The attribute condition means only this repository can use the pool.
+3. GitHub repo → **Settings → Secrets and variables → Actions → Variables** tab. Add three **variables** (they are not secrets):
+   - `GCP_WIF_PROVIDER` = `projects/726097197982/locations/global/workloadIdentityPools/github/providers/github-repo`
+   - `GCP_SERVICE_ACCOUNT` = `github-deployer@tcgtempo.iam.gserviceaccount.com`
+   - `FIREBASE_PROJECT_ID` = `tcgtempo`
+4. Actions → "Deploy Firebase rules, indexes and functions" → **Run workflow**. After that it runs on every push to `main` and deploys Firestore rules and indexes, Storage rules and Functions.
+
+The workflow still accepts a JSON key in a `FIREBASE_SERVICE_ACCOUNT` secret, for organizations that allow keys, but you don't need one.
+
+### Option B: by hand from your computer (fastest to get going)
 ```bash
 npm ci && npm --prefix functions ci
 npx firebase login
