@@ -194,15 +194,25 @@ test("roll-off: each seat's d20 is shown, the highest goes first", async ({ page
   await expect(page.getByTestId("rolloff").locator("li")).toHaveCount(4);
   await page.getByTestId("first-player-skip").click(CORNER);
   await expect(overlay).toHaveAttribute("data-landed", "1");
+  // The landed overlay auto-closes after 2 s, so read it in one go before anything slow (axe).
+  const shown = await page.evaluate(() => ({
+    rows: [0, 1, 2, 3].map((i) => {
+      const el = document.querySelector(`[data-testid="rolloff-seat-${i}"]`);
+      return {
+        seatId: el?.getAttribute("data-seat-id") ?? "",
+        rolls: el?.getAttribute("data-rolls") ?? "",
+        winner: el?.getAttribute("data-winner") ?? "",
+      };
+    }),
+    result: document.querySelector('[data-testid="first-player-result"]')?.textContent ?? "",
+  }));
   await expectNoSeriousA11yViolations(page);
 
   const g = await game(page);
   const rolls = g.turn.rolloff!;
-  for (let i = 0; i < 4; i++) {
-    const row = page.getByTestId(`rolloff-seat-${i}`);
-    const seatId = (await row.getAttribute("data-seat-id"))!;
-    await expect(row).toHaveAttribute("data-rolls", rolls[seatId]!.join(","));
-    await expect(row).toHaveAttribute("data-winner", seatId === g.turn.firstSeat ? "1" : "0");
+  for (const row of shown.rows) {
+    expect(row.rolls).toBe(rolls[row.seatId]!.join(","));
+    expect(row.winner).toBe(row.seatId === g.turn.firstSeat ? "1" : "0");
   }
   // The winner has the strictly highest roll of the last round (ties re-rolled).
   const win = rolls[g.turn.firstSeat]!;
@@ -211,7 +221,7 @@ test("roll-off: each seat's d20 is shown, the highest goes first", async ({ page
     expect(r.at(-1)!).toBeLessThan(win.at(-1)!);
   }
   const name = g.seats.find((s) => s.id === g.turn.firstSeat)!.name;
-  await expect(page.getByTestId("first-player-result")).toHaveText(`${name} goes first`);
+  expect(shown.result.trim()).toBe(`${name} goes first`);
 });
 
 test("Pokémon: opening coin flip decides, then the first-turn reminder shows once", async ({
