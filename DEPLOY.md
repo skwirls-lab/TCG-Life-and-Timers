@@ -110,11 +110,11 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
 
    COMPUTE_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
    GCS_SA=$(gcloud storage service-agent --project=$PROJECT_ID)
-   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$GCS_SA" --role=roles/pubsub.publisher
-   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator
-   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/eventarc.eventReceiver
-   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/run.invoker
-   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/cloudbuild.builds.builder
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$GCS_SA" --role=roles/pubsub.publisher --condition=None
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator --condition=None
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/eventarc.eventReceiver --condition=None
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/run.invoker --condition=None
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/cloudbuild.builds.builder --condition=None
    ```
    Also make sure **Storage** is set up in the Firebase console (Build → Storage → Get started; it needs the Blaze plan).
 3. GitHub repo → **Settings → Secrets and variables → Actions → Variables** tab. Add three **variables** (they are not secrets):
