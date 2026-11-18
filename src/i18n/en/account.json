@@ -69,7 +69,7 @@
   "account.feedback.share": "Share the app",
   "account.feedback.shareHint": "Send the app link to a friend",
   "account.feedback.shareTitle": "TCGTempo",
-  "account.feedback.shareText": "Life & timers for any card game. Works offline.",
+  "account.feedback.shareText": "TCGTempo: life & timers for any card game. Works offline.",
   "account.feedback.shared": "Thanks for sharing!",
   "account.feedback.copied": "Link copied to the clipboard",
   "account.feedback.shareFailed": "Couldn't share the link"
