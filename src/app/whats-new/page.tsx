@@ -5,8 +5,8 @@ import { parseChangelog } from "@/features/whats-new/changelog";
 import { WhatsNew } from "@/features/whats-new/WhatsNew";
 
 export const metadata: Metadata = {
-  title: "What's new · TCG Life & Timers",
-  description: "Release notes for TCG Life & Timers.",
+  title: "What's new",
+  description: "Release notes for TCGTempo.",
 };
 
 // Read at build time: the page is prerendered, so CHANGELOG.md is never read at runtime.

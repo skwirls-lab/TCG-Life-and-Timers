@@ -249,8 +249,8 @@
   "shell.settings.soundsTaps.subtitle": "A click on every change",
   "shell.settings.soundsVolume.title": "Volume (%)",
   "shell.settings.soundsVolume.subtitle": "Loudness of app sounds",
-  "shell.settings.hideSystemBars.title": "Hide navigation and status bars",
-  "shell.settings.hideSystemBars.subtitle": "Go full screen on the next tap in a game",
+  "shell.settings.hideSystemBars.title": "Full screen during games",
+  "shell.settings.hideSystemBars.subtitle": "Hide the browser and system bars while a game is open. Starts on your next tap in the game.",
   "shell.settings.install.title": "Install app",
   "shell.settings.install.subtitle": "Use your browser menu: Install app or Add to Home Screen",
 

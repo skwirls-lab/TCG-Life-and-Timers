@@ -57,13 +57,13 @@ describe("export", () => {
       url: { createObjectURL: vi.fn(() => "blob:x"), revokeObjectURL: vi.fn() },
     };
     const name = await downloadExport(db, env, Date.UTC(2026, 0, 2));
-    expect(name).toBe("tcg-life-export-2026-01-02.json");
+    expect(name).toBe("tcgtempo-export-2026-01-02.json");
     expect(anchor).toMatchObject({ href: "blob:x", download: name });
     expect(click).toHaveBeenCalled();
     vi.runAllTimers();
     expect(env.url.revokeObjectURL).toHaveBeenCalledWith("blob:x");
     vi.useRealTimers();
-    expect(exportFilename(0)).toBe("tcg-life-export-1970-01-01.json");
+    expect(exportFilename(0)).toBe("tcgtempo-export-1970-01-01.json");
   });
 });
 

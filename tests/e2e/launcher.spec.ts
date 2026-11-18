@@ -33,3 +33,16 @@ test("theme setting is applied to the document", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
+
+// Sign-in first: a deployment without cloud config never shows the welcome or a sign-in entry.
+test("brand mark and name, no welcome without cloud config", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("launcher-brand")).toContainText("TCGTempo");
+  await expect(page.getByTestId("launcher-brand").locator("svg")).toBeVisible();
+  await expect(page).toHaveTitle("TCGTempo");
+  // give a lazily loaded welcome every chance to appear
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByTestId("welcome")).toHaveCount(0);
+  await expect(page.getByTestId("launcher-account")).toHaveCount(0);
+  await expect(page.getByTestId("launcher-signin")).toHaveCount(0);
+});

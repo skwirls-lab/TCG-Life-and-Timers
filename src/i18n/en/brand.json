@@ -1,0 +1,13 @@
+{
+  "brand.welcome.valueProp": "Life totals, counters and turn clocks for any card game, on one shared phone.",
+  "brand.welcome.google": "Continue with Google",
+  "brand.welcome.googleHint": "Sync your profiles, game history and settings across your devices.",
+  "brand.welcome.guest": "Continue without an account",
+  "brand.welcome.guestNote": "Your profiles, history and settings then stay on this device and don't sync. You can sign in later from the home screen.",
+  "brand.welcome.privacy": "Privacy policy",
+  "brand.launcher.signIn": "Sign in to sync",
+  "brand.launcher.signedIn": "Signed in · syncing",
+  "brand.offline.title": "You're offline",
+  "brand.offline.body": "This page isn't cached yet. Your games still work offline from the home screen.",
+  "brand.offline.home": "Go to the home screen"
+}

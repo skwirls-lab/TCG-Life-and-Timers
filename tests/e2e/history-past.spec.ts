@@ -140,7 +140,7 @@ test.describe("Past Games with the 26 stats fixtures", () => {
       page.waitForEvent("download"),
       page.getByTestId("export-csv").click(),
     ]);
-    expect(csv.suggestedFilename()).toMatch(/^tcg-life-games-\d{4}-\d\d-\d\d\.csv$/);
+    expect(csv.suggestedFilename()).toMatch(/^tcgtempo-games-\d{4}-\d\d-\d\d\.csv$/);
     const lines = (await downloadText(csv)).trimEnd().split("\r\n");
     // One row per game-seat: 12×4 + 8×2 + 4×4 + 2×3 = 86, plus the header.
     expect(lines).toHaveLength(87);

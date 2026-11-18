@@ -3,15 +3,17 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "TCG Life & Timers",
-    short_name: "LifeTimers",
-    description: "Life tracking and multiplayer chess clocks for trading card games.",
+    name: "TCGTempo",
+    short_name: "TCGTempo",
+    description:
+      "Life & timers for any card game: life totals, counters and multiplayer chess clocks. Works offline.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     display_override: ["fullscreen", "standalone"],
     orientation: "any",
-    background_color: "#000000",
+    // Splash screen: the icon's own ink, so the icon tile blends into the splash.
+    background_color: "#0b0d12",
     theme_color: "#000000",
     categories: ["games", "utilities"],
     icons: [

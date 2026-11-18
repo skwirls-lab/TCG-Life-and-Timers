@@ -3,10 +3,12 @@ import "./globals.css";
 import { Providers } from "@/features/pwa/Providers";
 
 export const metadata: Metadata = {
-  title: "TCG Life & Timers",
-  description: "Life tracking and multiplayer chess clocks for trading card games.",
-  applicationName: "TCG Life & Timers",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "LifeTimers" },
+  // Child pages set a short title ("Profiles"); the template brands it ("Profiles · TCGTempo").
+  title: { default: "TCGTempo", template: "%s · TCGTempo" },
+  description:
+    "TCGTempo: life & timers for any card game. Life totals, counters and multiplayer chess clocks.",
+  applicationName: "TCGTempo",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "TCGTempo" },
   icons: {
     icon: [{ url: "/icons/favicon-32.png", sizes: "32x32" }],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],

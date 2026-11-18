@@ -1,5 +1,5 @@
 {
-  "pay.sheet.title": "TCG Life & Timers Pro",
+  "pay.sheet.title": "TCGTempo Pro",
   "pay.sheet.locked": "This is a Pro feature",
   "pay.sheet.intro": "Everything you need to play stays free. Every clock is free. Pro adds depth: unlimited customization and long-term stats.",
   "pay.sheet.seeAll": "See all plans",
@@ -108,7 +108,7 @@
   "pay.share.ready": "Share link ready: {url}",
   "pay.share.error": "Could not create a share link: {error}",
   "pay.share.unavailable": "Share links need an internet connection and accounts, which are not available in this version.",
-  "pay.share.text": "Preset \"{name}\" for TCG Life & Timers",
+  "pay.share.text": "Preset \"{name}\" for TCGTempo",
   "pay.share.mine": "My share links",
   "pay.share.mineEmpty": "You haven't shared any presets yet.",
   "pay.share.delete": "Stop sharing {name}",

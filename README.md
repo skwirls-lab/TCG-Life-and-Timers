@@ -1,6 +1,8 @@
-# TCG Life & Timers
+# TCGTempo
 
-Mobile-first PWA: life/counter tracking for trading card games plus multiplayer chess clocks on one shared device.
+_Life & timers for any card game._
+
+Mobile-first PWA (formerly "TCG Life & Timers"; the repo, package and storage names keep the old identifiers on purpose): life/counter tracking for trading card games plus multiplayer chess clocks on one shared device.
 
 - Product spec: [`PRD.md`](PRD.md) · Build plan: [`instructions.md`](instructions.md) · Progress: [`docs/progress/`](docs/progress/PROGRESS.md)
 

@@ -1,4 +1,4 @@
-# Final report: TCG Life & Timers v1.0.0
+# Final report: TCGTempo v1.0.0
 
 The app is built to [PRD.md](PRD.md) v0.3 by following [instructions.md](instructions.md). Every task card, from wave W0 through W6, is merged. The gate results below come from a **clean checkout** of the merged branch, with `npm ci` run fresh.
 

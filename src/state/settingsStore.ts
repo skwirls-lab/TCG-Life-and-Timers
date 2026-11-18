@@ -64,7 +64,9 @@ export function defaultAppSettings(): AppSettings {
     keepAwakeFallback: false,
     haptics: true,
     sounds: { alerts: true, taps: false, volume: 0.8 },
-    hideSystemBars: true,
+    // Off by default: entering full screen on the first tap surprised players in a browser tab.
+    // Stored values (including an explicit true) are kept by mergeSettings.
+    hideSystemBars: false,
     whoWonPrompt: "unclear",
   };
 }

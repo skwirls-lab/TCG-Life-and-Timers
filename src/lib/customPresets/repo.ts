@@ -238,7 +238,7 @@ function unwrap(data: unknown): { ok: true; value: unknown } | { ok: false; erro
   // Envelope: { format, version, preset }. (Presets have a `format` field too, but no `preset`.)
   if ("preset" in obj && !("counters" in obj)) {
     if (obj.format !== PRESET_EXPORT_FORMAT)
-      return { ok: false, error: "This is not a TCG Life & Timers preset file." };
+      return { ok: false, error: "This is not a TCGTempo preset file." };
     if (typeof obj.version !== "number" || obj.version > PRESET_EXPORT_VERSION)
       return { ok: false, error: "This preset file was made by a newer version of the app." };
     return { ok: true, value: obj.preset };

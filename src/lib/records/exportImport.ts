@@ -208,5 +208,5 @@ export function parseRecordsJson(text: string): ImportParse {
 
 export function exportFileName(kind: "csv" | "json", now: number): string {
   const d = new Date(now).toISOString().slice(0, 10);
-  return `tcg-life-games-${d}.${kind}`;
+  return `tcgtempo-games-${d}.${kind}`;
 }

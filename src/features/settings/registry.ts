@@ -800,7 +800,7 @@ const BASE_ROWS: SettingDef[] = [
     "F",
     { kind: "toggle" },
     {
-      default: true,
+      default: false,
       disabledIf: (ctx) =>
         ctx.env.fullscreen ? null : "shell.settings.badge.installForFullscreen",
     },
