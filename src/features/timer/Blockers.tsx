@@ -40,14 +40,15 @@ export function BlockersBanner({
       data-up={up || undefined}
       role="status"
       className={cn(
-        "flex min-w-0 shrink items-center gap-1.5 overflow-hidden rounded-2xl bg-black/75 py-1 font-semibold ring-2",
+        "flex shrink-0 items-center gap-1 overflow-hidden rounded-2xl bg-black/75 py-1 font-semibold ring-2",
         compact ? "px-2" : "px-3",
         up ? "ring-danger text-danger" : "ring-warning",
       )}
     >
       <ShieldCheck aria-hidden size={16} className="shrink-0" />
-      <span className={cn("min-w-0 truncate", compact ? "text-xs" : "text-sm")}>
-        {up ? t("timer.blockersUp") : t("timer.blockers")}
+      {/* Short tiles: shield + time only (the time is what matters); the label is for SR too. */}
+      <span className={cn("whitespace-nowrap text-sm", compact && !up && "sr-only")}>
+        {up ? t(compact ? "timer.blockersUpShort" : "timer.blockersUp") : t("timer.blockers")}
       </span>
       {!up && (
         <span
@@ -87,8 +88,8 @@ function ActionButton({
       title={hint ?? label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-12 min-w-12 shrink-0 select-none items-center justify-center gap-1 rounded-full bg-warning px-3 text-sm font-bold text-black shadow active:scale-95",
-        compact && "flex-col gap-0 px-1.5",
+        "inline-flex h-12 min-w-12 shrink-0 select-none items-center justify-center rounded-full bg-warning font-bold text-black shadow active:scale-95",
+        compact ? "flex-col gap-0 px-1" : "gap-1 px-3 text-sm",
       )}
     >
       {icon}

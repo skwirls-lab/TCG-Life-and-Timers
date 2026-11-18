@@ -132,6 +132,7 @@
   "timer.declaredShort": "Done",
   "timer.blockers": "Blockers",
   "timer.blockersUp": "Blockers time is up",
+  "timer.blockersUpShort": "Time up",
   "timer.settings.seatTimes.title": "Different time per seat",
   "timer.settings.seatTimes.subtitle": "Give a newer player more time",
   "timer.settings.seatTimes.off": "Everyone gets the same time",

@@ -353,7 +353,8 @@ const BOOL_KEYS = [
  * `t.mode`, `t.bankMs`, `t.incrementMs`, `t.delayMs`, `t.perTurnMs`, `t.reserveMs`, `t.graceMs`,
  * `t.addOnceMs`, `t.timeoutAction`, `t.finalAction`, `t.responses`, `t.passMode`,
  * `t.autoPauseBackground`, `t.autoPauseMenus`, `t.showTenths`, `t.showTurnTime` (1/0),
- * `t.warnings=300000,60000` and `t.matchMs` + `t.extraTurns`. Invalid values are dropped.
+ * `t.warnings=300000,60000`, `t.matchMs` + `t.extraTurns`, `t.blockersWindow`, `t.blockersMs`,
+ * `t.blockersTimeout` and `t.seatExtra=s2:300000,s3:-60000`. Invalid values are dropped.
  */
 export function parseTimerParams(search: URLSearchParams): Partial<TimerConfig> {
   const out: Partial<TimerConfig> = {};

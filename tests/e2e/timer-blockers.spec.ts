@@ -65,7 +65,7 @@ test("timeout alert keeps waiting by default; 'return' rule hands the clock back
   const p3 = (p1 + 2) % 4;
   await page.clock.runFor(21_000);
   await expect(page.getByTestId(`seat-${p3}-blockers`)).toHaveAttribute("data-up", "true");
-  await expect(page.getByTestId(`seat-${p3}-blockers`)).toContainText("Blockers time is up");
+  await expect(page.getByTestId(`seat-${p3}-blockers`)).toContainText(/time (is )?up/i);
   expect(await blockers(page)).toMatchObject({ remainingMs: 0, expired: true });
   // Nobody's bank runs while waiting.
   await page.clock.runFor(30_000);

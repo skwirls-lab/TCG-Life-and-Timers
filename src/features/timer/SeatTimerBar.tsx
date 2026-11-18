@@ -154,6 +154,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           rotation={rotation}
           hold={view.passMode === "hold"}
           short={compact || (twoUp && tight)}
+          mini={compact && twoUp}
         />
       )}
       {bk && view.canAttack && <bk.AttackButton index={index} compact={tight} />}
@@ -195,8 +196,10 @@ export const SeatTimerBar = memo(function SeatTimerBar({
     </>
   );
 
-  const boxCls =
-    "pointer-events-none absolute left-1/2 flex w-max -translate-x-1/2 items-center justify-center gap-1.5 text-white";
+  const boxCls = cn(
+    "pointer-events-none absolute left-1/2 flex w-max -translate-x-1/2 items-center justify-center text-white",
+    twoUp && compact ? "gap-1" : "gap-1.5",
+  );
   const boxStyle = (b: TimerTileMetrics["chip"]): CSSProperties => ({
     top: b.top,
     height: b.h,
@@ -232,7 +235,7 @@ export const SeatTimerBar = memo(function SeatTimerBar({
           style={boxStyle(metrics.chip)}
         >
           {chip}
-          <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">{buttons}</div>
+          <div className="pointer-events-auto flex shrink-0 items-center gap-1">{buttons}</div>
           {peekEl}
         </div>
       )}
@@ -491,9 +494,9 @@ function BarButton({
       title={title ?? label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-12 min-w-12 shrink-0 select-none items-center justify-center gap-1 rounded-full px-3 text-sm font-bold shadow active:scale-95",
+        "inline-flex h-12 min-w-12 shrink-0 select-none items-center justify-center rounded-full text-sm font-bold shadow active:scale-95",
         tone === "respond" ? "bg-respond text-black" : "bg-accent text-accent-fg",
-        compact && "flex-col gap-0 px-1",
+        compact ? "flex-col gap-0 px-1" : "gap-1 px-3",
       )}
     >
       {icon}
@@ -543,12 +546,15 @@ function PassTurnButton({
   rotation,
   hold,
   short,
+  mini = false,
 }: {
   index: number;
   seatId: SeatId;
   rotation: Rotation;
   hold: boolean;
   short: boolean;
+  /** Short tiles with a second big button: icon + tiny caption (48 px square). */
+  mini?: boolean;
 }) {
   const show = useSnackbar((s) => s.show);
   const [holding, setHolding] = useState(false);
@@ -577,8 +583,10 @@ function PassTurnButton({
     },
   });
   const cls = cn(
-    "relative inline-flex h-12 shrink-0 select-none items-center justify-center gap-1.5 overflow-hidden rounded-full bg-white px-4 text-sm font-extrabold uppercase tracking-wide text-black shadow-lg active:scale-95",
-    short ? "px-3" : "min-w-28",
+    "relative inline-flex h-12 shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-white font-extrabold uppercase tracking-wide text-black shadow-lg active:scale-95",
+    mini
+      ? "min-w-12 flex-col gap-0 px-1 text-[0.6rem] leading-none"
+      : cn("gap-1.5 text-sm", short ? "px-3" : "min-w-28 px-4"),
   );
   const label = hold ? t("timer.holdPass") : t("timer.pass");
   if (!hold) {
