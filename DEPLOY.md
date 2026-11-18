@@ -75,6 +75,7 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
    - Service Account User
    - Artifact Registry Writer
    - Cloud Build Editor
+   - Cloud Functions Admin and Cloud Run Admin (needed to make the callable functions publicly invokable)
    Do **not** create a key.
 2. Open **Cloud Shell** (the `>_` icon at the top of the console) and paste:
    ```bash
@@ -115,8 +116,30 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
    gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/eventarc.eventReceiver --condition=None
    gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/run.invoker --condition=None
    gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$COMPUTE_SA" --role=roles/cloudbuild.builds.builder --condition=None
+   gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com" --role=roles/eventarc.serviceAgent --condition=None
    ```
    Also make sure **Storage** is set up in the Firebase console (Build → Storage → Get started; it needs the Blaze plan).
+
+   **If your Google Cloud organization blocks public access** (secure-by-default orgs do; the deploy fails with "Unable to set the invoker" and a manual test says "do not belong to a permitted customer"), allow it for this project only. Callable functions must be publicly invokable; the code itself checks the signed-in user.
+   ```bash
+   ORG_ID=$(gcloud projects describe $PROJECT_ID --format="value(parent.id)")
+   gcloud organizations add-iam-policy-binding $ORG_ID --member="user:$(gcloud config get account)" \
+     --role=roles/orgpolicy.policyAdmin --condition=None
+   cat > /tmp/p1.yaml <<EOF
+   name: projects/tcgtempo/policies/iam.allowedPolicyMemberDomains
+   spec:
+     rules:
+     - allowAll: true
+   EOF
+   cat > /tmp/p2.yaml <<EOF
+   name: projects/tcgtempo/policies/iam.managed.allowedPolicyMembers
+   spec:
+     rules:
+     - enforce: false
+   EOF
+   gcloud org-policies set-policy /tmp/p1.yaml && gcloud org-policies set-policy /tmp/p2.yaml
+   ```
+   Policy changes take a few minutes to apply. The very first 2nd-gen functions deploy can also fail with "Permission denied while using the Eventarc Service Agent" while Google finishes setting up; wait a few minutes and run the workflow again.
 3. GitHub repo → **Settings → Secrets and variables → Actions → Variables** tab. Add three **variables** (they are not secrets):
    - `GCP_WIF_PROVIDER` = `projects/726097197982/locations/global/workloadIdentityPools/github/providers/github-repo`
    - `GCP_SERVICE_ACCOUNT` = `github-deployer@tcgtempo.iam.gserviceaccount.com`
