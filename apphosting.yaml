@@ -29,15 +29,15 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: "G-W9VJDCXYV2"
     availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
-    value: ""
-    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_PAYWALL_ENABLED
     value: "0"
     availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_STRIPE_PK
-    value: ""
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_SENTRY_DSN
-    value: ""
-    availability: [BUILD, RUNTIME]
+
+  # Optional. App Hosting rejects empty values, so uncomment an entry only once it has a value
+  # (DEPLOY.md Parts 2, 7 and 8).
+  # - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
+  #   value: "your-recaptcha-enterprise-site-key"
+  #   availability: [BUILD, RUNTIME]
+  # - variable: NEXT_PUBLIC_SENTRY_DSN
+  #   value: "https://...@....ingest.sentry.io/..."
+  #   availability: [BUILD, RUNTIME]

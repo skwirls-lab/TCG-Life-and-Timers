@@ -31,7 +31,7 @@ This guide walks you, the owner, through putting the app on the internet with Fi
    - After the app has run for a day with App Check reporting "verified" requests, click **Enforce** for Firestore, Storage, and Authentication.
 
 ## Part 3: Configure environment variables
-✅ **Done for project `tcgtempo`**: the Firebase web config (including the measurement id) is already in `apphosting.yaml`. These are **public** client keys, safe to commit. Edit that file only to add the optional values below:
+✅ **Done for project `tcgtempo`**: the Firebase web config (including the measurement id) is already in `apphosting.yaml`. These are **public** client keys, safe to commit. Edit that file only to add the optional values below. **App Hosting rejects an entry with an empty value**, so add (or uncomment) a variable only once you have its value:
 
 | Variable | Where it comes from | Required |
 |---|---|---|
