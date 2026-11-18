@@ -905,7 +905,7 @@ LifeTap's "Dice & Misc" screen (third batch of screenshots) is the baseline. It 
 
 ### 17.2 Free vs. Pro split (owner delegated this decision; revisit before M7)
 
-**How I split it.** Everything you need to **play** a game is free: tracking, art, tools, a fair basic clock, and the full current-game history. Pro sells **depth**: advanced clock modes, unlimited customization, and the **long-term stats** people love but rarely know exist. Free users get a real **taste** of stats (recent games, W/L, summary tiles, and a blurred preview of the locked Insights), so they find out the value before they meet the paywall. Nothing a free user records is ever deleted. Upgrading reveals it all (HIST-007).
+**How I split it.** Everything you need to **play** a game is free: tracking, art, tools, every clock mode, and the full current-game history. Pro sells **depth**: unlimited customization, and the **long-term stats** people love but rarely know exist. Free users get a real **taste** of stats (recent games, W/L, summary tiles, and a blurred preview of the locked Insights), so they find out the value before they meet the paywall. Nothing a free user records is ever deleted. Upgrading reveals it all (HIST-007).
 
 | Area | Feature | Free | Pro |
 |---|---|---|---|
@@ -916,7 +916,7 @@ LifeTap's "Dice & Misc" screen (third batch of screenshots) is the baseline. It 
 | | Camera mode, player card layouts, all LifeTap-equivalent settings | ✅ | ✅ |
 | **Tools** | Dice, custom die, coin, randomize player/opponent, quick access, Mana & Storm | ✅ | ✅ |
 | **Timers** | Turn tracking, count-up, chess clock (bank), Respond/Pass back, global pause, timeout: lose / grace / flag | ✅ | ✅ |
-| | Increment, delay, per-turn, hybrid, match timer + extra turns, "add time once", per-seat handicap, custom warning thresholds | — | ✅ |
+| | Increment, delay, per-turn, hybrid, match timer + extra turns, "add time once", per-seat handicap, custom warning thresholds, declare-blockers window | ✅ (owner decision 2026-11-18: all clocks free) | ✅ |
 | **Customize** | Custom presets | 1 | Unlimited + share links + import |
 | | Player profiles / decks | 4 profiles, 3 decks each | Unlimited |
 | | Themes, seat frames, sound packs | Default themes | ✅ |
