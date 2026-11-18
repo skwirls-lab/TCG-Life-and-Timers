@@ -28,6 +28,8 @@ export interface ScryfallCard {
   id: string;
   name: string;
   layout: string;
+  /** e.g. "Legendary Enchantment — Background" */
+  type_line?: string;
   artist?: string;
   illustration_id?: string;
   image_uris?: ScryfallImageUris;

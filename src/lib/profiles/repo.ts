@@ -13,6 +13,7 @@
  *   (`dismissProfileSuggestion`, kv `nameUseDismissed:<normalized>`).
  */
 import { nanoid } from "nanoid";
+import type { ArtRef } from "@/engine";
 import { getDb, normalizeName, type StoredDeck, type StoredProfile, type TcgDb } from "@/lib/db";
 import {
   DECK_SCHEMA_VERSION,
@@ -52,6 +53,13 @@ function toDeck(row: StoredDeck): Deck {
   return { ...d, commanders: Array.isArray(d.commanders) ? d.commanders : [] };
 }
 
+/** Profile/deck art never keeps the seat-only `origin` tag (PROF-010; Firestore has no such field). */
+function cleanArt<T extends { art?: ArtRef }>(o: T): T {
+  if (!o.art?.origin) return o;
+  const { origin: _o, ...art } = o.art;
+  return { ...o, art };
+}
+
 function stripUndefined<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 }
@@ -69,7 +77,7 @@ export async function saveProfile(
   const name = cleanName(input.name);
   if (!name) throw new Error("Profile name is required");
   const profile: PlayerProfile = stripUndefined({
-    ...input,
+    ...cleanArt(input),
     id: input.id ?? nanoid(),
     name,
     updatedAt: now,
@@ -151,7 +159,7 @@ export async function saveDeck(
     .filter(Boolean)
     .slice(0, 2);
   const deck: Deck = stripUndefined({
-    ...input,
+    ...cleanArt(input),
     id: input.id ?? nanoid(),
     name,
     commanders,

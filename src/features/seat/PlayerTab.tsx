@@ -4,11 +4,14 @@ import { useEffect, useId, useState } from "react";
 import { Button, ListRow, SectionHeader, Toggle, useSnackbar } from "@/components/ui";
 import type { Game, Rotation, Seat } from "@/engine";
 import { ColorsPicker } from "@/features/backgrounds/ColorsPicker";
+import { CommanderInput } from "@/features/profiles/CommanderInput";
 import { ProfilePicker } from "@/features/profiles/ProfilePicker";
 import { t } from "@/lib/i18n";
 import { selectionToSeatActions, seatToDeckInput, seatToProfileInput } from "@/lib/profiles/apply";
 import {
   dismissProfileSuggestion,
+  getDeck,
+  getProfile,
   MAX_PROFILE_NAME,
   recordNameUse,
   saveDeck,
@@ -101,11 +104,13 @@ export function PlayerTab({ game, seat, rotation }: Props) {
   const saveAsProfile = async () => {
     // PAY (T7.1): a NEW profile counts against the free plan's 4 profiles (§17.2).
     if (!seat.profileId && !(await canCreateProfile())) return;
+    const existing = seat.profileId ? await getProfile(seat.profileId) : undefined;
     const profile = await saveProfile({
-      ...seatToProfileInput(seat),
+      ...seatToProfileInput(seat, existing),
       ...(seat.profileId ? { id: seat.profileId } : {}),
     });
-    const deckInput = seatToDeckInput(seat, profile.id, game.preset.id);
+    const existingDeck = seat.deckId ? await getDeck(seat.deckId) : undefined;
+    const deckInput = seatToDeckInput(seat, profile.id, game.preset.id, existingDeck);
     const deck = deckInput
       ? await saveDeck({ ...deckInput, ...(seat.deckId ? { id: seat.deckId } : {}) })
       : undefined;
@@ -139,7 +144,7 @@ export function PlayerTab({ game, seat, rotation }: Props) {
         rotation={rotation}
         presetId={game.preset.id}
         onPick={(sel) => {
-          for (const a of selectionToSeatActions(seat.id, sel)) dispatch(a);
+          for (const a of selectionToSeatActions(seat.id, sel, seat)) dispatch(a);
           setName(sel.profile.name);
           if (sel.deck?.commanders.length) {
             setC0(sel.deck.commanders[0] ?? "");
@@ -221,14 +226,17 @@ export function PlayerTab({ game, seat, rotation }: Props) {
       {usesCommanders(game) && (
         <>
           <SectionHeader title={t("seat.commander.title")} />
-          <input
-            aria-label={t("seat.commander.nameN", { n: 1 })}
+          <CommanderInput
+            label={t("seat.commander.nameN", { n: 1 })}
             placeholder={t("seat.commander.placeholder")}
-            data-testid="seat-commander-0"
+            testId="seat-commander-0"
             className={inputCls}
             value={c0}
-            maxLength={80}
-            onChange={(e) => setC0(e.target.value)}
+            onChange={setC0}
+            onPick={(pick) => {
+              setC0(pick.name);
+              commitCommanders(partner, pick.name, c1);
+            }}
             onBlur={() => commitCommanders(partner, c0, c1)}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           />
@@ -250,14 +258,18 @@ export function PlayerTab({ game, seat, rotation }: Props) {
             />
           )}
           {partner && game.options.partnersAllowed && (
-            <input
-              aria-label={t("seat.commander.nameN", { n: 2 })}
+            <CommanderInput
+              partner
+              label={t("seat.commander.nameN", { n: 2 })}
               placeholder={t("seat.commander.placeholder2")}
-              data-testid="seat-commander-1"
+              testId="seat-commander-1"
               className={inputCls}
               value={c1}
-              maxLength={80}
-              onChange={(e) => setC1(e.target.value)}
+              onChange={setC1}
+              onPick={(pick) => {
+                setC1(pick.name);
+                commitCommanders(true, c0, pick.name);
+              }}
               onBlur={() => commitCommanders(true, c0, c1)}
               onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             />

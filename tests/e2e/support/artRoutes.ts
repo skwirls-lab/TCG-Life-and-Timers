@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { BrowserContext, Page } from "@playwright/test";
 import sharp from "sharp";
+import { commanderNamed, commanderSearch } from "../../fixtures/scryfall/commanders";
 
 const FIX = path.join(__dirname, "..", "..", "fixtures", "scryfall");
 const fixture = (name: string) => readFileSync(path.join(FIX, name), "utf8");
@@ -59,6 +60,13 @@ function apiBody(url: URL): { status: number; body: string } {
   }
   if (p === "/cards/search") {
     const q = url.searchParams.get("q") ?? "";
+    // PROF-010 commander picker: `<words> is:commander` (+ Backgrounds for the partner slot)
+    if (q.includes("is:commander")) {
+      const commanders = commanderSearch(q);
+      return commanders
+        ? { status: 200, body: JSON.stringify(commanders) }
+        : { status: 404, body: fixture("error-404-search.json") };
+    }
     if (q.includes("Sol Ring"))
       return {
         status: 200,
@@ -75,6 +83,8 @@ function apiBody(url: URL): { status: number; body: string } {
   if (p === "/cards/named") {
     if ((url.searchParams.get("exact") ?? "").toLowerCase() === "sol ring")
       return { status: 200, body: fixture("named-sol-ring.json") };
+    const commander = commanderNamed(url.searchParams.get("exact") ?? "");
+    if (commander) return { status: 200, body: JSON.stringify(commander) };
     return { status: 404, body: fixture("error-404-named.json") };
   }
   return { status: 404, body: fixture("error-404-named.json") };

@@ -5,19 +5,22 @@
  *   home → Search card → prints grid → focal editor → saved (commander offers)
  *   home → Upload image / one of My images → focal editor → saved
  *   home → Use commander art (one tap, ART-008) · Adjust crop of the current art
+ *
+ * `ArtEditor` is the same flow bound to any art value: the Profiles screen edits a profile's or a
+ * deck's default background with it (PROF-010). `ArtPicker` binds it to a seat.
  */
 import { Crop, Images, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import type { ArtFocal, ArtRef, SeatId } from "@/engine";
+import { resolveCommanderArt } from "@/lib/art/commanderArt";
 import { DEFAULT_FOCAL, normalizeFocal, roundFocal, seatViewAspect } from "@/lib/art/focal";
 import {
   artRefFromOption,
   commanderNameFor,
   commandersWith,
   deckWithCommander,
-  firstArtOption,
   lookupCommanderNames,
   optionTitle,
   uploadArtRef,
@@ -77,23 +80,9 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
     index: g.seats.indexOf(s),
     commanderPreset: usesCommanders(g),
   }));
-  const [step, setStep] = useState<Step>({ k: "home" });
   // Measured once when the picker opens (the board is static behind the seat menu).
   const [aspect] = useState(() => measureSeatAspect(seat?.index ?? -1));
-  const [uploads, setUploads] = useState<ArtRow[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    watchArtCloud();
-    let live = true;
-    void listUploads()
-      .then((rows) => live && setUploads(rows.slice(0, 8)))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, []);
 
   if (!seat) return null;
   const fallbacks = [
@@ -101,43 +90,6 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
     t("seat.commander.fallback", { n: 2 }),
   ];
   const commanderNames = seat.commanderPreset ? lookupCommanderNames(seat, fallbacks) : [];
-
-  const setArt = (art: ArtRef) => dispatch({ type: "SEAT_SET_ART", seatId, art });
-
-  const saveDraft = (draft: Draft) => {
-    const focal = roundFocal(normalizeFocal(draft.focal));
-    if (draft.kind === "scryfall") {
-      const art = artRefFromOption(draft.option, focal);
-      setArt(art);
-      void cacheRemoteArt(art.value);
-      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
-      setNotice(t("art.saved"));
-      setStep(seat.commanderPreset ? { k: "saved", option: draft.option, art } : { k: "home" });
-      return;
-    }
-    if (draft.kind === "upload") setArt(uploadArtRef(draft.id, focal));
-    else setArt({ ...draft.art, focal });
-    setNotice(t("art.saved"));
-    setStep({ k: "home" });
-  };
-
-  const applyCommanderArt = async (name: string) => {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const opt = firstArtOption(await getScryfall().cardNamed(name));
-      if (!opt) throw new Error("no art");
-      const art = artRefFromOption(opt, DEFAULT_FOCAL);
-      setArt(art);
-      void cacheRemoteArt(art.value);
-      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
-      setNotice(t("art.saved"));
-    } catch {
-      setNotice(t("art.picker.commanderArtFailed", { name }));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const setAsCommander = (option: ArtOption) => {
     const name = commanderNameFor(option);
@@ -166,6 +118,120 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
     setNotice(t("art.commander.savedDeck", { name, deck: deck.name }));
   };
 
+  const renderSaved = (option: ArtOption, art: ArtRef, done: () => void) => (
+    <div className="flex flex-col gap-2" data-testid="art-saved">
+      <p>{t("art.commander.offer", { name: commanderNameFor(option) })}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="primary"
+          data-testid="art-use-commander"
+          onClick={() => setAsCommander(option)}
+        >
+          {t("art.commander.use")}
+        </Button>
+        {seat.profileId && (
+          <Button data-testid="art-save-deck" onClick={() => void saveToDeck(option, art)}>
+            {t("art.commander.saveDeck")}
+          </Button>
+        )}
+        <Button variant="ghost" data-testid="art-done" onClick={done}>
+          {t("art.picker.done")}
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <ArtEditor
+      art={seat.art}
+      // Art picked here is "by hand" (no origin): it wins over deck / commander / profile art.
+      onArt={(art) => dispatch({ type: "SEAT_SET_ART", seatId, art })}
+      commanderNames={commanderNames}
+      aspect={aspect}
+      notice={notice}
+      onNotice={setNotice}
+      {...(seat.commanderPreset ? { renderSaved } : {})}
+    />
+  );
+}
+
+export interface ArtEditorProps {
+  art: ArtRef | undefined;
+  onArt: (art: ArtRef) => void;
+  /** names offered for one-tap "Use commander art" (ART-008) */
+  commanderNames: readonly string[];
+  /** width / height of the background as its viewer sees it (focal editor frame) */
+  aspect: number;
+  /** after a Scryfall pick: extra offers (the seat's commander / deck buttons) */
+  renderSaved?: (option: ArtOption, art: ArtRef, done: () => void) => ReactNode;
+  /** controlled status line (optional) */
+  notice?: string | null;
+  onNotice?: (notice: string | null) => void;
+  testId?: string;
+}
+
+/** The art flow bound to an art value (a seat, profile or deck background). */
+export function ArtEditor({
+  art: current,
+  onArt: setArt,
+  commanderNames,
+  aspect,
+  renderSaved,
+  notice: controlledNotice,
+  onNotice,
+  testId = "art-picker",
+}: ArtEditorProps) {
+  const [step, setStep] = useState<Step>({ k: "home" });
+  const [uploads, setUploads] = useState<ArtRow[]>([]);
+  const [ownNotice, setOwnNotice] = useState<string | null>(null);
+  const notice = controlledNotice !== undefined ? controlledNotice : ownNotice;
+  const setNotice = onNotice ?? setOwnNotice;
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    watchArtCloud();
+    let live = true;
+    void listUploads()
+      .then((rows) => live && setUploads(rows.slice(0, 8)))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const saveDraft = (draft: Draft) => {
+    const focal = roundFocal(normalizeFocal(draft.focal));
+    if (draft.kind === "scryfall") {
+      const art = artRefFromOption(draft.option, focal);
+      setArt(art);
+      void cacheRemoteArt(art.value);
+      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
+      setNotice(t("art.saved"));
+      setStep(renderSaved ? { k: "saved", option: draft.option, art } : { k: "home" });
+      return;
+    }
+    if (draft.kind === "upload") setArt(uploadArtRef(draft.id, focal));
+    else setArt({ ...draft.art, focal });
+    setNotice(t("art.saved"));
+    setStep({ k: "home" });
+  };
+
+  const applyCommanderArt = async (name: string) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const art = await resolveCommanderArt(name, getScryfall());
+      setArt(art);
+      void cacheRemoteArt(art.value);
+      track("art_scryfall_selected"); // LEG-004: no-op without analytics config + consent
+      setNotice(t("art.saved"));
+    } catch {
+      setNotice(t("art.picker.commanderArtFailed", { name }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const back = (to: Step = { k: "home" }) => (
     <Button
       variant="ghost"
@@ -179,13 +245,13 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
   );
 
   const credit =
-    seat.art?.kind === "scryfall" ? artistCredit(seat.art.artist, t("art.credit")) : undefined;
-  const hasImage = seat.art?.kind === "scryfall" || seat.art?.kind === "upload";
+    current?.kind === "scryfall" ? artistCredit(current.artist, t("art.credit")) : undefined;
+  const hasImage = current?.kind === "scryfall" || current?.kind === "upload";
 
   return (
     <section
       className="flex flex-col gap-2 rounded-2xl border border-border p-3"
-      data-testid="art-picker"
+      data-testid={testId}
       data-step={step.k}
       aria-label={t("art.picker.title")}
     >
@@ -194,14 +260,14 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
           {hasImage && (
             <div className="flex items-center gap-3">
               <ArtBackground
-                art={seat.art}
+                art={current}
                 fallbackColor="#000"
                 className="h-14 w-20 shrink-0 rounded-lg"
                 testId="art-current-preview"
               />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm">
-                  {seat.art?.cardName ?? t("art.picker.current")}
+                  {current?.cardName ?? t("art.picker.current")}
                 </span>
                 {credit && (
                   <span className="truncate text-xs text-fg-muted" data-testid="art-credit">
@@ -215,13 +281,13 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
                 icon={<Crop size={18} />}
                 data-testid="art-adjust"
                 onClick={() =>
-                  seat.art &&
+                  current &&
                   setStep({
                     k: "focal",
                     draft: {
                       kind: "current",
-                      art: seat.art,
-                      focal: normalizeFocal(seat.art.focal),
+                      art: current,
+                      focal: normalizeFocal(current.focal),
                     },
                     back: { k: "home" },
                   })
@@ -340,31 +406,7 @@ export function ArtPicker({ seatId, presetId }: ArtPickerProps) {
         />
       )}
 
-      {step.k === "saved" && (
-        <div className="flex flex-col gap-2" data-testid="art-saved">
-          <p>{t("art.commander.offer", { name: commanderNameFor(step.option) })}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              data-testid="art-use-commander"
-              onClick={() => setAsCommander(step.option)}
-            >
-              {t("art.commander.use")}
-            </Button>
-            {seat.profileId && (
-              <Button
-                data-testid="art-save-deck"
-                onClick={() => void saveToDeck(step.option, step.art)}
-              >
-                {t("art.commander.saveDeck")}
-              </Button>
-            )}
-            <Button variant="ghost" data-testid="art-done" onClick={() => setStep({ k: "home" })}>
-              {t("art.picker.done")}
-            </Button>
-          </div>
-        </div>
-      )}
+      {step.k === "saved" && renderSaved?.(step.option, step.art, () => setStep({ k: "home" }))}
 
       {notice && (
         <p role="status" className="text-sm text-fg-muted" data-testid="art-notice">

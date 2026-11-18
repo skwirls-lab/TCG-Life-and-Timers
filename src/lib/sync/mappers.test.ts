@@ -132,6 +132,26 @@ describe("deckMapper", () => {
     expect("colorIdentity" in back).toBe(false);
     expect(back.commanders).toEqual([]);
   });
+  // @req PROF-010
+  it("round-trips the deck's default background (commander art) and never sends origin", () => {
+    const art = {
+      kind: "scryfall",
+      value: "https://cards.scryfall.io/art_crop/front/a/b/ab.jpg?1",
+      focal: { x: 0.5, y: 0.4, zoom: 1 },
+      artist: "Victor Adame Minguez",
+      cardName: "Atraxa, Praetors' Voice",
+    };
+    const { item, back } = roundTrip(deckMapper, {
+      ...deck,
+      commanders: ["Atraxa, Praetors' Voice", "Raised by Giants"],
+      art: { ...art, origin: "commander" },
+    } as StoredDeck);
+    expect(item.data.art).toEqual(art);
+    expect(item.data.commanders).toEqual(["Atraxa, Praetors' Voice", "Raised by Giants"]);
+    expect(back.art).toEqual(art);
+    const p = profileMapper.toItem({ ...profile, art: { ...art, origin: "profile" } } as never);
+    expect(p?.data.art).toEqual(art);
+  });
   it("rejects decks without a profile", () => {
     expect(deckMapper.toItem({ ...deck, profileId: "" })).toBeNull();
     const orphan = deckMapper.fromItem(

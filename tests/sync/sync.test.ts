@@ -81,6 +81,54 @@ describe("sync across two devices of the same user (emulator)", () => {
     expect(remote.data()).toMatchObject({ deleted: true, name: "JP" });
   });
 
+  // @req PROF-010
+  it("profile and deck default backgrounds and Scryfall commanders sync to the other device", async () => {
+    const email = uniqueEmail("bg");
+    const a = await dev(email);
+    const b = await dev(email);
+    await a.startSync();
+    await b.startSync();
+    const art = {
+      kind: "scryfall" as const,
+      value: "https://cards.scryfall.io/art_crop/front/a/b/ab.jpg?1700000000",
+      focal: { x: 0.5, y: 0.4, zoom: 1.25 },
+      artist: "Victor Adame Minguez",
+      cardName: "Atraxa, Praetors' Voice",
+    };
+    const p = await saveProfile(
+      {
+        name: "Bg",
+        color: "#34d399",
+        contrast: false,
+        art: { kind: "gradient", value: "linear-gradient(red, blue)", origin: "profile" },
+      },
+      a.db,
+    );
+    const d = await saveDeck(
+      {
+        profileId: p.id,
+        name: "Atraxa",
+        presetId: "mtg.commander",
+        commanders: ["Atraxa, Praetors' Voice", "Raised by Giants"],
+        art: { ...art, origin: "commander" },
+      },
+      a.db,
+    );
+    const onB = await until(
+      () => b.db.profiles.get(p.id),
+      (r) => r !== undefined,
+    );
+    expect(onB!.art).toEqual({ kind: "gradient", value: "linear-gradient(red, blue)" });
+    const deckB = await until(
+      () => b.db.decks.get(d.id),
+      (r) => r !== undefined,
+    );
+    expect(deckB!.art).toEqual(art);
+    expect(deckB!.commanders).toEqual(["Atraxa, Praetors' Voice", "Raised by Giants"]);
+    const remote = await getDoc(doc(a.firestore, `users/${a.uid}/profiles/${p.id}/decks/${d.id}`));
+    expect(remote.data()?.art).not.toHaveProperty("origin");
+  });
+
   // @req SET-014 @req PROF-003
   it("settings and the me profile sync; device-only settings stay local", async () => {
     const email = uniqueEmail("settings");

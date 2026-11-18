@@ -11,6 +11,7 @@ import {
   type Preset,
   type TimerConfig,
 } from "@/engine";
+import { selectionToSeatActions } from "@/lib/profiles/apply";
 import type { ProfileSelection } from "@/lib/profiles/types";
 import { applyPresetDefaults, type PresetDefaults } from "@/state/presetDefaults";
 import { normalizeLayoutId } from "@/features/settings/layoutVariants";
@@ -51,6 +52,8 @@ export interface SetupState {
   firstPlayerRule: FirstPlayerRule;
   /** §13.1-C clock for the new game (preset default + stored default; D-058). */
   timer: TimerConfig;
+  /** PROF-010/ART-008: "Set seat backgrounds to commanders" (commander-type presets). */
+  commanderArt: boolean;
   /** Stored preset defaults (SET-012) for the chosen preset. */
   defaults?: PresetDefaults;
 }
@@ -121,6 +124,7 @@ export function stateForPreset(
       preset.defaults.options?.firstPlayerRule ??
       preset.defaults.firstPlayerRule,
     timer: { ...preset.defaults.timer, ...defaults?.timer },
+    commanderArt: commanderArtDefault(preset, defaults),
     ...(defaults ? { defaults } : {}),
   };
 }
@@ -160,24 +164,27 @@ export function updateSeat(
   };
 }
 
-/** PROF-002: a loaded profile (+ deck) sets name, color, art and commanders. */
+/**
+ * PROF-002: a loaded profile (+ deck) sets name, color, art and commanders — the same seat
+ * actions the seat menu dispatches (selectionToSeatActions), folded into the setup seat.
+ */
 export function applyProfile(state: SetupState, index: number, sel: ProfileSelection): SetupState {
-  const { profile, deck } = sel;
+  const current = state.seats[index];
   const patch: Partial<SetupSeat> = {
-    name: profile.name,
-    color: profile.color,
-    profileId: profile.id,
-    contrast: profile.contrast,
-    commanders: deck?.commanders ? [...deck.commanders] : [],
+    commanders: [],
+    deckId: undefined,
+    deckName: undefined,
   };
-  const art = deck?.art ?? profile.art;
-  if (art) patch.art = art;
-  if (deck) {
-    patch.deckId = deck.id;
-    patch.deckName = deck.name;
-  } else {
-    patch.deckId = undefined;
-    patch.deckName = undefined;
+  for (const a of selectionToSeatActions(setupSeatId(index), sel, current)) {
+    if (a.type === "SEAT_SET_PROFILE") {
+      patch.profileId = a.profileId;
+      if (a.name) patch.name = a.name;
+      patch.deckId = a.deckId;
+      patch.deckName = a.deckName;
+    } else if (a.type === "SEAT_SET_COLOR") patch.color = a.color;
+    else if (a.type === "SEAT_SET_CONTRAST") patch.contrast = a.contrast;
+    else if (a.type === "SEAT_SET_ART") patch.art = a.art;
+    else if (a.type === "SEAT_SET_COMMANDERS") patch.commanders = [...a.commanders];
   }
   return updateSeat(state, index, patch);
 }
@@ -270,6 +277,11 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
     }),
     options: {
       firstPlayerRule: state.firstPlayerRule,
+      // PROF-010: absent = on, so only an "off" (or overriding a stored "off") is written.
+      ...(usesCommanders(preset) &&
+      (!state.commanderArt || state.defaults?.options?.commanderArt === false)
+        ? { commanderArt: state.commanderArt }
+        : {}),
       // Any clock mode tracks turns (as TIMER_SET_CONFIG does mid-game).
       ...(state.timer.mode !== "off" ? { turnTracking: true } : {}),
     },
@@ -284,6 +296,18 @@ export function toNewGameConfig(state: SetupState, preset: Preset): NewGameConfi
 /** §13.1-C: patch the setup clock (time keys are ms). */
 export function setTimer(state: SetupState, patch: Partial<TimerConfig>): SetupState {
   return { ...state, timer: { ...state.timer, ...patch } };
+}
+
+/**
+ * PROF-010/ART-008: the "Set seat backgrounds to commanders" value a new game starts with — the
+ * stored preset default, else the preset's own default, else on (commander-type presets only).
+ */
+export function commanderArtDefault(preset: Preset, defaults: PresetDefaults | undefined): boolean {
+  return (
+    defaults?.options?.commanderArt ??
+    preset.defaults.options?.commanderArt ??
+    usesCommanders(preset)
+  );
 }
 
 /** Seats can name commanders when the preset has per-commander or commander-damage counters. */

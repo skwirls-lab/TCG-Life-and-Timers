@@ -14,6 +14,7 @@ import install from "@/i18n/en/install.json";
 import legal from "@/i18n/en/legal.json";
 import pay from "@/i18n/en/pay.json";
 import presets from "@/i18n/en/presets.json";
+import profiles from "@/i18n/en/profiles.json";
 import seat from "@/i18n/en/seat.json";
 import shell from "@/i18n/en/shell.json";
 import timer from "@/i18n/en/timer.json";
@@ -32,6 +33,7 @@ const dictionaries = [
   legal,
   pay,
   presets,
+  profiles,
   seat,
   shell,
   timer,

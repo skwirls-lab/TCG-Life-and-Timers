@@ -35,7 +35,7 @@ describe("selectionToSeatActions", () => {
       { type: "SEAT_SET_PROFILE", seatId: "s1", profileId: "p1", name: "JP" },
       { type: "SEAT_SET_COLOR", seatId: "s1", color: "#34d399" },
       { type: "SEAT_SET_CONTRAST", seatId: "s1", contrast: true },
-      { type: "SEAT_SET_ART", seatId: "s1", art: profile.art },
+      { type: "SEAT_SET_ART", seatId: "s1", art: { ...profile.art, origin: "profile" } },
     ]);
   });
 
@@ -54,7 +54,11 @@ describe("selectionToSeatActions", () => {
       deckId: "d1",
       deckName: "Toxrill",
     });
-    expect(actions).toContainEqual({ type: "SEAT_SET_ART", seatId: "s1", art: deckArt });
+    expect(actions).toContainEqual({
+      type: "SEAT_SET_ART",
+      seatId: "s1",
+      art: { ...deckArt, origin: "deck" },
+    });
     expect(actions).toContainEqual({
       type: "SEAT_SET_COMMANDERS",
       seatId: "s1",
@@ -88,5 +92,34 @@ describe("save as profile", () => {
     });
     expect(seatToDeckInput({ ...seat, deckName: "Partners" }, "p1")?.name).toBe("Partners");
     expect(seatToDeckInput({ ...seat, commanders: [] }, "p1")).toBeNull();
+  });
+
+  // @req PROF-010
+  it("keeps deck/commander art with the deck and the profile's own art on the profile", () => {
+    const cmdArt = {
+      kind: "scryfall" as const,
+      value: "https://x/a.jpg",
+      origin: "commander" as const,
+    };
+    const existingDeck: Deck = { ...deck, art: { kind: "solid", value: "#111" }, lastUsedAt: 5 };
+    // automatic seat art never becomes the profile's background; the profile keeps its own
+    expect(seatToProfileInput({ ...seat, art: cmdArt }, profile).art).toEqual(profile.art);
+    expect(seatToProfileInput({ ...seat, art: cmdArt })).not.toHaveProperty("art");
+    expect(
+      seatToProfileInput({ ...seat, art: { ...profile.art!, origin: "profile" } }).art,
+    ).toEqual(profile.art);
+    // the seat's commander art becomes the deck's art (origin dropped); other fields are kept
+    expect(seatToDeckInput({ ...seat, art: cmdArt }, "p1", undefined, existingDeck)).toEqual({
+      id: "d1",
+      profileId: "p1",
+      name: "A",
+      commanders: ["A", "B"],
+      lastUsedAt: 5,
+      art: { kind: "scryfall", value: "https://x/a.jpg" },
+    });
+    // hand-picked seat art leaves the deck's art alone
+    expect(
+      seatToDeckInput({ ...seat, art: profile.art }, "p1", undefined, existingDeck)?.art,
+    ).toEqual({ kind: "solid", value: "#111" });
   });
 });

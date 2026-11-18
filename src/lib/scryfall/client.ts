@@ -49,6 +49,31 @@ export interface SearchArtsOptions extends RequestOptions {
   maxPages?: number;
 }
 
+export interface CommanderSearchOptions extends RequestOptions {
+  /** Second (partner) slot: also match Backgrounds (`t:background`). */
+  partner?: boolean;
+  /** Maximum cards returned (first result page only). Default 8. */
+  limit?: number;
+}
+
+export const COMMANDER_SEARCH_LIMIT = 8;
+
+/**
+ * Scryfall search query for commander-eligible cards whose name contains the typed words
+ * (PROF-010). Search syntax characters are dropped so typed text can't change the filter.
+ * Returns "" when fewer than 2 name characters remain.
+ */
+export function commanderSearchQuery(q: string, partner = false): string {
+  const words = q
+    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .split(/\s+/)
+    .map((w) => w.replace(/^[-']+/, ""))
+    .filter((w) => w && !/^(or|and)$/i.test(w));
+  if (words.join("").length < AUTOCOMPLETE_MIN_CHARS) return "";
+  const filter = partner ? "(is:commander OR t:background)" : "is:commander";
+  return `${words.join(" ")} ${filter}`;
+}
+
 export interface ScryfallClient {
   /** GET a JSON resource (path relative to the API base, or an absolute API URL). */
   getJson<T>(pathOrUrl: string, opts?: RequestOptions): Promise<T>;
@@ -60,6 +85,11 @@ export interface ScryfallClient {
   cardNamed(exact: string, opts?: RequestOptions): Promise<ScryfallCard>;
   /** Card symbols for the Mana & Storm page (TOOL-011). */
   symbology(opts?: RequestOptions): Promise<ManaSymbol[]>;
+  /**
+   * Commander-eligible cards matching a typed name (PROF-010), most played first. Returns []
+   * for short queries (no request) and when nothing matches.
+   */
+  searchCommanders(q: string, opts?: CommanderSearchOptions): Promise<ScryfallCard[]>;
 }
 
 /** Parse a Retry-After header (delta-seconds or HTTP date) into ms, capped. */
@@ -225,5 +255,21 @@ export function createScryfallClient(opts: ScryfallClientOptions = {}): Scryfall
     return mapSymbology(list.data);
   }
 
-  return { getJson, autocomplete, searchArts, cardNamed, symbology };
+  async function searchCommanders(
+    q: string,
+    co: CommanderSearchOptions = {},
+  ): Promise<ScryfallCard[]> {
+    const query = commanderSearchQuery(q, co.partner);
+    if (!query) return [];
+    const params = new URLSearchParams({ q: query, order: "edhrec", unique: "cards" });
+    try {
+      const list = await getJson<ScryfallList<ScryfallCard>>(`/cards/search?${params}`, co);
+      return list.data.slice(0, Math.max(1, co.limit ?? COMMANDER_SEARCH_LIMIT));
+    } catch (e) {
+      if (e instanceof ScryfallError && e.isNotFound) return [];
+      throw e;
+    }
+  }
+
+  return { getJson, autocomplete, searchArts, cardNamed, symbology, searchCommanders };
 }
