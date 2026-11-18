@@ -106,7 +106,7 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
      firestore.googleapis.com firebaserules.googleapis.com cloudfunctions.googleapis.com \
      cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
      eventarc.googleapis.com pubsub.googleapis.com firebaseextensions.googleapis.com \
-     cloudresourcemanager.googleapis.com --project=$PROJECT_ID
+     cloudresourcemanager.googleapis.com cloudbilling.googleapis.com --project=$PROJECT_ID
 
    COMPUTE_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
    GCS_SA=$(gcloud storage service-agent --project=$PROJECT_ID)
