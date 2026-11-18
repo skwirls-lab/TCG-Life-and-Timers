@@ -215,7 +215,11 @@ export function timerTileMetrics(
     };
   }
   const cap = Math.max(14, m0.bottomH - 16);
-  const clockPx = Math.min(cap, Math.max(14, Math.ceil(m0.fontPx / 3)));
+  // The row holds the chip plus up to two buttons (e.g. PASS + Attack): cap the time size so the
+  // chip (≈ 3.4 em for "▶10:00" + padding) and both buttons fit inside the tile's width. The number
+  // follows (≤ 3× the time, TMR-042), so the ratio holds on narrow tiles too.
+  const fitPx = Math.floor((frame.w - 2 * BUTTON_H - 40) / 3.4);
+  const clockPx = Math.min(cap, Math.max(14, Math.min(Math.ceil(m0.fontPx / 3), fitPx)));
   const tile = m0.fontPx > clockPx * 3 ? { ...m0, fontPx: clockPx * 3 } : m0;
   const row = { top: frame.h - 4 - rowH(m0.bottomH), h: rowH(m0.bottomH), maxW: sideFree };
   return {

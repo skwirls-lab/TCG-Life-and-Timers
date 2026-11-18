@@ -2,6 +2,7 @@
 // Different time per seat (handicap) in setup and settings, and the declare-blockers controls'
 // layout at 2/4/6 players on small portrait and landscape phones.
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, timerState } from "./support/timer";
 
@@ -64,7 +65,7 @@ test("settings: different time per seat mid-game restarts the clocks with the ne
   page,
 }, info) => {
   await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000");
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(5_000);
   await page.clock.resume();
   await page.goto("/settings");
@@ -99,7 +100,7 @@ for (const vp of [
       await page.setViewportSize({ width: vp.w, height: vp.h });
       await gotoClockBoard(page, "t.mode=bank&t.bankMs=600000", players);
       const a = (await timerState(page)).active;
-      await page.getByTestId("timer-start").click();
+      await menuTap(page, "timer-start");
       await expect(page.getByTestId(`seat-${a}-attack`)).toBeVisible();
       await page.screenshot({ path: `${SHOTS}/layout-${players}p-${vp.name}-attack.png` });
       await checkInside(page, a, [`seat-${a}-pass`, `seat-${a}-attack`]);

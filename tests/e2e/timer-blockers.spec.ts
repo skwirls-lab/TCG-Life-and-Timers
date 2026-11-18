@@ -2,6 +2,7 @@
 // Declare-blockers window (lane/timers): Attack on the attacker's tile pauses their clock and
 // starts a shared countdown shown on every tile; Blockers declared gives the time back.
 import { expect, test, type Page } from "@playwright/test";
+import { menuTap } from "./support/menu";
 import { expectNoSeriousA11yViolations } from "./support/axe";
 import { gotoClockBoard, mss, setHidden, storedTimer, timerState } from "./support/timer";
 
@@ -18,7 +19,7 @@ async function blockers(page: Page) {
 async function startAndAttack(page: Page, params = "") {
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN}${params}`);
   const p1 = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await page.clock.runFor(10_000);
   await page.getByTestId(`seat-${p1}-attack`).click();
   return p1;
@@ -157,7 +158,7 @@ test("reload mid-window without auto-pause accounts for the elapsed time", async
 test("Settings: the blockers toggle turns Attack off", async ({ page }) => {
   await gotoClockBoard(page, `t.mode=bank&t.bankMs=${TEN}&t.blockersWindow=0`);
   const p1 = (await timerState(page)).active;
-  await page.getByTestId("timer-start").click();
+  await menuTap(page, "timer-start");
   await expect(page.getByTestId(`seat-${p1}-pass`)).toBeVisible();
   await expect(page.getByTestId(`seat-${p1}-attack`)).toHaveCount(0);
 });
