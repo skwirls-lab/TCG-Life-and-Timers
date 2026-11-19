@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "webworker"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -24,9 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -42,9 +35,7 @@
     ".next-test/types/**/*.ts",
     ".next-test/dev/types/**/*.ts",
     ".next-emu/types/**/*.ts",
-    ".next-emu/dev/types/**/*.ts",
-    ".next-probe/types/**/*.ts",
-    ".next-probe/dev/types/**/*.ts"
+    ".next-emu/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
