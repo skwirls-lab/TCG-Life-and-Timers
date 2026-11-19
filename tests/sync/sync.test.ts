@@ -1,9 +1,12 @@
 // Sync engine against the Firestore + Auth emulators (T4.3, T4.4).
 // @req ARCH-007 @req SYNC-002 @req SYNC-003 @req PROF-003 @req SET-014 @req AUTH-003 @req SEC-001
+// Saved setups ("Presets") have no PRD id; nearest: PROF-010.
 import { afterEach, describe, expect, it } from "vitest";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import * as fs from "firebase/firestore";
 import { deleteProfile, saveDeck, saveProfile } from "@/lib/profiles/repo";
+import { createSetup, deleteSetup, getSetup, renameSetup } from "@/lib/setups/repo";
+import type { SetupDraft } from "@/lib/setups/types";
 import { setSetting } from "@/lib/db";
 import { snapshotLocal } from "@/lib/account/localData";
 import { executeMerge, planMerge } from "@/lib/account/merge";
@@ -192,6 +195,106 @@ describe("sync across two devices of the same user (emulator)", () => {
     );
     await new Promise((r) => setTimeout(r, 300));
     expect(await b.db.records.count()).toBe(0); // history sync off on B
+  });
+});
+
+/** A 4-seat Commander pod, the saved-setup ("Preset") shape of src/lib/setups/types.ts. */
+function podDraft(profileId?: string): SetupDraft {
+  return {
+    presetId: "mtg.commander",
+    presetName: "MTG Commander",
+    config: {
+      startOverrides: { "mtg.life": 60 },
+      thresholdOverrides: { "mtg.poison": 21 },
+      timer: { mode: "bankDelay", bankMs: 1_200_000, delayMs: 5000, seatExtraMs: {} },
+    },
+    seats: ["Ann", "Ben", "Cid", "Dee"].map((name, i) => ({
+      name,
+      color: "#60a5fa",
+      commanders: [],
+      ...(i === 0 && profileId ? { profileId } : {}),
+      ...(i === 2 ? { clockExtraMs: 120_000 } : {}),
+    })),
+    firstPlayerRule: "random",
+    commanderArt: true,
+  };
+}
+
+describe("saved setups (Presets) sync (emulator)", () => {
+  // @req SYNC-002 @req PROF-010
+  it("a preset saved on A appears on B; a rename and a delete propagate", async () => {
+    const email = uniqueEmail("setups");
+    const a = await dev(email);
+    const b = await dev(email);
+    await a.startSync();
+    await b.startSync();
+    const saved = await createSetup("Friday pod", podDraft(), { db: a.db });
+    const onB = await until(
+      () => getSetup(saved.id, b.db),
+      (r) => r !== undefined,
+    );
+    expect(onB).toMatchObject({
+      name: "Friday pod",
+      presetId: "mtg.commander",
+      config: saved.config,
+      seats: saved.seats,
+      order: 0,
+      createdAt: saved.createdAt,
+    });
+    const remote = await getDoc(doc(a.firestore, `users/${a.uid}/setups/${saved.id}`));
+    expect(remote.data()).toMatchObject({ name: "Friday pod", players: 4, schemaVersion: 1 });
+
+    await renameSetup(saved.id, "Weekly pod", { db: b.db, now: Date.now() + 1000 });
+    await until(
+      () => getSetup(saved.id, a.db),
+      (r) => r?.name === "Weekly pod",
+    );
+    await deleteSetup(saved.id, a.db);
+    await until(
+      () => b.db.setups.count(),
+      (n) => n === 0,
+    );
+    const gone = await getDoc(doc(a.firestore, `users/${a.uid}/setups/${saved.id}`));
+    expect(gone.data()).toMatchObject({ deleted: true });
+  });
+
+  // @req AUTH-003
+  it("first sign-in merges a guest's presets with the cloud's, following merged profiles", async () => {
+    const email = uniqueEmail("setups-merge");
+    const cloud = await dev(email);
+    await cloud.startSync();
+    const ann = await saveProfile({ name: "Ann", color: "#111111", contrast: false }, cloud.db);
+    const cloudSetup = await createSetup("Cloud pod", podDraft(ann.id), { db: cloud.db });
+    await until(
+      async () => (await getDocs(collection(cloud.firestore, `users/${cloud.uid}/setups`))).size,
+      (n) => n === 1,
+    );
+    cloud.engine!.stop();
+
+    const guest = await dev(email);
+    const localAnn = await saveProfile(
+      { name: "ann", color: "#222222", contrast: false },
+      guest.db,
+    );
+    const local = await createSetup("Guest pod", podDraft(localAnn.id), { db: guest.db });
+    const plan = planMerge(
+      await snapshotLocal(guest.db),
+      await fetchRemoteItems({ fs, db: guest.firestore, uid: guest.uid }),
+    );
+    expect(plan.needsChoice).toBe(true);
+    await executeMerge(plan, "merge", { includeRecords: true, db: guest.db });
+    await guest.startSync();
+    await until(
+      () => getSetup(cloudSetup.id, guest.db),
+      (r) => r !== undefined,
+    );
+    // The guest's preset now points at the cloud profile id and was uploaded.
+    expect((await getSetup(local.id, guest.db))?.seats[0]!.profileId).toBe(ann.id);
+    const docs = await until(
+      async () => (await getDocs(collection(guest.firestore, `users/${guest.uid}/setups`))).docs,
+      (d) => d.length === 2,
+    );
+    expect(docs.map((d) => d.data().name).sort()).toEqual(["Cloud pod", "Guest pod"]);
   });
 });
 

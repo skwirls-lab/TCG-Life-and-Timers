@@ -8,6 +8,7 @@ import {
   type StoredProfile,
   type StoredRecord,
   type StoredSetting,
+  type StoredSetup,
   type TcgDb,
 } from "@/lib/db";
 import {
@@ -19,6 +20,7 @@ import {
   profileMapper,
   recordMapper,
   settingsToItem,
+  setupMapper,
   type RowMapper,
 } from "./mappers";
 import type { KvStore, LocalAdapter, SyncItem, Unsubscribe } from "./types";
@@ -38,7 +40,7 @@ export interface RowTable<Row> {
   delete(id: string): Promise<void>;
 }
 
-/** Generic row table adapter (profiles, decks, presets, records, art). */
+/** Generic row table adapter (profiles, decks, presets, setups, records, art). */
 export function tableAdapter<Row extends { id: string }>(
   table: RowTable<Row>,
   mapper: RowMapper<Row>,
@@ -70,6 +72,7 @@ export const localAdapters = {
   profiles: (db: TcgDb, log?: Log) => tableAdapter<StoredProfile>(db.profiles, profileMapper, log),
   decks: (db: TcgDb, log?: Log) => tableAdapter<StoredDeck>(db.decks, deckMapper, log),
   presets: (db: TcgDb, log?: Log) => tableAdapter<StoredPreset>(db.presets, presetMapper, log),
+  setups: (db: TcgDb, log?: Log) => tableAdapter<StoredSetup>(db.setups, setupMapper, log),
   records: (db: TcgDb, log?: Log) => tableAdapter<StoredRecord>(db.records, recordMapper, log),
   art: (db: TcgDb, log?: Log) => tableAdapter<StoredArt>(db.art, artMapper, log),
 };

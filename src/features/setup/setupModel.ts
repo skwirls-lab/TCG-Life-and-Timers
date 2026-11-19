@@ -147,6 +147,22 @@ export function setPlayers(state: SetupState, preset: Preset, players: number): 
   };
 }
 
+/**
+ * Remove one seat (e.g. a regular who can't make it tonight); later seats move up. Never below
+ * the preset's minimum player count.
+ */
+export function removeSeat(state: SetupState, preset: Preset, index: number): SetupState {
+  if (state.seats.length <= preset.minPlayers || index < 0 || index >= state.seats.length)
+    return state;
+  const seats = state.seats.filter((_, i) => i !== index);
+  return {
+    ...state,
+    players: seats.length,
+    seats,
+    layoutId: normalizeLayoutId(seats.length, state.layoutId),
+  };
+}
+
 /** LAY-005: move a seat up (-1) or down (+1); turn order follows seat order. */
 export function moveSeat(state: SetupState, index: number, dir: -1 | 1): SetupState {
   const to = index + dir;

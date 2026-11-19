@@ -108,6 +108,19 @@ describe("executeMerge / clearLocalAccountData", () => {
       updatedAt: 1,
     });
     await db.records.put({ id: "g1", schemaVersion: 1, endedAt: 1, presetId: "x" });
+    await db.setups.put({
+      id: "s1",
+      schemaVersion: 1,
+      name: "Pod",
+      presetId: "mtg.commander",
+      presetName: "MTG Commander",
+      config: {},
+      seats: [{ name: "Jean-Paul", color: "#fff", commanders: [], profileId: "l2" }],
+      firstPlayerRule: "random",
+      order: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    });
     await db.settings.put({ key: "app", value: { theme: "light", haptics: false }, updatedAt: 1 });
     await db.settings.put({ key: "presetDefaults:x", value: {}, updatedAt: 1 });
     await db.art.put({
@@ -133,6 +146,10 @@ describe("executeMerge / clearLocalAccountData", () => {
     expect(await db.profiles.get("l2")).toBeUndefined();
     expect(await db.profiles.get("r2")).toMatchObject({ name: "Jean-Paul", updatedAt: 50 });
     expect(await db.decks.get("d1")).toMatchObject({ profileId: "r2" });
+    // Saved setups ("Presets") follow the merged profile too.
+    expect((await db.setups.get("s1"))?.seats).toEqual([
+      { name: "Jean-Paul", color: "#fff", commanders: [], profileId: "r2" },
+    ]);
     // Nothing to rename: no-op.
     await executeMerge(planMerge(emptySnapshot(), emptySnapshot()), "merge", {
       includeRecords: true,
@@ -151,6 +168,7 @@ describe("executeMerge / clearLocalAccountData", () => {
     expect(await db.profiles.count()).toBe(0);
     expect(await db.decks.count()).toBe(0);
     expect(await db.presets.count()).toBe(0);
+    expect(await db.setups.count()).toBe(0);
     expect(await db.records.count()).toBe(1); // history sync off → records are not account data
     expect((await db.settings.get("app"))?.value).toEqual({ haptics: false });
     expect(await db.settings.get("presetDefaults:x")).toBeUndefined();

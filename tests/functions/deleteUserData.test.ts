@@ -40,6 +40,7 @@ async function seedUser(uid: string, shareCode: string) {
   w.set(db.doc(`users/${uid}/profiles/p1`), { name: "P" });
   w.set(db.doc(`users/${uid}/profiles/p1/decks/d1`), { name: "D" });
   w.set(db.doc(`users/${uid}/presets/x`), { name: "X" });
+  w.set(db.doc(`users/${uid}/setups/s1`), { name: "Friday pod", presetId: "mtg.commander" });
   w.set(db.doc(`users/${uid}/games/g1`), { presetId: "mtg" });
   w.set(db.doc(`users/${uid}/art/a1`), { storagePath: `users/${uid}/art/a1.webp` });
   w.set(db.doc(`users/${uid}/private/entitlements`), { pro: true, source: "subscription" });
@@ -63,6 +64,7 @@ const userPaths = (uid: string, code: string) => [
   `users/${uid}/profiles/p1`,
   `users/${uid}/profiles/p1/decks/d1`,
   `users/${uid}/presets/x`,
+  `users/${uid}/setups/s1`,
   `users/${uid}/games/g1`,
   `users/${uid}/art/a1`,
   `users/${uid}/private/entitlements`,
@@ -124,6 +126,14 @@ describe("deleteUserData (AUTH-005)", () => {
   });
 
   // @req AUTH-005
+  it("deletes saved setups (Presets) under users/{uid}/setups", async () => {
+    await db.doc(`users/${A}/setups/s2`).set({ name: "Duel", presetId: "pokemon.standard" });
+    await deleteUserData(deps, A);
+    expect(await existing([`users/${A}/setups/s1`, `users/${A}/setups/s2`])).toEqual([]);
+    expect(await existing([`users/${B}/setups/s1`])).toEqual([`users/${B}/setups/s1`]);
+  });
+
+  // @req AUTH-005
   // @req SEC-001
   it("leaves user B untouched", async () => {
     await deleteUserData(deps, A);
@@ -159,7 +169,7 @@ describe("deleteUserData (AUTH-005)", () => {
     await expect(deleteUserData(deps, "..")).rejects.toThrow(/invalid uid/);
     expect(isSafeUid("x".repeat(129))).toBe(false);
     expect(isSafeUid(A)).toBe(true);
-    expect(await existing(userPaths(B, "BBBBbbbb"))).toHaveLength(12);
+    expect(await existing(userPaths(B, "BBBBbbbb"))).toHaveLength(13);
   });
 
   // @req AUTH-005
@@ -216,7 +226,7 @@ describe("deleteUserData (AUTH-005)", () => {
     };
     await db.doc(`customers/${A}/subscriptions/sub_x`).set({ status: "active" });
     await expect(deleteUserData({ ...deps, stripe }, A)).rejects.toThrow("stripe down");
-    expect(await existing(userPaths(A, "AAAAaaaa"))).toHaveLength(12);
+    expect(await existing(userPaths(A, "AAAAaaaa"))).toHaveLength(13);
     expect(await authExists(A)).toBe(true);
     // Without a Stripe client (not configured) deletion proceeds as before.
     await expect(deleteUserData({ ...deps, stripe: null }, A)).resolves.toMatchObject({

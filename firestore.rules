@@ -117,6 +117,24 @@ service cloud.firestore {
         allow create, update: if isOwner(uid) && pathIdOk(presetId) && validPreset();
       }
 
+      // Saved setups ("Presets" in the UI): the setup is a JSON payload (validated with zod on
+      // read); name, game type and player count are checked here. No count limit in rules (the
+      // free limit of 1 is client-side, like custom game types and profiles).
+      match /setups/{setupId} {
+        function validSetup() {
+          let d = data();
+          return shape(d, ['name', 'presetId', 'players', 'payload', 'schemaVersion', 'updatedAt'], ['deleted'])
+            && isStr(d.name, 1, 60)
+            && isId(d.presetId)
+            && isInt(d.players, 1, 8)
+            && isStr(d.payload, 2, 32768)
+            && isInt(d.schemaVersion, 1, 1000)
+            && optBool(d, 'deleted') && stamped();
+        }
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && pathIdOk(setupId) && validSetup();
+      }
+
       match /games/{gameId} {
         function seatOk(s, i) {
           return s.size() <= i || (

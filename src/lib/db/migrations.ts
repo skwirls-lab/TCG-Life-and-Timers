@@ -19,7 +19,7 @@ export interface DbVersion {
   upgrade?: (tx: Transaction) => Promise<void> | void;
 }
 
-/** All tables exist from v1; later lanes add repositories, not schema. */
+/** Tables of v1, plus `setups` (saved setups, shown as "Presets") from v2. */
 export const DB_VERSIONS: readonly DbVersion[] = [
   {
     version: 1,
@@ -33,6 +33,11 @@ export const DB_VERSIONS: readonly DbVersion[] = [
       art: "id", // uploaded / cached art blobs
       kv: "key", // misc (active pointer, corrupt backups, flags)
     },
+  },
+  {
+    version: 2,
+    // Saved setups ("Presets" in the UI), ordered on the launcher. No row rewrite needed.
+    stores: { setups: "id, order" },
   },
 ];
 

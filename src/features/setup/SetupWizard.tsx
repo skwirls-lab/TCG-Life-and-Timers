@@ -4,10 +4,18 @@
  * Start is available on every step, so a default game is 2 taps from the launcher (≤ 6 budget).
  */
 import { SHOW_VERIFY_HINTS } from "@/lib/presets/verifyHints";
-import { ArrowDown, ArrowUp, Palette, TriangleAlert, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Palette, TriangleAlert, UserRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button, ChipRow, IconButton, LockBadge, PageShell, Toggle } from "@/components/ui";
+import { useEffect, useRef, useState } from "react";
+import {
+  Button,
+  ChipRow,
+  IconButton,
+  LockBadge,
+  PageShell,
+  Toggle,
+  useSnackbar,
+} from "@/components/ui";
 import {
   FIRST_PLAYER_RULES,
   SEAT_COLORS,
@@ -20,10 +28,19 @@ import { rememberPresetUse } from "@/features/preset-picker";
 import { CommanderInput } from "@/features/profiles/CommanderInput";
 import { ProfilePicker } from "@/features/profiles/ProfilePicker";
 import { Select } from "@/features/settings/Select";
+import { afterSetupStart, loadSetupRefs, resolveGameType } from "@/features/setups/actions";
+import {
+  draftFromSetupState,
+  draftsEqual,
+  stateFromSetup,
+  suggestSetupName,
+} from "@/features/setups/model";
+import { SaveSetupSheet, canCreateSetup } from "@/features/setups/SaveSetupSheet";
 import { ThumbnailPicker, layoutThumbOptions } from "@/features/settings/Thumbnails";
 import { useCan } from "@/lib/entitlements/store";
 import { openPaywall } from "@/lib/entitlements/paywall";
 import { t } from "@/lib/i18n";
+import { getSetup, updateSetup, type SavedSetup, type SetupDraft } from "@/lib/setups";
 import {
   DEFAULT_PRESET_ID,
   getBuiltInPreset,
@@ -42,6 +59,7 @@ import {
   moveSeat,
   optionalCounters,
   playerChoices,
+  removeSeat,
   seatStart,
   seatThreshold,
   offersStartPicker,
@@ -76,6 +94,15 @@ function defaultPreset(): Preset {
   return getBuiltInPreset(DEFAULT_PRESET_ID)!;
 }
 
+/** The seats step: "Edit before starting" opens a preset there (swap a deck, drop a seat). */
+const SEATS_STEP = SETUP_STEPS.indexOf("seats");
+
+/** The preset ("saved setup") this setup was opened from, and what it looked like then. */
+interface SetupSource {
+  setup: SavedSetup;
+  baseline: SetupDraft;
+}
+
 export function SetupWizard() {
   usePageBoot({ resume: false });
   const router = useRouter();
@@ -85,6 +112,10 @@ export function SetupWizard() {
   const [starting, setStarting] = useState(false);
   // The chosen preset object (built-in or custom, CUS-001); custom presets have no sync lookup.
   const [preset, setPreset] = useState<Preset>(defaultPreset);
+  const [source, setSource] = useState<SetupSource | null>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const fromSetup = useRef(false);
+  const showSnack = useSnackbar((s) => s.show);
 
   const choosePreset = async (p: Preset) => {
     setPreset(p);
@@ -92,12 +123,33 @@ export function SetupWizard() {
     setState((s) => stateForPreset(p, defaults, s));
   };
 
+  // "Edit before starting" (`/setup?setup=<id>`): open the saved setup at the seats step.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("setup");
+    if (!id) return;
+    fromSetup.current = true;
+    let alive = true;
+    void (async () => {
+      const setup = await getSetup(id).catch(() => undefined);
+      const gameType = setup && (await resolveGameType(setup));
+      if (!alive || !setup || !gameType) return;
+      const loaded = stateFromSetup(setup, gameType, await loadSetupRefs(setup), SEATS_STEP);
+      if (!alive) return;
+      setPreset(gameType);
+      setState(loaded);
+      setSource({ setup, baseline: draftFromSetupState(loaded, gameType) });
+    })().catch((e: unknown) => console.warn("[setup] could not open the preset", e));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Apply stored defaults (SET-012) for the initial preset.
   useEffect(() => {
     let alive = true;
     getPresetDefaults(DEFAULT_PRESET_ID)
       .then((d) => {
-        if (alive && d)
+        if (alive && d && !fromSetup.current)
           setState((s) =>
             s.presetId === DEFAULT_PRESET_ID ? stateForPreset(defaultPreset(), d, s) : s,
           );
@@ -120,17 +172,44 @@ export function SetupWizard() {
     if (starting) return;
     setStarting(true);
     try {
-      if (!(await startNewGame(toNewGameConfig(state, preset)))) {
+      const game = await startNewGame(toNewGameConfig(state, preset));
+      if (!game) {
         setStarting(false); // the Who-won prompt was closed: keep the current game (HIST-031)
         return;
       }
       // The picker doesn't record Recent on select in setup; the preset is "used" at Start.
       await rememberPresetUse(preset.id).catch(() => undefined);
+      if (source) {
+        await afterSetupStart(game.id, source.setup.id, preset.id);
+        offerUpdate(source);
+      }
       router.push("/play");
     } catch (e) {
       console.warn("[setup] start failed", e);
       setStarting(false);
     }
+  };
+
+  /** Started from a preset with changes: offer "Update the preset?" once (on the board). */
+  const offerUpdate = (src: SetupSource) => {
+    const draft = draftFromSetupState(state, preset);
+    if (draftsEqual(draft, src.baseline)) return;
+    showSnack({
+      message: t("setups.updatePrompt", { name: src.setup.name }),
+      actionLabel: t("setups.updatePrompt.action"),
+      durationMs: 10_000,
+      onAction: () => {
+        void updateSetup(src.setup.id, draft)
+          .then((saved) => showSnack({ message: t("setups.save.updated", { name: saved.name }) }))
+          .catch(() => showSnack({ message: t("setups.save.failed") }));
+      },
+    });
+  };
+
+  const openSave = async () => {
+    // A new preset past the free limit opens the paywall instead (Update stays possible).
+    if (!source && !(await canCreateSetup())) return;
+    setSaveOpen(true);
   };
 
   const go = (d: -1 | 1) =>
@@ -272,6 +351,15 @@ export function SetupWizard() {
                 >
                   <ArrowDown aria-hidden />
                 </IconButton>
+                {state.seats.length > preset.minPlayers && (
+                  <IconButton
+                    label={t("shell.setup.seat.remove", { n: i + 1 })}
+                    data-testid={`setup-seat-${i}-remove`}
+                    onClick={() => setState((s) => removeSeat(s, preset, i))}
+                  >
+                    <X aria-hidden />
+                  </IconButton>
+                )}
               </div>
               {usesCommanders(preset) && (
                 <div className="flex flex-col gap-2">
@@ -491,10 +579,21 @@ export function SetupWizard() {
             {t("shell.setup.next")}
           </Button>
         )}
+        {last && (
+          <Button
+            size="lg"
+            variant="secondary"
+            className="min-w-0 flex-1 basis-0 whitespace-nowrap px-3 text-base"
+            onClick={() => void openSave()}
+            data-testid="setup-save-preset"
+          >
+            {t("setups.save.action")}
+          </Button>
+        )}
         <Button
           size="lg"
           variant="primary"
-          className="flex-1"
+          className="min-w-0 flex-1 basis-0 whitespace-nowrap px-3"
           disabled={starting}
           onClick={() => void start()}
           data-testid="setup-start-game"
@@ -502,6 +601,18 @@ export function SetupWizard() {
           {t("shell.setup.start")}
         </Button>
       </div>
+
+      <SaveSetupSheet
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        draft={saveOpen ? draftFromSetupState(state, preset) : null}
+        suggestion={suggestSetupName(
+          state.seats.map((s) => s.name),
+          preset.name,
+        )}
+        source={source?.setup ?? null}
+        onSaved={(setup) => setSource({ setup, baseline: draftFromSetupState(state, preset) })}
+      />
 
       <ProfilePicker
         open={pickerSeat !== null}

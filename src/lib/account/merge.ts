@@ -10,7 +10,7 @@
  *
  * A name-matched profile id is rewritten everywhere it is referenced on the device, in the same
  * transaction (B-7): decks, game records (players[].profileId + identity `p:<id>`, seats[]) and
- * stored active games (seats[].profileId). The in-memory game (if one is open) is patched by the
+ * stored active games (seats[].profileId) and saved setups (seats[].profileId). The in-memory game (if one is open) is patched by the
  * caller with `renameProfilesInGame` (src/lib/account/cloud.ts).
  */
 import type { Game } from "@/engine";
@@ -21,6 +21,7 @@ import {
   type DataSnapshot,
   type MergeCollection,
 } from "./localData";
+import { renameProfilesInSetups } from "@/lib/setups/repo";
 import { jsonEqual } from "@/lib/sync/json";
 import type { SyncItem } from "@/lib/sync/types";
 
@@ -48,7 +49,14 @@ export interface MergePlan {
 }
 
 /** Collections whose documents count as "user data" (settings always exist, so they don't). */
-const DATA_COLLECTIONS: MergeCollection[] = ["profiles", "decks", "presets", "records", "art"];
+const DATA_COLLECTIONS: MergeCollection[] = [
+  "profiles",
+  "decks",
+  "presets",
+  "setups",
+  "records",
+  "art",
+];
 
 const live = (items: SyncItem[]) => items.filter((i) => !i.deleted);
 
@@ -143,7 +151,7 @@ export async function executeMerge(
   }
   if (!plan.profileRenames.length) return;
   const renames = new Map<string, string>();
-  await db.transaction("rw", [db.profiles, db.decks, db.records, db.games], async () => {
+  await db.transaction("rw", [db.profiles, db.decks, db.records, db.games, db.setups], async () => {
     for (const { from, to } of plan.profileRenames) {
       const row = await db.profiles.get(from);
       if (!row) continue;
@@ -155,6 +163,8 @@ export async function executeMerge(
       for (const d of decks) await db.decks.put({ ...d, profileId: to } satisfies StoredDeck);
     }
     if (!renames.size) return;
+    // Saved setups ("Presets") keep loading the merged profile on their seats.
+    await renameProfilesInSetups(renames, db);
     // B-7: records keep pointing at the merged profile (stats identity p:<profileId>).
     for (const r of await db.records.toArray()) {
       const next = renameInRecord(r as unknown as Record<string, unknown>, renames);

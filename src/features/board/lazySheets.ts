@@ -17,3 +17,7 @@ export const Toolbar = lazyComponent(() => import("./Toolbar").then((m) => m.Too
 export const CenterMenuPanel = lazyComponent(() =>
   import("./CenterMenuPanel").then((m) => m.CenterMenuPanel),
 );
+/** Saved setups: the game menu's "Save as preset" sheet (its own chunk, PERF-003). */
+export const GameSaveSetupSheet = lazyComponent(() =>
+  import("@/features/setups/GameSaveSetupSheet").then((m) => m.GameSaveSetupSheet),
+);

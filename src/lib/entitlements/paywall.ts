@@ -78,6 +78,14 @@ export const COMPARISON_ROWS: readonly ComparisonRow[] = [
     features: ["customPresetsUnlimited", "presetShareLinks"],
   },
   {
+    id: "savedSetups",
+    area: "customize",
+    label: "pay.row.savedSetups",
+    free: text("pay.cell.one"),
+    pro: text("pay.cell.unlimited"),
+    features: ["savedSetupsUnlimited"],
+  },
+  {
     id: "profiles",
     area: "customize",
     label: "pay.row.profiles",

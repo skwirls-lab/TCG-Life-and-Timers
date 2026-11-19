@@ -67,13 +67,36 @@ function played(): GameSession {
 }
 
 describe("database schema", () => {
-  it("creates every table from v1", async () => {
+  it("creates every table (v1 tables + v2 setups)", async () => {
     const db = freshDb();
     await db.open();
     expect(db.tables.map((t) => t.name).sort()).toEqual(
-      ["art", "decks", "games", "kv", "presets", "profiles", "records", "settings"].sort(),
+      [
+        "art",
+        "decks",
+        "games",
+        "kv",
+        "presets",
+        "profiles",
+        "records",
+        "settings",
+        "setups",
+      ].sort(),
     );
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
+  });
+
+  it("upgrades a v1 database to v2 keeping its rows and adding setups", async () => {
+    const name = `v1-to-v2-${Math.random()}`;
+    const v1 = new TcgDb(name, DB_VERSIONS.slice(0, 1));
+    await v1.profiles.put({ id: "p1", schemaVersion: 1, name: "Ann", normalizedName: "ann" });
+    v1.close();
+    const db = new TcgDb(name);
+    open.push(db);
+    expect((await db.profiles.get("p1"))?.name).toBe("Ann");
+    await db.setups.put({ id: "s1", schemaVersion: 1, order: 0, updatedAt: 1 });
+    expect(await db.setups.orderBy("order").primaryKeys()).toEqual(["s1"]);
+    expect(db.verno).toBe(2);
   });
 
   it("getDb returns a shared instance and setDbForTests swaps it", () => {
@@ -90,13 +113,13 @@ describe("database schema", () => {
 });
 
 describe("migrations", () => {
-  it("runs a sample v1 → v2 Dexie upgrade that rewrites rows and adds an index", async () => {
+  it("runs a sample Dexie upgrade (next version) that rewrites rows and adds an index", async () => {
     const name = `migrate-${Math.random()}`;
     const v1 = new TcgDb(name);
     await v1.profiles.put({ id: "p1", schemaVersion: 1, name: " Declan ", normalizedName: "" });
     v1.close();
     const v2: DbVersion = {
-      version: 2,
+      version: 3,
       stores: { profiles: "id, normalizedName, createdAt" },
       upgrade: async (tx) => {
         await tx
@@ -112,7 +135,7 @@ describe("migrations", () => {
     open.push(db);
     const p = await db.profiles.get("p1");
     expect(p).toMatchObject({ normalizedName: "declan", createdAt: 0 });
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(await db.profiles.where("createdAt").equals(0).count()).toBe(1);
   });
 

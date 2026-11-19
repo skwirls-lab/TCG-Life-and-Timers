@@ -6,7 +6,7 @@
  */
 import { isCenterMenu, useBoardUi } from "./boardStore";
 import { closeCenterMenu } from "./centerMenu";
-import { CenterMenuPanel, PlayersSheet, QuickToolsMenu } from "./lazySheets";
+import { CenterMenuPanel, GameSaveSetupSheet, PlayersSheet, QuickToolsMenu } from "./lazySheets";
 
 export function CenterMenuHost() {
   const view = useBoardUi((s) => (isCenterMenu(s.menu) ? (s.menu.sub ?? "panel") : null));
@@ -14,5 +14,7 @@ export function CenterMenuHost() {
   if (view === "panel" || view === "route") return <CenterMenuPanel leaving={view === "route"} />;
   if (view === "players") return <PlayersSheet open onClose={() => closeCenterMenu()} />;
   if (view === "tools") return <QuickToolsMenu open onClose={() => closeCenterMenu()} />;
+  // Saved setups: "Save as preset" (lazy, so /play's first load doesn't carry it).
+  if (view === "savePreset") return <GameSaveSetupSheet onClose={() => closeCenterMenu()} />;
   return null;
 }

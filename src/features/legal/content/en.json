@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-01",
+  "updated": "2026-11-19",
   "privacy": {
     "intro": "TCGTempo (“the app”) is a life counter and game clock for trading card games. It works fully offline without an account. This policy explains what data the app handles, where it is kept and how you control it. Placeholders in [brackets] must be completed by the app owner before launch.",
     "sections": [
@@ -7,7 +7,7 @@
         "id": "device",
         "heading": "Data stored on your device",
         "paragraphs": [
-          "Games in progress, finished game records, player profiles, decks, custom presets, settings and any images you add are stored in your browser's local storage (IndexedDB) on this device. This data never leaves the device unless you sign in to sync it."
+          "Games in progress, finished game records, player profiles, decks, saved presets, custom game types, settings and any images you add are stored in your browser's local storage (IndexedDB) on this device. This data never leaves the device unless you sign in to sync it."
         ]
       },
       {
@@ -15,14 +15,14 @@
         "heading": "If you sign in with Google",
         "paragraphs": [
           "Signing in is optional. When you sign in, we receive your Google account's name, email address, profile photo address and a unique user id from Google, through Firebase Authentication.",
-          "While you are signed in, your game history, profiles, decks, custom presets, settings and uploaded images are synced to your private area in Google Firebase (Cloud Firestore and Cloud Storage) so they appear on your other devices. Uploaded images are private to your account and are never made public."
+          "While you are signed in, your game history, profiles, decks, saved presets, custom game types, settings and uploaded images are synced to your private area in Google Firebase (Cloud Firestore and Cloud Storage) so they appear on your other devices. Uploaded images are private to your account and are never made public."
         ]
       },
       {
         "id": "sharing",
-        "heading": "Shared preset links",
+        "heading": "Shared game type links",
         "paragraphs": [
-          "If you create a share link for a custom preset, the preset's rules and counters (never images) are stored under a short code. Anyone with the code can view and import that preset. You can delete your share links from the account page."
+          "If you create a share link for a custom game type, the game type's rules and counters (never images) are stored under a short code. Anyone with the code can view and import that game type. You can delete your share links from the account page."
         ]
       },
       {
@@ -36,7 +36,7 @@
         "id": "analytics",
         "heading": "Analytics and crash reports (only with your consent)",
         "paragraphs": [
-          "Analytics and crash reporting are off until you allow them in the consent banner. If you allow them, the app sends anonymous usage events (for example: a game started with a given preset and player count, a game ended with its duration and number of turns, a timer response or timeout, a custom preset was created, card art was chosen or uploaded, sign-in, the Pro screen was viewed, a purchase was made) to Google Analytics for Firebase, with IP anonymization and advertising signals turned off, and crash reports (error messages and stack traces, with web addresses stripped of query parameters) to Sentry. Names you type, game contents and images are never included.",
+          "Analytics and crash reporting are off until you allow them in the consent banner. If you allow them, the app sends anonymous usage events (for example: a game started with a given game type and player count, a game ended with its duration and number of turns, a timer response or timeout, a custom game type was created, card art was chosen or uploaded, sign-in, the Pro screen was viewed, a purchase was made) to Google Analytics for Firebase, with IP anonymization and advertising signals turned off, and crash reports (error messages and stack traces, with web addresses stripped of query parameters) to Sentry. Names you type, game contents and images are never included.",
           "You can withdraw consent at any time on this page; collection stops immediately."
         ]
       },
@@ -65,7 +65,7 @@
         "id": "rights",
         "heading": "Export and deletion",
         "paragraphs": [
-          "On the account page you can export all data stored on this device as a JSON file, remove it from this device, and permanently delete your account together with all of its cloud data (game records, profiles, presets, images, share links and subscription records). Depending on where you live you may also have rights to access, correct or object to processing; contact us to exercise them."
+          "On the account page you can export all data stored on this device as a JSON file, remove it from this device, and permanently delete your account together with all of its cloud data (game records, profiles, presets, game types, images, share links and subscription records). Depending on where you live you may also have rights to access, correct or object to processing; contact us to exercise them."
         ]
       },
       {
@@ -103,14 +103,14 @@
         "id": "fan",
         "heading": "Unofficial fan tool",
         "paragraphs": [
-          "The app is an independent tool. It is not affiliated with, endorsed, sponsored or approved by any trading card game publisher. All trademarks belong to their owners; see the About page for the full notice. Preset values (starting life, thresholds, timers) are provided for convenience and may contain mistakes: the official rules of each game and the decisions of event officials always take precedence."
+          "The app is an independent tool. It is not affiliated with, endorsed, sponsored or approved by any trading card game publisher. All trademarks belong to their owners; see the About page for the full notice. Game type values (starting life, thresholds, timers) are provided for convenience and may contain mistakes: the official rules of each game and the decisions of event officials always take precedence."
         ]
       },
       {
         "id": "content",
         "heading": "Your content",
         "paragraphs": [
-          "You keep ownership of the names, presets and images you add. Only upload images you have the right to use. When you share a preset link, you allow others to view and copy that preset. Do not use the app to store or share unlawful or offensive content."
+          "You keep ownership of the names, presets, game types and images you add. Only upload images you have the right to use. When you share a game type link, you allow others to view and copy that game type. Do not use the app to store or share unlawful or offensive content."
         ]
       },
       {

@@ -5,6 +5,7 @@
 export const PRO_FEATURES = [
   "players7to8",
   "customPresetsUnlimited",
+  "savedSetupsUnlimited", // saved setups, shown as "Presets" (free: 1)
   "presetShareLinks",
   "profilesUnlimited",
   "historyFull", // beyond the most recent 20 games
@@ -23,6 +24,8 @@ export type ProFeature = (typeof PRO_FEATURES)[number];
 /** Numeric limits for free users (PRD §17.2). */
 export const FREE_LIMITS = {
   customPresets: 1,
+  /** Saved setups ("Presets" in the UI). */
+  savedSetups: 1,
   profiles: 4,
   decksPerProfile: 3,
   historyVisibleGames: 20,

@@ -1,6 +1,13 @@
 // @req SYNC-002 @req SET-014 @req PROF-003
 import { describe, expect, it } from "vitest";
-import type { StoredArt, StoredDeck, StoredPreset, StoredProfile, StoredRecord } from "@/lib/db";
+import type {
+  StoredArt,
+  StoredDeck,
+  StoredPreset,
+  StoredProfile,
+  StoredRecord,
+  StoredSetup,
+} from "@/lib/db";
 import {
   artMapper,
   deckMapper,
@@ -12,6 +19,7 @@ import {
   profileMapper,
   recordMapper,
   settingsToItem,
+  setupMapper,
   syncedAppSettings,
   type RowMapper,
 } from "./mappers";
@@ -185,6 +193,61 @@ describe("presetMapper", () => {
     expect(
       presetMapper.fromItem({ id: "x", updatedAt: 1, deleted: false, data: {} }, undefined).preset,
     ).toBeNull();
+  });
+});
+
+// Saved setups ("Presets"; nearest req PROF-010)
+describe("setupMapper", () => {
+  const setup: StoredSetup = {
+    id: "s1",
+    schemaVersion: 1,
+    name: "Friday pod",
+    presetId: "mtg.commander",
+    presetName: "MTG Commander",
+    config: { startOverrides: { "mtg.life": 60 }, timer: { mode: "bank", seatExtraMs: {} } },
+    seats: [
+      { name: "Ann", color: "#f472b6", commanders: [], profileId: "p1", clockExtraMs: 60_000 },
+      { name: "Ben", color: "#60a5fa", commanders: ["Atraxa"] },
+    ],
+    firstPlayerRule: "random",
+    commanderArt: true,
+    order: 2,
+    createdAt: 10,
+    updatedAt: 20,
+    lastUsedAt: 15,
+  };
+  it("stores the setup as a JSON payload with name, game type and players on top", () => {
+    const { item, back } = roundTrip(setupMapper, setup);
+    expect(item).toMatchObject({ id: "s1", updatedAt: 20, deleted: false });
+    expect(item.data).toMatchObject({
+      name: "Friday pod",
+      presetId: "mtg.commander",
+      players: 2,
+      schemaVersion: 1,
+    });
+    const payload = JSON.parse(item.data.payload as string) as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("id");
+    expect(payload).not.toHaveProperty("updatedAt");
+    expect(payload).toMatchObject({ order: 2, lastUsedAt: 15, seats: setup.seats });
+    expect(back).toEqual({ ...setup, updatedAt: 777 });
+  });
+  it("skips invalid rows and survives unreadable payloads", () => {
+    const logs: string[] = [];
+    expect(setupMapper.toItem({ ...setup, seats: [] }, (m) => logs.push(m))).toBeNull();
+    expect(logs[0]).toMatch(/invalid setup s1/);
+    expect(setupMapper.toItem({ ...setup, name: "x".repeat(61) })).toBeNull();
+    const row = setupMapper.fromItem(
+      { id: "x", updatedAt: 1, deleted: false, data: { payload: "{oops" } },
+      undefined,
+    );
+    expect(row).toEqual({ id: "x", schemaVersion: 1, order: 0, updatedAt: 1 });
+    expect(setupMapper.toItem(row)).toBeNull();
+    expect(
+      setupMapper.fromItem(
+        { id: "y", updatedAt: 1, deleted: false, data: { payload: "[1]" } },
+        undefined,
+      ),
+    ).toEqual({ id: "y", schemaVersion: 1, order: 0, updatedAt: 1 });
   });
 });
 

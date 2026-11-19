@@ -7,6 +7,7 @@
  * Test ids match the strip's (`toolbar-*`, `timer-start`, `match-clock`), so specs can use either.
  */
 import {
+  BookmarkPlus,
   Calculator,
   Dices,
   History,
@@ -60,6 +61,7 @@ function Tile({
   icon,
   className,
   iconClassName,
+  labelClassName,
   ...rest
 }: {
   testId: string;
@@ -68,6 +70,8 @@ function Tile({
   icon: ReactNode;
   className?: string;
   iconClassName?: string;
+  /** Replaces the label's single-line truncation. */
+  labelClassName?: string;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -81,7 +85,10 @@ function Tile({
       <span aria-hidden className={cn(iconCls, iconClassName)}>
         {icon}
       </span>
-      <span aria-hidden className={labelCls}>
+      <span
+        aria-hidden
+        className={labelClassName ? labelCls.replace("truncate", labelClassName) : labelCls}
+      >
         {text}
       </span>
     </button>
@@ -368,6 +375,15 @@ export function CenterMenuPanel({ leaving = false }: { leaving?: boolean }) {
                 text={t("board.menu.item.settings")}
                 icon={<Settings size={24} />}
                 onClick={() => go("/settings")}
+              />
+              <Tile
+                testId="center-menu-save-preset"
+                label={t("setups.save.action")}
+                text={t("setups.save.action")}
+                // Two lines rather than "Save as pre…" (the visible text must match the name).
+                labelClassName="line-clamp-2 whitespace-normal"
+                icon={<BookmarkPlus size={24} />}
+                onClick={() => openCenterSub("savePreset")}
               />
               {calcOn && (
                 <Tile

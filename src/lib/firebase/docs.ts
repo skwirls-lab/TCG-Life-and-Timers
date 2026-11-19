@@ -33,6 +33,8 @@ export const LIMITS = {
   presetNameMax: 60,
   gameNameMax: 60,
   presetPayloadMax: 200 * KB,
+  setupNameMax: 60,
+  setupPayloadMax: 32 * KB,
   seatsMax: 8,
   gameLogMax: 500 * KB,
   artNameMax: 80,
@@ -156,6 +158,21 @@ export const presetDataSchema = z.strictObject({
 export const presetDocSchema = presetDataSchema.extend({ updatedAt: timestampSchema });
 export type PresetData = z.infer<typeof presetDataSchema>;
 export type PresetDoc = z.infer<typeof presetDocSchema>;
+
+// users/{uid}/setups/{setupId}: saved setups ("Presets" in the UI). The setup itself (seat
+// lineup, config, timestamps; src/lib/setups/types.ts) is the JSON `payload`; name, game type and
+// player count are top-level so rules can check them.
+export const setupDataSchema = z.strictObject({
+  name: z.string().min(1).max(LIMITS.setupNameMax),
+  presetId: idSchema,
+  players: z.number().int().min(1).max(LIMITS.seatsMax),
+  payload: jsonString(LIMITS.setupPayloadMax),
+  schemaVersion,
+  deleted: tombstone,
+});
+export const setupDocSchema = setupDataSchema.extend({ updatedAt: timestampSchema });
+export type SetupData = z.infer<typeof setupDataSchema>;
+export type SetupDoc = z.infer<typeof setupDocSchema>;
 
 // users/{uid}/games/{gameId} (write-once, SYNC-003: later writes may only touch updatedAt/deleted)
 export const gameSeatSchema = z.strictObject({
@@ -281,6 +298,8 @@ export const paths = {
     `users/${uid}/profiles/${profileId}/decks/${deckId}`,
   presets: (uid: string) => `users/${uid}/presets`,
   preset: (uid: string, presetId: string) => `users/${uid}/presets/${presetId}`,
+  setups: (uid: string) => `users/${uid}/setups`,
+  setup: (uid: string, setupId: string) => `users/${uid}/setups/${setupId}`,
   games: (uid: string) => `users/${uid}/games`,
   game: (uid: string, gameId: string) => `users/${uid}/games/${gameId}`,
   arts: (uid: string) => `users/${uid}/art`,
