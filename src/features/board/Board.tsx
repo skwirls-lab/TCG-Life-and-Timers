@@ -28,6 +28,15 @@ const TRACK_PX = 56;
 /** Gutter between tiles, px (half on each side of a tile). */
 const GAP = 3;
 
+/** While the board is shown, html gets `board-open` (no pull-to-refresh / overscroll, see CSS). */
+function useBoardOpenClass() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("board-open");
+    return () => root.classList.remove("board-open");
+  }, []);
+}
+
 function useBoxSize(ref: React.RefObject<HTMLElement | null>) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => {
@@ -50,6 +59,7 @@ function useBoxSize(ref: React.RefObject<HTMLElement | null>) {
 }
 
 export function Board() {
+  useBoardOpenClass();
   const ref = useRef<HTMLDivElement>(null);
   const size = useBoxSize(ref);
   const seatIds = useGameValue((g) => g.seats.map((s) => s.id)) ?? [];
@@ -128,7 +138,7 @@ export function Board() {
   const seatRotations = computed?.layout.seats.map((s) => s.rotation);
 
   return (
-    <div ref={ref} className="relative size-full" data-testid="board" data-board-root>
+    <div ref={ref} className="relative size-full" data-testid="board">
       {computed && size && (
         <>
           {computed.layout.seats.map((s) => {

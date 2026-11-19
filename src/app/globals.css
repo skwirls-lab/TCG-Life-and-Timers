@@ -73,9 +73,10 @@ body {
 }
 
 /* The game board turns off pull-to-refresh / overscroll so a swipe can't reload mid-game; every
-   other page keeps the browser's normal pull-to-refresh. */
-html:has([data-board-root]),
-html:has([data-board-root]) body {
+   other page keeps the browser's normal pull-to-refresh. Board.tsx toggles the class (a plain
+   class instead of html:has(), which made the browser re-check the whole page on every update). */
+html.board-open,
+html.board-open body {
   overscroll-behavior: none;
 }
 
