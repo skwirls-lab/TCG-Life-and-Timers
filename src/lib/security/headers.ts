@@ -76,6 +76,7 @@ export function cspDirectives(opts: CspOptions = {}): CspDirectives {
       "data:",
       ...FIREBASE_CONNECT,
       ...ANALYTICS,
+      "https://apis.google.com", // Firebase Auth helper (gapi); belt-and-braces if fetched
       ...SCRYFALL_API,
       ...SCRYFALL_IMAGES, // CORS copy of chosen card art into IndexedDB (ART-009)
       ...STRIPE,

@@ -12,6 +12,7 @@ import {
 import {
   CACHEABLE_STATUSES,
   isScryfallApi,
+  sameOriginOnly,
   scryfallImageRoute,
   SCRYFALL_API_CACHE,
   SCRYFALL_API_LIMITS,
@@ -68,7 +69,15 @@ const serwist = new Serwist({
   skipWaiting: false,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: [...scryfallCaching, ...defaultCache],
+  // Only Scryfall is handled cross-origin; every default rule is limited to the app's own origin, so
+  // Google sign-in, Firebase and Stripe requests bypass the worker (see sameOriginOnly).
+  runtimeCaching: [
+    ...scryfallCaching,
+    ...defaultCache.map((rule): RuntimeCaching => ({
+      ...rule,
+      matcher: sameOriginOnly(rule.matcher, self.location.origin) as RuntimeCaching["matcher"],
+    })),
+  ],
   fallbacks: {
     entries: [
       {

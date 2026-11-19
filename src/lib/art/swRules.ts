@@ -32,3 +32,26 @@ export function scryfallImageRoute(url: URL, mode: string): "cache" | "network" 
 export function isScryfallApi(url: URL, method = "GET"): boolean {
   return method === "GET" && url.protocol === "https:" && url.hostname === "api.scryfall.com";
 }
+
+/** A Serwist route matcher: a callback, a RegExp tested against the URL, or an exact URL string. */
+export type SwMatcher<A extends { url: URL } = { url: URL }> =
+  ((args: A) => unknown) | RegExp | string;
+
+/**
+ * Restrict a runtime-caching rule to the app's own origin. Cross-origin requests that no rule
+ * matches are not answered by the worker at all, so the browser loads them as usual. That
+ * matters for Google sign-in (apis.google.com, accounts.google.com, the auth iframe), Firebase
+ * and Stripe: a worker-side fetch is checked against `connect-src`, so proxying a `<script>` or
+ * an iframe through the worker breaks it. Scryfall has its own explicit rules.
+ */
+export function sameOriginOnly<A extends { url: URL }>(
+  matcher: SwMatcher<A>,
+  origin: string,
+): (args: A) => unknown {
+  return (args) => {
+    if (args.url.origin !== origin) return false;
+    if (typeof matcher === "function") return matcher(args);
+    if (matcher instanceof RegExp) return matcher.test(args.url.href);
+    return new URL(matcher, origin).href === args.url.href;
+  };
+}

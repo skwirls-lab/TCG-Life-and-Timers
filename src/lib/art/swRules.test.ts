@@ -4,6 +4,7 @@ import {
   CACHEABLE_STATUSES,
   isScryfallApi,
   isScryfallImage,
+  sameOriginOnly,
   scryfallImageRoute,
   SCRYFALL_API_LIMITS,
   SCRYFALL_IMAGE_LIMITS,
@@ -37,5 +38,30 @@ describe("service worker Scryfall caching rules", () => {
     expect(SCRYFALL_IMAGE_LIMITS).toEqual({ maxEntries: 200, maxAgeSeconds: 2_592_000 });
     expect(SCRYFALL_API_LIMITS).toEqual({ maxEntries: 50, maxAgeSeconds: 86_400 });
     expect(CACHEABLE_STATUSES).toContain(0);
+  });
+});
+
+describe("sameOriginOnly (Google sign-in must bypass the worker)", () => {
+  const origin = "https://tcgtempo.skwirls.com";
+  const at = (href: string) => ({ url: new URL(href) });
+
+  it("never matches another origin, whatever the wrapped rule says", () => {
+    const m = sameOriginOnly(() => true, origin);
+    expect(m(at("https://apis.google.com/js/api.js?onload=x"))).toBe(false);
+    expect(m(at("https://tcgtempo.firebaseapp.com/__/auth/iframe"))).toBe(false);
+    expect(m(at("https://accounts.google.com/o/oauth2/auth"))).toBe(false);
+    expect(m(at("https://checkout.stripe.com/c/pay"))).toBe(false);
+  });
+
+  it("delegates same-origin requests to the wrapped callback, RegExp or string", () => {
+    expect(sameOriginOnly(() => "yes", origin)(at(`${origin}/play`))).toBe("yes");
+    expect(sameOriginOnly(/\/_next\/static\//, origin)(at(`${origin}/_next/static/a.js`))).toBe(
+      true,
+    );
+    expect(sameOriginOnly(/\/_next\/static\//, origin)(at(`${origin}/play`))).toBe(false);
+    expect(
+      sameOriginOnly("/manifest.webmanifest", origin)(at(`${origin}/manifest.webmanifest`)),
+    ).toBe(true);
+    expect(sameOriginOnly("/manifest.webmanifest", origin)(at(`${origin}/play`))).toBe(false);
   });
 });
