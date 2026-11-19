@@ -3,7 +3,7 @@
  * ship the whole manifest to the client, so the value is duplicated on purpose; set
  * NEXT_PUBLIC_APP_VERSION at build time to override.
  */
-export const PACKAGE_VERSION = "1.2.1";
+export const PACKAGE_VERSION = "1.2.2";
 
 /** App version for diagnostics, feedback and exports. */
 export function appVersion(

@@ -1,7 +1,8 @@
 /**
- * Security response headers (T8.4 · PRD §19.6). Imported by `next.config.ts` (relative import,
- * no `@/` alias) and unit-tested. Headers are computed at build time, so the emulator relaxations
- * only exist in builds made with `NEXT_PUBLIC_USE_EMULATORS=1` (`.next-emu`, never production).
+ * Security response headers (T8.4 · PRD §19.6). The single source of truth for firebase.json's
+ * `hosting.headers` (scripts/gen-hosting-config.ts, drift-checked by a unit test) and for
+ * `next dev` (next.config.ts); relative imports only, no `@/` alias. The emulator relaxations only
+ * exist where the e2e emulator build is served (scripts/serve-hosting.ts), never in firebase.json.
  *
  * script-src keeps `'unsafe-inline'` on purpose: every App Router page embeds its RSC payload as
  * inline `<script>self.__next_f.push(…)</script>` tags. Nonces would force dynamic rendering of
@@ -134,11 +135,16 @@ export function securityHeaders(opts: CspOptions = {}): HeaderEntry[] {
 }
 
 /**
- * Extra headers for the service worker script (Next PWA guide): never HTTP-cached, so updates are
- * picked up (PWA-004). The Serwist route already sends Content-Type and `Service-Worker-Allowed`.
- * The worker keeps the site CSP (not the guide's `script-src 'self'`-only policy) because the
- * CSP of the SW response governs the worker's own fetches (Scryfall runtime caching, PWA-002).
+ * Extra headers for the service worker script `/serwist/sw.js` (Next PWA guide): never HTTP-cached,
+ * so updates are picked up (PWA-004), and allowed to control scope `/` although it lives under
+ * `/serwist/`. The static export serves the worker as a plain file, so Hosting sends these
+ * (firebase.json); Content-Type comes from the `.js` extension. The worker keeps the site CSP (not
+ * the guide's `script-src 'self'`-only policy) because the CSP of the SW response governs the
+ * worker's own fetches (Scryfall runtime caching, PWA-002).
  */
 export function serviceWorkerHeaders(): HeaderEntry[] {
-  return [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
+  return [
+    { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+    { key: "Service-Worker-Allowed", value: "/" },
+  ];
 }

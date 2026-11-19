@@ -5,7 +5,8 @@
  * unit-tested with fakes; the default driver dynamically imports firebase/auth.
  */
 import { create } from "zustand";
-import { isCloudConfigured, sameOriginAuth } from "@/lib/firebase/config";
+import { sameOriginAuth } from "@/lib/firebase/authDomain";
+import { isCloudConfigured } from "@/lib/firebase/config";
 import { isStandalone } from "@/lib/device/fullscreen";
 import {
   CANCELLED_CODES,

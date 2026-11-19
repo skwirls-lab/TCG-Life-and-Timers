@@ -7,6 +7,7 @@ import type { Auth } from "firebase/auth";
 import type { Firestore } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
 import type { Functions } from "firebase/functions";
+import { authDomainFor, authEnv } from "./authDomain";
 import { readFirebaseConfig, emulatorsEnabled } from "./config";
 
 let appPromise: Promise<FirebaseApp | null> | null = null;
@@ -16,6 +17,8 @@ export function getFirebaseApp(): Promise<FirebaseApp | null> {
     appPromise = (async () => {
       const cfg = readFirebaseConfig();
       if (!cfg) return null;
+      // Same-origin sign-in handler where Hosting serves an authorized one (./authDomain).
+      if (!emulatorsEnabled()) cfg.authDomain = authDomainFor(authEnv(), window.location);
       const { initializeApp, getApps } = await import("firebase/app");
       return getApps()[0] ?? initializeApp(cfg);
     })();

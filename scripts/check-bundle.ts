@@ -1,8 +1,8 @@
 /**
- * G-BUILD bundle budget (T8.1 · PERF-003). Run after `npm run build`.
+ * G-BUILD bundle budget (T8.1 · PERF-003). Run after `npm run build` (the static export).
  *
  * For each checked route, the JS a browser loads up-front is every `/_next/static/chunks/*.js`
- * referenced by the prerendered HTML: `<script src>` tags plus the client-component chunks named
+ * referenced by the exported HTML (`out/index.html`, `out/play.html`, exactly what Hosting serves): `<script src>` tags plus the client-component chunks named
  * in the inline RSC flight data. `noModule` polyfill scripts are skipped (modern browsers ignore
  * them). Chunks fetched later through dynamic `import()` are not referenced by the HTML and are
  * therefore not counted, which is exactly the lazy-loading contract.
@@ -10,7 +10,10 @@
  * Fails when `/play` exceeds 200 KB gzip, or when any `/play` chunk contains a Firebase SDK
  * marker (the SDK must only arrive through dynamic imports, D-051).
  *
- * Usage: tsx scripts/check-bundle.ts [--dist .next] [--json]
+ * The React/Next runtime chunks come from the build's `.next/build-manifest.json`, which must belong
+ * to the same build as the export (its BUILD_ID appears in the exported HTML).
+ *
+ * Usage: tsx scripts/check-bundle.ts [--dist out] [--build .next] [--json]
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,7 +28,7 @@ export const PLAY_BUDGET_BYTES = 200 * 1024;
 export const PLAY_TOTAL_CAP_BYTES = 300 * 1024;
 export const FIREBASE_MARKERS = ["@firebase/", "FirebaseError", "identitytoolkit"] as const;
 
-/** Chunk paths (relative to the dist dir's `static/chunks`) referenced by a prerendered page. */
+/** Chunk paths (relative to `_next/static/chunks`) referenced by an exported page. */
 export function chunksFromHtml(html: string): string[] {
   const noModule = new Set<string>();
   for (const m of html.matchAll(/<script\b[^>]*>/g)) {
@@ -68,8 +71,8 @@ export interface RouteReport {
 }
 
 /** The React/Next runtime chunks every route loads (build-manifest `rootMainFiles`). */
-export function frameworkChunks(dist: string): Set<string> {
-  const p = join(dist, "build-manifest.json");
+export function frameworkChunks(build: string): Set<string> {
+  const p = join(build, "build-manifest.json");
   if (!existsSync(p)) return new Set();
   const m = JSON.parse(readFileSync(p, "utf8")) as { rootMainFiles?: string[] };
   return new Set((m.rootMainFiles ?? []).map((f) => f.replace(/^static\/chunks\//, "")));
@@ -79,15 +82,38 @@ export function frameworkGzip(r: RouteReport): number {
   return r.chunks.filter((c) => c.framework).reduce((n, c) => n + c.gzip, 0);
 }
 
-export function measureRoute(dist: string, route: string, htmlFile: string): RouteReport {
-  const htmlPath = join(dist, "server", "app", htmlFile);
+/**
+ * True when the build dir's BUILD_ID appears in the exported HTML (the manifest describes this
+ * export). Without a BUILD_ID file there is nothing to compare.
+ */
+export function sameBuild(build: string, html: string): boolean {
+  const p = join(build, "BUILD_ID");
+  if (!existsSync(p)) return false;
+  const id = readFileSync(p, "utf8").trim();
+  return id.length > 0 && html.includes(id);
+}
+
+/** Measures one exported page: `dist` is the export (`out`), `build` the Next build dir. */
+export function measureRoute(
+  dist: string,
+  route: string,
+  htmlFile: string,
+  build = ".next",
+): RouteReport {
+  const htmlPath = join(dist, htmlFile);
   if (!existsSync(htmlPath)) {
     throw new Error(`${htmlPath} not found — run \`npm run build\` first`);
   }
   const html = readFileSync(htmlPath, "utf8");
-  const framework = frameworkChunks(dist);
+  const manifest = join(build, "build-manifest.json");
+  if (existsSync(manifest) && !sameBuild(build, html)) {
+    throw new Error(
+      `${manifest} is from another build than ${dist}/ — run \`npm run build\` again`,
+    );
+  }
+  const framework = frameworkChunks(build);
   const chunks = chunksFromHtml(html).map((file): ChunkInfo => {
-    const path = join(dist, "static", "chunks", file);
+    const path = join(dist, "_next", "static", "chunks", file);
     const buf = readFileSync(path);
     return {
       file,
@@ -145,10 +171,14 @@ function print(r: RouteReport): void {
 }
 
 function main(argv: string[]): number {
-  const distIdx = argv.indexOf("--dist");
-  const dist = distIdx >= 0 ? argv[distIdx + 1]! : (process.env.NEXT_DIST_DIR ?? ".next");
-  const launcher = measureRoute(dist, "/", "index.html");
-  const play = measureRoute(dist, "/play", "play.html");
+  const arg = (name: string) => {
+    const i = argv.indexOf(name);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const dist = arg("--dist") ?? "out";
+  const build = arg("--build") ?? ".next";
+  const launcher = measureRoute(dist, "/", "index.html", build);
+  const play = measureRoute(dist, "/play", "play.html", build);
   if (argv.includes("--json")) {
     console.log(JSON.stringify({ launcher, play }, null, 2));
   } else {

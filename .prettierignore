@@ -2,6 +2,9 @@ node_modules
 .next
 .next-test
 .next-emu
+out
+out-test
+out-emu
 coverage
 playwright-report
 test-results

@@ -45,6 +45,9 @@
     "test-results",
     "artifacts",
     ".next",
+    "out",
+    "out-test",
+    "out-emu",
     ".claude"
   ]
 }

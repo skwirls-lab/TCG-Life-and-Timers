@@ -9,6 +9,10 @@ export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
   {
     swSrc: "src/app/sw.ts",
     useNativeEsbuild: true,
+    // The precache manifest globs the build's `static/` output. In a static export a custom
+    // `distDir` (NEXT_DIST_DIR=out-test, next.config.ts) only names the export destination; the
+    // build itself (and `static/`) is always in `.next`, so point Serwist there.
+    nextConfig: { distDir: ".next" },
     additionalPrecacheEntries: [
       { url: "/~offline", revision },
       { url: "/", revision },

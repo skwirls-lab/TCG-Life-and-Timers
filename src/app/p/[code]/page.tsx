@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SharedPresetScreen } from "@/features/paywall/SharedPresetScreen";
+import { SHARE_PAGE_PLACEHOLDER } from "@/lib/share/sharePath";
 import { t } from "@/lib/i18n";
 
 export const metadata: Metadata = {
@@ -9,11 +10,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * Share link `/p/{code}` (T7.3). A dynamic segment rendered on demand by App Hosting; the page
- * itself is a thin shell and the client component reads the code with `useParams()` and fetches
- * `sharedPresets/{code}` from Firestore in the browser (works signed out). Nothing is read on
- * the server, so no params are awaited here and there is no generateStaticParams.
+ * Share link `/p/{code}` (T7.3). The static export has a single page, `/p/_` (`out/p/_.html`),
+ * and Firebase Hosting rewrites every `/p/**` URL to it (firebase.json). The client component
+ * reads the real code from the browser URL and fetches `sharedPresets/{code}` from Firestore
+ * (works signed out). Nothing is read at build time.
  */
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return [{ code: SHARE_PAGE_PLACEHOLDER }];
+}
+
 export default function SharedPresetPage() {
   return <SharedPresetScreen />;
 }

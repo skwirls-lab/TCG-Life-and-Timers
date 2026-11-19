@@ -4,7 +4,7 @@
  * (sharedPresets are publicly readable by code, SEC-005); the import is local (a new custom
  * preset with a fresh id), then opens it in the builder.
  */
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { Button, PageShell, SectionHeader, useSnackbar } from "@/components/ui";
@@ -13,12 +13,14 @@ import { requireLimit } from "@/lib/entitlements/gate";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t, tp } from "@/lib/i18n";
 import type { FetchSharedResult } from "@/lib/share/share";
+import { shareCodeFromPath } from "@/lib/share/sharePath";
 
 type View = { status: "loading" } | { status: "error"; offline: boolean } | FetchSharedResult;
 
 export function SharedPresetScreen() {
-  const params = useParams<{ code: string }>();
-  const code = typeof params.code === "string" ? params.code : "";
+  // The static export serves one page for every /p/{code} (a Hosting rewrite), so the code comes
+  // from the browser URL, not from the prerendered route params (which hold the placeholder).
+  const pathname = usePathname();
   const router = useRouter();
   const show = useSnackbar((s) => s.show);
   const [view, setView] = useState<View>({ status: "loading" });
@@ -26,6 +28,7 @@ export function SharedPresetScreen() {
 
   useEffect(() => {
     let alive = true;
+    const code = shareCodeFromPath(window.location.pathname);
     const run = async (): Promise<View> => {
       if (!isCloudConfigured()) return { status: "error", offline: false };
       const m = await import("@/lib/share/share");
@@ -39,7 +42,7 @@ export function SharedPresetScreen() {
     return () => {
       alive = false;
     };
-  }, [code]);
+  }, [pathname]);
 
   const doImport = async () => {
     if (view.status !== "ok" || importing) return;

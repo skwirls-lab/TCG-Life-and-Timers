@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# public build config for the production export (DEPLOY.md Part 3), not secrets
+!.env.production
 
 # vercel
 .vercel
@@ -52,6 +54,8 @@ functions/node_modules/
 .firebase/
 firebase-export-*/
 .next-test/
+/out-test/
+/out-emu/
 .next-emu/
 
 # agent worktrees

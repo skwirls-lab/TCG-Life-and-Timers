@@ -3,6 +3,12 @@
 All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
+## [1.2.2] - 2026-11-19
+
+### Faster
+
+- Moving between screens is quicker, and the first visit after a quiet spell no longer waits for a server to wake up: the app is now served as plain files from Google's worldwide network.
+
 ## [1.2.1] - 2026-11-19
 
 ### Fixed

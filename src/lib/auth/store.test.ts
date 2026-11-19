@@ -239,8 +239,9 @@ describe("helpers", () => {
     // installed iOS app without a same-origin handler: still popup (redirect would fail too)
     ua.mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
     expect(defaultPreferRedirect()).toBe(false);
-    // installed iOS app with the same-origin handler (jsdom host = authDomain): redirect
-    vi.stubEnv("NEXT_PUBLIC_AUTH_SAME_ORIGIN", "1");
+    // installed iOS app with the same-origin handler (jsdom's host listed as a same-origin host;
+    // local hosts never count, see authDomain.test.ts): redirect
+    vi.stubEnv("NEXT_PUBLIC_AUTH_SAME_ORIGIN_HOSTS", window.location.hostname);
     vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", "tcgtempo.firebaseapp.com");
     expect(defaultPreferRedirect()).toBe(window.location.hostname !== "localhost");
     // iOS Safari tab (not installed): popup
