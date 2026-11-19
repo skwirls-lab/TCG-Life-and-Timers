@@ -1,6 +1,6 @@
 "use client";
 import { SerwistProvider } from "@serwist/turbopack/react";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { SnackbarHost } from "@/components/ui/Snackbar";
 import { UpdatePrompt } from "./UpdatePrompt";
 import { AppEffects } from "@/features/app-effects/AppEffects";
@@ -10,6 +10,7 @@ import { PaywallHost } from "@/features/paywall/PaywallHost";
 // HARDEN (T8.3 / T8.7): consent banner (LEG-004) and install offer (PWA-003).
 import { ConsentBanner } from "@/features/consent/ConsentBanner";
 import { InstallPromptHost } from "@/features/install/InstallPromptHost";
+import { NavTracker } from "@/lib/nav/useUpNavigation";
 
 export function Providers({ children }: { children: ReactNode }) {
   const disableSw = process.env.NODE_ENV === "development";
@@ -21,6 +22,10 @@ export function Providers({ children }: { children: ReactNode }) {
       cacheOnNavigation
     >
       <AppEffects />
+      {/* in-app Back: records the breadcrumb trail (useSearchParams needs a Suspense boundary) */}
+      <Suspense fallback={null}>
+        <NavTracker />
+      </Suspense>
       {children}
       {/* HIST-031: "Who won?" for every reset / new-game path (requestReset) */}
       <WhoWonHost />

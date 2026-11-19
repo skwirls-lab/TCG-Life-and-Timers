@@ -5,7 +5,7 @@
  * game's preset has a global storm counter, the Storm row edits that counter instead, so the
  * engine resets it when the turn passes.
  */
-import { useRouter } from "next/navigation";
+import { useUpNavigation } from "@/lib/nav/useUpNavigation";
 import type { ReactNode } from "react";
 import { CloudLightning } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
@@ -62,7 +62,7 @@ function Row({
 
 export function ManaPage() {
   useGameBootstrap();
-  const router = useRouter();
+  const up = useUpNavigation();
   const dispatch = useDispatch();
   const mana = useKvValue(MANA_KEY, FALLBACK, ManaStateSchema);
   const storm = useGameStore(
@@ -126,14 +126,7 @@ export function ManaPage() {
           <Button variant="danger" size="lg" onClick={clear} data-testid="mana-clear">
             {t("tools.mana.clear")}
           </Button>
-          <Button
-            size="lg"
-            data-testid="mana-close"
-            onClick={() => {
-              if (window.history.length > 1) router.back();
-              else router.push("/tools");
-            }}
-          >
+          <Button size="lg" data-testid="mana-close" onClick={up}>
             {t("tools.mana.close")}
           </Button>
         </div>

@@ -5,7 +5,7 @@
  * quick-access tip and links to the Mana & Storm and scratch counters (TOOL-012) pages.
  */
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useUpNavigation } from "@/lib/nav/useUpNavigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { ChevronRight, Lightbulb, Shuffle, Swords } from "lucide-react";
@@ -66,7 +66,7 @@ function Tile({
 
 export function ToolsPage() {
   useGameBootstrap();
-  const router = useRouter();
+  const up = useUpNavigation();
   const from = useQueryParam("from");
   const run = useToolResult((s) => s.run);
   const hasGame = useGameStore((s) => s.session !== null);
@@ -257,16 +257,7 @@ export function ToolsPage() {
           <ChevronRight aria-hidden />
         </Link>
 
-        <Button
-          block
-          size="lg"
-          className="mt-6"
-          data-testid="tools-close"
-          onClick={() => {
-            if (window.history.length > 1) router.back();
-            else router.push("/");
-          }}
-        >
+        <Button block size="lg" className="mt-6" data-testid="tools-close" onClick={up}>
           {t("tools.close")}
         </Button>
       </div>

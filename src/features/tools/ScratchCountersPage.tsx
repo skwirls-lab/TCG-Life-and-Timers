@@ -4,7 +4,7 @@
  * anything the preset doesn't track. Device-level (kv `tools.scratch`); reuses the Mana & Storm
  * row UI.
  */
-import { useRouter } from "next/navigation";
+import { useUpNavigation } from "@/lib/nav/useUpNavigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, IconButton, PageShell } from "@/components/ui";
 import { t } from "@/lib/i18n";
@@ -28,7 +28,7 @@ import {
 const EMPTY: ScratchCounter[] = [];
 
 export function ScratchCountersPage() {
-  const router = useRouter();
+  const up = useUpNavigation();
   const list = useKvValue(SCRATCH_KEY, EMPTY, ScratchListSchema);
   const counters = list.value;
 
@@ -109,14 +109,7 @@ export function ScratchCountersPage() {
           >
             {t("tools.counters.clear")}
           </Button>
-          <Button
-            size="lg"
-            data-testid="counters-close"
-            onClick={() => {
-              if (window.history.length > 1) router.back();
-              else router.push("/tools");
-            }}
-          >
+          <Button size="lg" data-testid="counters-close" onClick={up}>
             {t("tools.counters.close")}
           </Button>
         </div>
