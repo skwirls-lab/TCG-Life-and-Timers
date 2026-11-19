@@ -156,8 +156,9 @@ describe("TMR-060 per-seat starting time", () => {
   });
 });
 
-describe("bankDelay turn-start buffer (audit)", () => {
-  it("every turn starts with delayMs free; responses and the return to the active seat get one too", () => {
+describe("bankDelay: where the delay applies (owner: turn passes only by default)", () => {
+  // @req TMR-001
+  it("by default only a new turn starts with free time; Respond and the return don't", () => {
     const x = new Table({ mode: "bankDelay", bankMs: 10 * MIN, delayMs: 5 * SEC });
     x.doAt(0, { type: "START_GAME" });
     x.doAt(4 * SEC, { type: "PASS_TURN" });
@@ -167,11 +168,50 @@ describe("bankDelay turn-start buffer (audit)", () => {
     expect(x.rem("s2")).toBe(10 * MIN - SEC);
     x.at(17 * SEC);
     expect(x.rem("s3")).toBe(10 * MIN - 2 * SEC);
-    // s3's response holds start fresh delays: s1 responds 3 s (free), then s3 again 3 s (free).
+    // s1 responds for 3 s: all charged (no response delay)
     x.do({ type: "TIMER_RESPOND", seatId: "s1" });
     x.doAt(20 * SEC, { type: "TIMER_PASS_BACK", seatId: "s1" });
+    expect(x.rem("s1")).toBe(10 * MIN - 3 * SEC);
+    // priority comes back to s3: charged from the first second (no return delay)
     x.at(23 * SEC);
-    expect(x.rem("s1")).toBe(10 * MIN);
-    expect(x.rem("s3")).toBe(10 * MIN - 2 * SEC);
+    expect(x.rem("s3")).toBe(10 * MIN - 5 * SEC);
+    // the next turn gets the turn delay again
+    x.doAt(23 * SEC, { type: "PASS_TURN" });
+    x.at(27 * SEC);
+    expect(x.rem("s4")).toBe(10 * MIN);
+  });
+
+  it("respondDelayMs and returnDelayMs give their own free time when set", () => {
+    const x = new Table({
+      mode: "bankDelay",
+      bankMs: 10 * MIN,
+      delayMs: 10 * SEC,
+      respondDelayMs: 3 * SEC,
+      returnDelayMs: 2 * SEC,
+    });
+    x.doAt(0, { type: "START_GAME" });
+    x.at(4 * SEC);
+    x.do({ type: "TIMER_RESPOND", seatId: "s2" });
+    // s2 responds for 5 s: 3 s free, 2 s charged
+    x.doAt(9 * SEC, { type: "TIMER_PASS_BACK", seatId: "s2" });
+    expect(x.rem("s2")).toBe(10 * MIN - 2 * SEC);
+    // s1 had used 4 s of its 10 s turn delay; the return grants 2 s (not a new 10 s)
+    x.at(12 * SEC);
+    expect(x.rem("s1")).toBe(10 * MIN - SEC);
+    // nested: s3 responds on top of s2, s2 passes back → s2 gets the return delay
+    x.do({ type: "TIMER_RESPOND", seatId: "s2" });
+    x.doAt(13 * SEC, { type: "TIMER_RESPOND", seatId: "s3" });
+    x.doAt(17 * SEC, { type: "TIMER_PASS_BACK", seatId: "s3" });
+    expect(x.rem("s3")).toBe(10 * MIN - SEC); // 4 s held, 3 s free
+    x.at(20 * SEC);
+    expect(x.rem("s2")).toBe(10 * MIN - 3 * SEC); // +1 s now (3 s held, 2 s free)
+  });
+
+  it("increment is still only added on a turn pass", () => {
+    const x = new Table({ mode: "bankIncrement", bankMs: 10 * MIN, incrementMs: 5 * SEC });
+    x.doAt(0, { type: "START_GAME" });
+    x.doAt(2 * SEC, { type: "TIMER_RESPOND", seatId: "s2" });
+    x.doAt(4 * SEC, { type: "TIMER_PASS_BACK", seatId: "s2" });
+    expect(x.rem("s2")).toBe(10 * MIN - 2 * SEC);
   });
 });

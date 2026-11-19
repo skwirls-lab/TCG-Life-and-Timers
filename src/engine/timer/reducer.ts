@@ -97,14 +97,28 @@ function timerEvent(
   return appendEvent(g, { kind: "timer", ...extra, meta }, now)[0];
 }
 
-/** A fresh hold starts for the new holder (bankDelay free time). */
-function newHold(t: TimerState): TimerState {
+/** Why the clock changed hands: a new turn, a Respond, or priority coming back. */
+type HoldKind = "turn" | "respond" | "return";
+
+/**
+ * A fresh hold starts for the new holder. bankDelay free time depends on why: `delayMs` at the
+ * start of a turn, `respondDelayMs` on a Respond, `returnDelayMs` when priority comes back
+ * (both default 0). Increment is unaffected (added on a turn pass only).
+ */
+function newHold(t: TimerState, kind: HoldKind): TimerState {
   if (t.config.mode !== "bankDelay") {
     if (t.holdFreeMs === undefined) return t;
     const { holdFreeMs: _h, ...rest } = t;
     return rest;
   }
-  return { ...t, holdFreeMs: t.config.delayMs };
+  const c = t.config;
+  const free =
+    kind === "turn"
+      ? c.delayMs
+      : kind === "respond"
+        ? (c.respondDelayMs ?? 0)
+        : (c.returnDelayMs ?? 0);
+  return { ...t, holdFreeMs: free };
 }
 
 /** Leave overtime / flagged when time was added back (increment, adjust). */
@@ -138,7 +152,7 @@ function start(g: Game, now: number): Game {
   const active = g.turn.activeSeat;
   const { pausedReason: _p, ...rest } = t;
   return withTimer(g, {
-    ...newHold({ ...rest, holder: active }),
+    ...newHold({ ...rest, holder: active }, "turn"),
     status: "running",
     holder: active,
     runningSince: now,
@@ -230,7 +244,8 @@ export function syncTimer(game: Game, now: number, lagMs = 0): Game {
       g = patchClock(g, id, { ...c, state: left > 0 ? "normal" : "flagged" });
     }
   }
-  if (g.timer.turnNumber !== g.turn.turnNumber) g = newTurn(settle(g, now));
+  const turnChanged = g.timer.turnNumber !== g.turn.turnNumber;
+  if (turnChanged) g = newTurn(settle(g, now));
   const t = g.timer;
   const active = g.turn.activeSeat;
   const stack = collapse(t.responseStack.filter((id) => isAlive(g, id) && t.clocks[id]));
@@ -238,7 +253,18 @@ export function syncTimer(game: Game, now: number, lagMs = 0): Game {
   if (desired === t.holder && sameList(stack, t.responseStack)) return g;
   g = settle(g, now);
   let timer: TimerState = { ...g.timer, responseStack: stack, holder: desired };
-  if (desired !== t.holder) timer = newHold(timer);
+  if (desired !== t.holder) {
+    // A Respond keeps the previous holder underneath (still on the stack, or the active seat);
+    // a Pass back / Return removes it. (Actions edit the stack before this sync runs.)
+    const prev = t.holder;
+    const stillHolds = prev !== null && (stack.includes(prev) || prev === active);
+    const kind: HoldKind = turnChanged
+      ? "turn"
+      : desired !== null && desired !== active && desired === stack.at(-1) && stillHolds
+        ? "respond"
+        : "return";
+    timer = newHold(timer, kind);
+  }
   g = withTimer(g, timer);
   if (lagMs > 0 && desired !== null && isCharging(g.timer)) {
     const c = g.timer.clocks[desired]!;
@@ -355,6 +381,8 @@ function resolveDue(game: Game, now: number, maxLagMs = Infinity): DueResult {
 const RUNTIME_KEYS = [
   "incrementMs",
   "delayMs",
+  "respondDelayMs",
+  "returnDelayMs",
   "graceMs",
   "timeoutAction",
   "addOnceMs",

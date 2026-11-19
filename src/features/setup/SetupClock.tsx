@@ -14,6 +14,7 @@ import {
   PER_TURN_MODES,
   PER_TURN_MS,
   STEP_SECONDS,
+  HOLD_DELAY_SECONDS,
   shortDuration,
 } from "@/features/timer/model";
 import { BLOCKERS_SECONDS, blockersSettings, seatTimesOn } from "@/features/timer/seatTimes";
@@ -88,6 +89,33 @@ export function SetupClock({ timer, onChange, seats = [], onSeatExtra }: Props) 
           />
         </div>
       )}
+      {mode === "bankDelay" &&
+        (["respondDelay", "returnDelay"] as const).map((id) => (
+          <div key={id} className="flex flex-col gap-2">
+            <span>
+              {t(`timer.settings.${id}.title`)}{" "}
+              <span className="text-sm text-fg-muted">({t(`timer.settings.${id}.subtitle`)})</span>
+            </span>
+            <ChipRow
+              label={t(`timer.settings.${id}.title`)}
+              testId={`setup-clock-${id}`}
+              value={Math.round(
+                ((id === "respondDelay" ? timer.respondDelayMs : timer.returnDelayMs) ?? 0) / 1000,
+              )}
+              options={HOLD_DELAY_SECONDS.map((sec) => ({
+                value: sec,
+                ...(sec === 0 ? { label: t("timer.settings.off") } : {}),
+              }))}
+              onChange={(sec) =>
+                onChange(
+                  id === "respondDelay"
+                    ? { respondDelayMs: sec * 1000 }
+                    : { returnDelayMs: sec * 1000 },
+                )
+              }
+            />
+          </div>
+        ))}
       {showPerTurn && (
         <div className="flex flex-col gap-2">
           <span>{t("timer.settings.perTurn.title")}</span>

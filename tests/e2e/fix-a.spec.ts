@@ -338,7 +338,7 @@ test.describe("A-10 SWU base HP", () => {
 test.describe("A-11 copy", () => {
   test("What's new and About show the installed version", async ({ page }) => {
     await page.goto("/whats-new");
-    await expect(page.getByTestId("whats-new-installed")).toContainText("1.2.0");
+    await expect(page.getByTestId("whats-new-installed")).toContainText("1.2.1");
     await expect(page.getByTestId("release-1.0.0")).toBeVisible();
   });
 

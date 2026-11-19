@@ -37,6 +37,7 @@ import {
   PER_TURN_MODES,
   PER_TURN_MS,
   STEP_SECONDS,
+  HOLD_DELAY_SECONDS,
   isStructurePatch,
   shortDuration,
 } from "./model";
@@ -171,6 +172,33 @@ export const TIMER_ROWS: SettingDef[] = [
           : { incrementMs: Number(v) * 1000 },
       ),
     },
+  ),
+  ...(["respondDelay", "returnDelay"] as const).map((id) =>
+    row(
+      id,
+      {
+        kind: "chips",
+        options: () =>
+          HOLD_DELAY_SECONDS.map((sec) => ({
+            value: sec,
+            label: sec === 0 ? t("timer.settings.off") : String(sec),
+          })),
+      },
+      {
+        visibleIf: (_p, _g, ctx) => on(ctx) && cfgOf(ctx).mode === "bankDelay",
+        get: (ctx) => {
+          const c = cfgOf(ctx);
+          return Math.round(
+            ((id === "respondDelay" ? c.respondDelayMs : c.returnDelayMs) ?? 0) / 1000,
+          );
+        },
+        set: patchSet((v) =>
+          id === "respondDelay"
+            ? { respondDelayMs: Number(v) * 1000 }
+            : { returnDelayMs: Number(v) * 1000 },
+        ),
+      },
+    ),
   ),
   row(
     "perTurn",

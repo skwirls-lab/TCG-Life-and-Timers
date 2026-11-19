@@ -3,6 +3,19 @@
 All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
+## [1.2.1] - 2026-11-19
+
+### Fixed
+
+- Google sign-in on phones now works: you no longer come back from choosing an account still signed out.
+- Pull down to refresh works again on every page except the game board, including in the installed app.
+- The installed app keeps your phone's status and navigation bars. Hiding them is the "Full screen during games" setting.
+- Back always moves toward the start screen instead of bouncing between two pages. Tap the TCGTempo mark in any page header to go Home.
+
+### Timers
+
+- With "bank + delay", the free delay now applies at the start of each turn only. Free time when responding, and when priority comes back to you, are separate settings, off by default.
+
 ## [1.2.0] - 2026-11-19
 
 ### Presets

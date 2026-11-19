@@ -275,6 +275,8 @@ export const PER_TURN_MODES: readonly TimerMode[] = ["perTurn", "perTurnReserve"
 
 export const BANK_MINUTES = [5, 10, 15, 20, 25, 30, 45, 60] as const;
 export const STEP_SECONDS = [0, 5, 10, 15, 30] as const;
+/** Choices for the response / return delays (bankDelay); 0 = off, the default. */
+export const HOLD_DELAY_SECONDS = [0, 2, 3, 5, 10] as const;
 export const PER_TURN_MS = [30 * SEC, MIN, 2 * MIN, 3 * MIN, 5 * MIN] as const;
 export const MATCH_MINUTES = [0, 40, 50, 60] as const;
 export const GRACE_MS = [30 * SEC, 60 * SEC, 2 * MIN, 5 * MIN] as const;
@@ -339,6 +341,8 @@ const NUM_KEYS = [
   "bankMs",
   "incrementMs",
   "delayMs",
+  "respondDelayMs",
+  "returnDelayMs",
   "perTurnMs",
   "reserveMs",
   "graceMs",

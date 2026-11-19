@@ -74,8 +74,15 @@ export interface TimerConfig {
   bankMs: number;
   /** Fischer increment added on each pass (mode bankIncrement). */
   incrementMs: number;
-  /** Free time at the start of each hold (mode bankDelay). */
+  /** Free time at the start of each turn (mode bankDelay). */
   delayMs: number;
+  /**
+   * bankDelay: free time when a player takes priority with Respond (default 0 = none). The owner
+   * wanted the delay on turn passes only by default; responses are opt-in.
+   */
+  respondDelayMs?: number;
+  /** bankDelay: free time when priority comes back to a player (Pass back / Return; default 0). */
+  returnDelayMs?: number;
   /** Per-turn allotment (perTurn, perTurnReserve). */
   perTurnMs: number;
   /** Reserve bank consumed after the per-turn time (perTurnReserve). */

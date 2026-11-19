@@ -153,8 +153,13 @@ describe("modes", () => {
     expect(x.timer.clocks.s1).toMatchObject({ bankMs: 8 * SEC, state: "normal" });
   });
 
-  it("bankDelay: the first delayMs of each hold are free", () => {
-    const x = new Table({ mode: "bankDelay", bankMs: 15 * MIN, delayMs: 5 * SEC });
+  it("bankDelay: the first delayMs of each hold are free (responses opted in)", () => {
+    const x = new Table({
+      mode: "bankDelay",
+      bankMs: 15 * MIN,
+      delayMs: 5 * SEC,
+      respondDelayMs: 5 * SEC,
+    });
     x.doAt(0, { type: "START_GAME" });
     x.at(3 * SEC);
     expect(x.rem("s1")).toBe(15 * MIN);
@@ -827,7 +832,13 @@ describe("syncTimer", () => {
 describe("persistence", () => {
   // @req TMR-044
   it("a running timer state round-trips through the Game schema (reload resumes exactly)", () => {
-    const x = new Table({ mode: "bankDelay", delayMs: 5 * SEC, finalAction: "flag" });
+    const x = new Table({
+      mode: "bankDelay",
+      delayMs: 5 * SEC,
+      respondDelayMs: 5 * SEC,
+      returnDelayMs: 5 * SEC,
+      finalAction: "flag",
+    });
     x.doAt(0, { type: "START_GAME" }).doAt(3 * SEC, { type: "TIMER_RESPOND", seatId: "s2" });
     const restored = parseGame(JSON.parse(JSON.stringify(x.g)));
     expect(restored.timer).toEqual(x.g.timer);

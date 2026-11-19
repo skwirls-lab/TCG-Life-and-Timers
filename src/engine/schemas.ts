@@ -66,6 +66,8 @@ export const TimerConfigSchema = z.object({
   bankMs: ms(),
   incrementMs: ms(),
   delayMs: ms(),
+  respondDelayMs: ms().optional(),
+  returnDelayMs: ms().optional(),
   perTurnMs: ms(),
   reserveMs: ms(),
   graceMs: ms(),

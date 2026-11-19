@@ -161,3 +161,27 @@ test("seat Timer tab without clocks: turn stats and concede only", async ({ page
   await expect(page.locator('[data-testid^="seat-timer-adjust"]')).toHaveCount(0);
   await expect(page.getByTestId("seat-timer-concede")).toBeVisible();
 });
+
+// @req TMR-001
+test("bank + delay: the delay applies at turn start; responding and returns are opt-in", async ({
+  page,
+}) => {
+  await gotoClockBoard(page, "t.mode=bankDelay&t.delayMs=10000");
+  await openSettings(page);
+  await expect(page.getByTestId("setting-timer.step")).toContainText("Free delay at turn start");
+  // off by default
+  const c0 = await config(page);
+  expect(c0.respondDelayMs ?? 0).toBe(0);
+  expect(c0.returnDelayMs ?? 0).toBe(0);
+  await page.getByTestId("setting-timer.respondDelay-control-3").click();
+  await page.getByTestId("setting-timer.returnDelay-control-2").click();
+  const c1 = await config(page);
+  expect(c1.respondDelayMs).toBe(3000);
+  expect(c1.returnDelayMs).toBe(2000);
+  await page.clock.resume(); // axe needs real timers (gotoClockBoard pauses the clock)
+  await expectNoSeriousA11yViolations(page);
+  // other modes don't show them
+  await page.getByTestId("setting-timer.mode-control").selectOption("bankIncrement");
+  await expect(page.getByTestId("setting-timer.respondDelay")).toHaveCount(0);
+  await expect(page.getByTestId("setting-timer.returnDelay")).toHaveCount(0);
+});
