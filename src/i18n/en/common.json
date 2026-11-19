@@ -16,6 +16,8 @@
   "common.proFeature": "Pro feature",
   "pwa.updateAvailable": "Update available",
   "pwa.reload": "Reload",
+  "pwa.pullHint": "Pull to refresh",
+  "pwa.pullRelease": "Release to refresh",
   "launcher.newGame": "New game",
   "launcher.comingSoon": "Board coming soon",
   "devui.title": "Design system"

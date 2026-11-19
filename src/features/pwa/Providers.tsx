@@ -3,6 +3,7 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import { Suspense, type ReactNode } from "react";
 import { SnackbarHost } from "@/components/ui/Snackbar";
 import { UpdatePrompt } from "./UpdatePrompt";
+import { PullToRefresh } from "./PullToRefresh";
 import { AppEffects } from "@/features/app-effects/AppEffects";
 import { WhoWonHost } from "@/features/history-past/WhoWonPrompt";
 // PAY lane (T7.1): the single paywall sheet + pw= test hook + entitlement sync start-up.
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <WhoWonHost />
       <SnackbarHost />
       <UpdatePrompt />
+      <PullToRefresh />
       <PaywallHost />
       <ConsentBanner />
       <InstallPromptHost />

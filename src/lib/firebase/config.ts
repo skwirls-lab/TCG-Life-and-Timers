@@ -23,6 +23,7 @@ export function publicEnv(): Record<string, string | undefined> {
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    NEXT_PUBLIC_AUTH_SAME_ORIGIN: process.env.NEXT_PUBLIC_AUTH_SAME_ORIGIN,
   };
 }
 
@@ -45,7 +46,7 @@ export function readFirebaseConfig(
   }
   const cfg = {
     apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
-    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
+    authDomain: authDomainFor(env, typeof window === "undefined" ? undefined : window.location),
     projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "",
     storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "",
     messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
@@ -53,6 +54,29 @@ export function readFirebaseConfig(
   };
   const missing = Object.values(cfg).some((v) => !v || v === "REPLACE_ME");
   return missing ? null : cfg;
+}
+
+/**
+ * The auth domain the SDK uses for its sign-in handler. With `NEXT_PUBLIC_AUTH_SAME_ORIGIN=1` the
+ * app's own host is used: next.config proxies `/__/auth/*` to `<project>.firebaseapp.com`, so the
+ * redirect flow keeps working in browsers that partition third-party storage (mobile Safari and
+ * Chrome). That host's `https://<host>/__/auth/handler` must be an authorized redirect URI of the
+ * OAuth web client (DEPLOY.md). Local hosts keep the configured domain.
+ */
+export function authDomainFor(
+  env: Record<string, string | undefined>,
+  loc?: { host: string; hostname: string },
+): string {
+  const configured = env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "";
+  if (env.NEXT_PUBLIC_AUTH_SAME_ORIGIN !== "1" || !loc || !configured) return configured;
+  if (loc.hostname === "localhost" || loc.hostname === "127.0.0.1") return configured;
+  return loc.host;
+}
+
+/** True when the sign-in handler is served from the app's own origin (see authDomainFor). */
+export function sameOriginAuth(env: Record<string, string | undefined> = publicEnv()): boolean {
+  if (typeof window === "undefined") return false;
+  return authDomainFor(env, window.location) === window.location.host;
 }
 
 /** True when cloud features (sign-in, sync) can be offered at all. */

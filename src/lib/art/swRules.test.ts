@@ -65,3 +65,13 @@ describe("sameOriginOnly (Google sign-in must bypass the worker)", () => {
     expect(sameOriginOnly("/manifest.webmanifest", origin)(at(`${origin}/play`))).toBe(false);
   });
 });
+
+describe("sameOriginOnly leaves the proxied Firebase Auth handler alone", () => {
+  it("never answers /__/auth or /__/firebase", () => {
+    const origin = "https://tcgtempo.skwirls.com";
+    const m = sameOriginOnly(() => true, origin);
+    expect(m({ url: new URL(`${origin}/__/auth/handler?apiKey=x`) })).toBe(false);
+    expect(m({ url: new URL(`${origin}/__/firebase/init.json`) })).toBe(false);
+    expect(m({ url: new URL(`${origin}/settings`) })).toBe(true);
+  });
+});

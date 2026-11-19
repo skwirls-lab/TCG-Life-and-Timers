@@ -5,7 +5,7 @@
  * unit-tested with fakes; the default driver dynamically imports firebase/auth.
  */
 import { create } from "zustand";
-import { isCloudConfigured } from "@/lib/firebase/config";
+import { isCloudConfigured, sameOriginAuth } from "@/lib/firebase/config";
 import { isStandalone } from "@/lib/device/fullscreen";
 import {
   CANCELLED_CODES,
@@ -52,14 +52,22 @@ export interface AuthEnv {
 }
 
 /** Mobile UA or installed PWA (iOS standalone popups are unreliable, PRD §5.3). */
+/**
+ * Popup first everywhere: the redirect flow loses its result in browsers that partition
+ * third-party storage whenever the auth domain (`<project>.firebaseapp.com`) differs from the
+ * app's domain, which looked like "picked an account, came back still signed out" on phones.
+ * Redirect is only preferred where popups can't report back (an installed app on iOS) AND the
+ * handler is same-origin, so the redirect result survives. A blocked popup still falls back to
+ * redirect (POPUP_FALLBACK_CODES).
+ */
 export function defaultPreferRedirect(): boolean {
   if (typeof window === "undefined") return false;
   const nav = navigator as Navigator & { standalone?: boolean };
   const standalone = isStandalone((q) => window.matchMedia(q), nav);
-  const mobile =
-    /Android|iPhone|iPad|iPod|Mobile/i.test(nav.userAgent) ||
+  const ios =
+    /iPhone|iPad|iPod/i.test(nav.userAgent) ||
     (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
-  return standalone || mobile;
+  return standalone && ios && sameOriginAuth();
 }
 
 const defaultEnv = (): AuthEnv => ({

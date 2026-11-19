@@ -226,19 +226,27 @@ describe("helpers", () => {
     expect(errorCode(5)).toBe("5");
   });
 
-  it("defaultPreferRedirect: mobile UA or standalone → redirect", () => {
-    const mm = vi.fn(
+  it("defaultPreferRedirect: popup everywhere except an installed iOS app with a same-origin handler", () => {
+    const standalone = vi.fn(
       (q: string) => ({ matches: q === "(display-mode: standalone)" }) as MediaQueryList,
     );
-    vi.stubGlobal("matchMedia", mm);
-    expect(defaultPreferRedirect()).toBe(true);
-    mm.mockImplementation(() => ({ matches: false }) as MediaQueryList);
+    vi.stubGlobal("matchMedia", standalone);
     const ua = vi
       .spyOn(navigator, "userAgent", "get")
       .mockReturnValue("Mozilla/5.0 (Linux; Android 14)");
-    expect(defaultPreferRedirect()).toBe(true);
-    ua.mockReturnValue("Mozilla/5.0 (X11; Linux x86_64)");
+    // Android, installed or not: popup (the redirect result was lost → "still signed out")
     expect(defaultPreferRedirect()).toBe(false);
+    // installed iOS app without a same-origin handler: still popup (redirect would fail too)
+    ua.mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
+    expect(defaultPreferRedirect()).toBe(false);
+    // installed iOS app with the same-origin handler (jsdom host = authDomain): redirect
+    vi.stubEnv("NEXT_PUBLIC_AUTH_SAME_ORIGIN", "1");
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", "tcgtempo.firebaseapp.com");
+    expect(defaultPreferRedirect()).toBe(window.location.hostname !== "localhost");
+    // iOS Safari tab (not installed): popup
+    standalone.mockImplementation(() => ({ matches: false }) as MediaQueryList);
+    expect(defaultPreferRedirect()).toBe(false);
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     ua.mockRestore();
   });

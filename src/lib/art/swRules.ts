@@ -50,6 +50,7 @@ export function sameOriginOnly<A extends { url: URL }>(
 ): (args: A) => unknown {
   return (args) => {
     if (args.url.origin !== origin) return false;
+    if (args.url.pathname.startsWith("/__/")) return false; // proxied Firebase Auth handler
     if (typeof matcher === "function") return matcher(args);
     if (matcher instanceof RegExp) return matcher.test(args.url.href);
     return new URL(matcher, origin).href === args.url.href;

@@ -128,7 +128,7 @@ export function Board() {
   const seatRotations = computed?.layout.seats.map((s) => s.rotation);
 
   return (
-    <div ref={ref} className="relative size-full" data-testid="board">
+    <div ref={ref} className="relative size-full" data-testid="board" data-board-root>
       {computed && size && (
         <>
           {computed.layout.seats.map((s) => {

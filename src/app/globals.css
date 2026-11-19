@@ -70,6 +70,12 @@ body {
   color: var(--color-fg);
   font-family: var(--font-sans);
   height: 100%;
+}
+
+/* The game board turns off pull-to-refresh / overscroll so a swipe can't reload mid-game; every
+   other page keeps the browser's normal pull-to-refresh. */
+html:has([data-board-root]),
+html:has([data-board-root]) body {
   overscroll-behavior: none;
 }
 

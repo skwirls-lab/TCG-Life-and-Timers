@@ -10,7 +10,6 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    display_override: ["fullscreen", "standalone"],
     orientation: "any",
     // Splash screen: the icon's own ink, so the icon tile blends into the splash.
     background_color: "#0b0d12",

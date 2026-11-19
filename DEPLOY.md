@@ -180,6 +180,18 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 - [ ] **Legal placeholders**: fill the `[bracket]` placeholders in `src/features/legal/content/en.json` (region, retention, contact, jurisdiction, refund policy), have someone review /privacy and /terms, then remove the "Draft" banners.
 - [ ] **Rules values**: review `docs/RULES-TO-VERIFY.md` with players of each game and correct the game type data if needed (`src/presets/<game>/presets.ts`).
 
+### Optional: same-origin sign-in (recommended for iPhone users of the installed app)
+Sign-in uses a Google popup on every device. An installed app on iPhone can't receive a popup's result, and it falls back to a redirect, which only works when the sign-in handler is on the app's own domain. The app already proxies `/__/auth/*` to `tcgtempo.firebaseapp.com`. To switch it on:
+1. Google Cloud console → **APIs & Services → Credentials** → the OAuth 2.0 client "Web client (auto created by Google Service)" → **Authorized redirect URIs**. Add `https://tcgtempo.skwirls.com/__/auth/handler` and `https://<your-backend>.hosted.app/__/auth/handler`. Under **Authorized JavaScript origins**, add the same two origins.
+2. In `apphosting.yaml`, add:
+   ```yaml
+     - variable: NEXT_PUBLIC_AUTH_SAME_ORIGIN
+       value: "1"
+       availability: [BUILD, RUNTIME]
+   ```
+   Then push to `main`.
+3. Firebase → Authentication → Settings → **Authorized domains** must list both domains (Part 6).
+
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
 1. Create a Stripe account (start in **Test mode**).
 2. Stripe → **Products** → create "TCGTempo Pro" with three prices:
