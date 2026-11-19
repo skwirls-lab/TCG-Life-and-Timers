@@ -5,6 +5,7 @@ import { artToCss } from "@/features/backgrounds/gradients";
 import { SeatMenu, type SeatMenuTab } from "@/features/seat/SeatMenu";
 import { useGameStore } from "@/state/gameStore";
 import { applyTestHooks } from "@/state/testHooks";
+import { useSearchParams } from "next/navigation";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
@@ -76,4 +77,10 @@ export function SeatMenuHarness({ query }: { query: string }) {
       )}
     </main>
   );
+}
+
+/** The harness with the query read in the browser (the static export has no request-time searchParams). */
+export function SeatMenuHarnessFromUrl() {
+  const query = useSearchParams().toString();
+  return <SeatMenuHarness query={query} />;
 }

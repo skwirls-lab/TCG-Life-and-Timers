@@ -70,6 +70,8 @@ describe("security headers (§19.6)", () => {
       expect(d["frame-src"]).toContain(o);
     }
     expect(d["frame-src"]).toContain("https://checkout.stripe.com");
+    // the Firebase Auth handler is same-origin on Hosting (/__/auth/iframe)
+    expect(d["frame-src"]).toContain("'self'");
     expect(d["worker-src"]).toEqual(["'self'", "blob:"]);
     expect(d["media-src"]).toContain("data:");
   });
@@ -92,9 +94,10 @@ describe("security headers (§19.6)", () => {
     expect(contentSecurityPolicy()).not.toMatch(/\n/);
   });
 
-  it("serves the service worker uncached", () => {
+  it("serves the service worker uncached, allowed to control scope /", () => {
     expect(serviceWorkerHeaders()).toEqual([
       { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+      { key: "Service-Worker-Allowed", value: "/" },
     ]);
   });
 });

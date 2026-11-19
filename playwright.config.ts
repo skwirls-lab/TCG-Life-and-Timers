@@ -34,8 +34,10 @@ export default defineConfig({
     },
     ...(isCI ? [{ name: "webkit-iphone", use: { ...devices["iPhone 14"] } }] : []),
   ],
+  // The static export (out-test/ or out-emu/) served by the Firebase Hosting emulator with
+  // firebase.json's headers, rewrites and clean URLs (scripts/serve-hosting.ts).
   webServer: {
-    command: `npm run ${process.env.E2E_SERVER === "emu" ? "start:emu" : "start:test"} -- -p ${port} -H 127.0.0.1`,
+    command: `npm run ${process.env.E2E_SERVER === "emu" ? "start:emu" : "start:test"} -- --port ${port} --host 127.0.0.1`,
     url: baseURL,
     reuseExistingServer: !isCI,
     timeout: 120_000,

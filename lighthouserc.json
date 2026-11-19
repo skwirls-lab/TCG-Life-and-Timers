@@ -1,8 +1,8 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npm run start -- -p 3190 -H 127.0.0.1",
-      "startServerReadyPattern": "Ready",
+      "startServerCommand": "npm run start -- --port 3190 --host 127.0.0.1",
+      "startServerReadyPattern": "All emulators ready",
       "url": [
         "http://127.0.0.1:3190/",
         "http://127.0.0.1:3190/setup",

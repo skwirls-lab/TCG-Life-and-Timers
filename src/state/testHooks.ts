@@ -1,7 +1,7 @@
 "use client";
 /**
  * Test-only hooks (instructions §10.4). Active ONLY in builds with NEXT_PUBLIC_TEST_HOOKS=1
- * (the `.next-test` / `.next-emu` builds); production builds compile this to a no-op.
+ * (the `out-test` / `out-emu` builds); production builds compile this to a no-op.
  *
  * URL params understood by `applyTestHooks` (used by /play and other pages in e2e):
  *   seed=<int>          deterministic RNG for the game store

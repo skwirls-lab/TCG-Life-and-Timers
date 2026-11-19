@@ -20,6 +20,7 @@ import { CalculatorSheet } from "@/features/calculator";
 import { PresetPicker } from "@/features/preset-picker";
 import { useDispatch, useGameStore } from "@/state/gameStore";
 import { applyTestHooks } from "@/state/testHooks";
+import { useSearchParams } from "next/navigation";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 const btn = "min-h-12 min-w-12 rounded-lg bg-surface-2 px-2 text-fg";
@@ -230,4 +231,10 @@ function CounterRow({
       </button>
     </div>
   );
+}
+
+/** The harness with the query read in the browser (the static export has no request-time searchParams). */
+export function PresetsHarnessFromUrl() {
+  const query = useSearchParams().toString();
+  return <PresetsHarness query={query} />;
 }

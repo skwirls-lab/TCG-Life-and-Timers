@@ -16,5 +16,50 @@
     "functions": { "port": 5001, "host": "127.0.0.1" },
     "ui": { "enabled": false },
     "singleProjectMode": true
+  },
+  "hosting": {
+    "public": "out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [{ "source": "/p/**", "destination": "/p/_.html" }],
+    "headers": [
+      {
+        "regex": "^/(?:[^_].*|_[^_].*|__[^/].*|_|__)?$",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://*.googleusercontent.com https://firebasestorage.googleapis.com https://*.google-analytics.com https://www.googletagmanager.com; font-src 'self' data:; connect-src 'self' blob: data: https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://apis.google.com https://api.scryfall.com https://cards.scryfall.io https://svgs.scryfall.io https://api.stripe.com https://checkout.stripe.com https://*.ingest.sentry.io; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://checkout.stripe.com https://js.stripe.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; worker-src 'self' blob:; media-src 'self' data: blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=63072000; includeSubDomains; preload"
+          },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
+          },
+          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
+        ]
+      },
+      {
+        "source": "/_next/static/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "regex": "^/(?:[^_.][^.]*|_[^_.][^.]*|__[^/.][^.]*)?$|^/(?:[^_]|_[^_]|__[^/]).*\\.(?:html|txt|webmanifest)$",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/serwist/sw.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Service-Worker-Allowed", "value": "/" }
+        ]
+      }
+    ]
   }
 }

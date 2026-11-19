@@ -35,10 +35,15 @@ jobs:
         run: npm run test:rules
       - name: Functions (G-FUNCS)
         run: npm run test:functions
-      - name: Build + bundle (G-BUILD)
+      - name: Hosting config in sync with headers.ts
+        run: npm run check:hosting
+      - name: Static export + bundle (G-BUILD)
+        # out/ with the production .env; the budget is measured on the exported HTML
         run: npm run build && npm run check:bundle
       - name: Install Playwright browsers (CI only)
         run: npx playwright install --with-deps chromium webkit
+      # The e2e and Lighthouse runs serve the exports (out-test/, out-emu/, out/) with the Firebase
+      # Hosting emulator and firebase.json's headers and rewrites (scripts/serve-hosting.ts).
       - name: E2E (G-E2E, includes real WebKit)
         run: npm run test:e2e
       - name: E2E with emulators (G-E2E-EMU)
