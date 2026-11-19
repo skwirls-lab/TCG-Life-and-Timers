@@ -178,7 +178,7 @@ These couldn't be verified inside the build sandbox. Check them on the live site
 - [ ] **Delete account** (with a throwaway Google account): data disappears from Firestore and Storage.
 - [ ] **Lighthouse** on the live URL (Chrome DevTools → Lighthouse, Mobile): Performance ≥ 90, Accessibility ≥ 95.
 - [ ] **Legal placeholders**: fill the `[bracket]` placeholders in `src/features/legal/content/en.json` (region, retention, contact, jurisdiction, refund policy), have someone review /privacy and /terms, then remove the "Draft" banners.
-- [ ] **Rules values**: review `docs/RULES-TO-VERIFY.md` with players of each game and correct the preset data if needed (`src/presets/<game>/presets.ts`).
+- [ ] **Rules values**: review `docs/RULES-TO-VERIFY.md` with players of each game and correct the game type data if needed (`src/presets/<game>/presets.ts`).
 
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
 1. Create a Stripe account (start in **Test mode**).

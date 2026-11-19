@@ -16,6 +16,8 @@ export interface ExportPayload {
   profiles: unknown[];
   decks: unknown[];
   presets: unknown[];
+  /** Saved setups ("Presets"). */
+  setups: unknown[];
   settings: unknown[];
   records: unknown[];
   /** Art metadata only; image binaries are not included. */
@@ -35,6 +37,7 @@ export async function buildExport(
     profiles: await db.profiles.toArray(),
     decks: await db.decks.toArray(),
     presets: await db.presets.toArray(),
+    setups: await db.setups.toArray(),
     settings: await db.settings.toArray(),
     records: await db.records.toArray(),
     art: art.map((a) => ({

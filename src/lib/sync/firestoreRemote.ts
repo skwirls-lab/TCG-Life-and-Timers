@@ -19,6 +19,8 @@ import {
   paths,
   presetDataSchema,
   presetDocSchema,
+  setupDataSchema,
+  setupDocSchema,
   profileDataSchema,
   profileDocSchema,
   userDataSchema,
@@ -113,7 +115,7 @@ function payload(schema: ZodType, item: SyncItem, fs: FirestoreApi): Record<stri
   return { ...toJsonObject(parsed as object), updatedAt: fs.serverTimestamp() };
 }
 
-/** A flat collection under users/{uid} (profiles, presets, games, art). */
+/** A flat collection under users/{uid} (profiles, presets, setups, games, art). */
 export function collectionRemote(
   ctx: RemoteContext,
   collectionPath: string,
@@ -283,6 +285,8 @@ export const remoteAdapters = {
     collectionRemote(ctx, paths.profiles(ctx.uid), profileDataSchema, profileDocSchema),
   presets: (ctx: RemoteContext) =>
     collectionRemote(ctx, paths.presets(ctx.uid), presetDataSchema, presetDocSchema),
+  setups: (ctx: RemoteContext) =>
+    collectionRemote(ctx, paths.setups(ctx.uid), setupDataSchema, setupDocSchema),
   records: (ctx: RemoteContext) =>
     collectionRemote(ctx, paths.games(ctx.uid), gameDataSchema, gameDocSchema),
   art: (ctx: RemoteContext) =>
@@ -293,7 +297,7 @@ export const remoteAdapters = {
 
 /** One-shot read of everything the user has in the cloud (guest → account merge planning). */
 export type RemoteData = Record<
-  "profiles" | "decks" | "presets" | "records" | "art" | "settings",
+  "profiles" | "decks" | "presets" | "setups" | "records" | "art" | "settings",
   SyncItem[]
 >;
 
@@ -316,6 +320,7 @@ export async function fetchRemoteItems(ctx: RemoteContext): Promise<RemoteData> 
     profiles,
     decks,
     presets: await read(paths.presets(uid), presetDocSchema),
+    setups: await read(paths.setups(uid), setupDocSchema),
     records: await read(paths.games(uid), gameDocSchema),
     art: await read(paths.arts(uid), artDocSchema),
     settings:

@@ -7,6 +7,7 @@ import {
   moveSeat,
   perSeatMaps,
   playerChoices,
+  removeSeat,
   resizeSeats,
   seatStart,
   seatThreshold,
@@ -86,6 +87,19 @@ describe("setup wizard model", () => {
     expect(s.seats.map((x) => x.name)).toEqual(["P1", "P0", "P2", "P3"]);
     expect(moveSeat(s, 0, -1)).toBe(s);
     expect(moveSeat(s, 3, 1)).toBe(s);
+  });
+
+  // @req LAY-005
+  it("removes one seat (later seats move up), never below the minimum", () => {
+    let s = stateForPreset(commander, undefined);
+    s = { ...s, seats: s.seats.map((x, i) => ({ ...x, name: `P${i}` })) };
+    s = removeSeat(s, commander, 1);
+    expect(s.players).toBe(3);
+    expect(s.seats.map((x) => x.name)).toEqual(["P0", "P2", "P3"]);
+    expect(toNewGameConfig(s, commander).seats?.map((x) => x.id)).toEqual(["s1", "s2", "s3"]);
+    expect(removeSeat(s, commander, 7)).toBe(s);
+    const two = stateForPreset(limited, undefined);
+    expect(removeSeat(two, limited, 0)).toBe(two);
   });
 
   // @req PROF-002

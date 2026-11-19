@@ -5,7 +5,14 @@
  * remote change never looks like a fresh local edit.
  */
 import type { ZodType } from "zod";
-import type { StoredArt, StoredDeck, StoredPreset, StoredProfile, StoredRecord } from "@/lib/db";
+import type {
+  StoredArt,
+  StoredDeck,
+  StoredPreset,
+  StoredProfile,
+  StoredRecord,
+  StoredSetup,
+} from "@/lib/db";
 import { normalizeName } from "@/lib/db";
 import {
   artDataSchema,
@@ -16,9 +23,11 @@ import {
   LIMITS,
   presetDataSchema,
   profileDataSchema,
+  setupDataSchema,
   userDataSchema,
 } from "@/lib/firebase/docs";
 import { DECK_SCHEMA_VERSION, PROFILE_SCHEMA_VERSION } from "@/lib/profiles/types";
+import { SAVED_SETUP_SCHEMA_VERSION, SavedSetupSchema } from "@/lib/setups/types";
 import { toJsonObject } from "./json";
 import type { JsonObject, SyncItem } from "./types";
 
@@ -215,6 +224,52 @@ export const presetMapper: RowMapper<StoredPreset> = {
       id: item.id,
       schemaVersion: num(item.data.schemaVersion, 1),
       preset: JSON.parse(str(item.data.payload) || "null") as unknown,
+      updatedAt: item.updatedAt,
+    };
+  },
+};
+
+/**
+ * Saved setups ("Presets"): the validated setup minus `id` / `updatedAt` travels as the JSON
+ * `payload` (the server stamps `updatedAt`); name, game type and player count are duplicated
+ * top-level for the rules. Invalid rows stay local.
+ */
+export const setupMapper: RowMapper<StoredSetup> = {
+  toItem(row, log) {
+    const { schemaVersion: _v, ...rest } = row;
+    const parsed = SavedSetupSchema.safeParse(rest);
+    if (!parsed.success) {
+      log?.(`sync: skipping invalid setup ${row.id}: ${parsed.error.issues[0]?.message ?? ""}`);
+      return null;
+    }
+    const { id: _id, updatedAt, ...setup } = parsed.data;
+    const data = validated(
+      setupDataSchema,
+      {
+        name: setup.name,
+        presetId: setup.presetId,
+        players: setup.seats.length,
+        payload: JSON.stringify(setup),
+        schemaVersion: num(row.schemaVersion, SAVED_SETUP_SCHEMA_VERSION),
+      },
+      `setup ${row.id}`,
+      log,
+    );
+    return data ? { id: row.id, updatedAt, deleted: false, data } : null;
+  },
+  fromItem(item) {
+    let payload: Record<string, unknown> = {};
+    try {
+      const v = JSON.parse(str(item.data.payload) || "{}") as unknown;
+      if (v && typeof v === "object" && !Array.isArray(v)) payload = v as Record<string, unknown>;
+    } catch {
+      // unreadable payload: an invalid row, skipped by the repo and never pushed back
+    }
+    return {
+      ...payload,
+      id: item.id,
+      schemaVersion: num(item.data.schemaVersion, SAVED_SETUP_SCHEMA_VERSION),
+      order: num(payload.order),
       updatedAt: item.updatedAt,
     };
   },

@@ -14,7 +14,7 @@ export interface SeatMenuTarget {
 }
 
 /** A sheet (or page) opened from the center menu; the menu panel hides while it is up. */
-export type CenterMenuSub = "players" | "tools" | "calc" | "route";
+export type CenterMenuSub = "players" | "tools" | "calc" | "route" | "savePreset";
 
 /**
  * MENU: the board's center menu. While it (or a sheet opened from it) is up, `menu` is non-null,

@@ -5,7 +5,8 @@
  *                canceled FIRST, so a deleted account never keeps billing (B-3). A Stripe failure
  *                aborts before anything is deleted (the user can retry). Without a key, DEPLOY.md
  *                requires the extension's "Automatically delete Stripe customer objects" option.
- *   - Firestore: users/{uid}/** and customers/{uid}/** (recursive), sharedPresets owned by uid,
+ *   - Firestore: users/{uid}/** and customers/{uid}/** (recursive: profiles, decks, custom game
+ *                types, saved setups ("Presets"), games, art, private docs), sharedPresets owned by uid,
  *                feedback docs carrying the uid (B-6)
  *   - Storage:   every object under users/{uid}/
  *   - Auth:      the user record (already-deleted users are ignored)

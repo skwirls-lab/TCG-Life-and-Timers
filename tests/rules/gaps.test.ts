@@ -92,12 +92,19 @@ describe("B-4 paywall enabled — Pro-only cloud features are enforced server-si
     );
   });
 
-  it("other owner data (profiles, presets, art metadata) stays free", async () => {
+  it("other owner data (profiles, game types, presets, art metadata) stays free", async () => {
     await assertSucceeds(
       setDoc(doc(free().firestore(), "users/freeUser/profiles/p1"), valid.profile()),
     );
     await assertSucceeds(
       setDoc(doc(free().firestore(), "users/freeUser/art/a1"), valid.art("freeUser")),
+    );
+    // Saved setups ("Presets"): the free limit of 1 is client-side, like custom game types.
+    await assertSucceeds(
+      setDoc(doc(free().firestore(), "users/freeUser/setups/s1"), valid.setup()),
+    );
+    await assertSucceeds(
+      setDoc(doc(free().firestore(), "users/freeUser/setups/s2"), valid.setup()),
     );
   });
 

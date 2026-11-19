@@ -1,7 +1,7 @@
 "use client";
 /**
- * Launcher `/` (T1.12): Resume card (GAME-016), "Quick start: same as last game" (GAME-001),
- * New game → /setup, and links to History, Tools, Settings and Profiles.
+ * Launcher `/` (T1.12): Resume card (GAME-016), Presets (saved setups), "Quick start: same as
+ * last game" (GAME-001), New game → /setup, and links to History, Tools, Settings and Profiles.
  */
 import { Dices, History, Layers, Play, Plus, Settings, Users, Zap } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui";
 import type { NewGameConfig } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
 import { loadLastConfig } from "@/features/setup/gameConfig";
+import { SetupTiles } from "@/features/setups/SetupTiles";
 import { startNewGame } from "@/features/setup/startGame";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
@@ -139,6 +140,9 @@ export function Launcher() {
             </span>
           </Link>
         )}
+
+        {/* Saved setups ("Presets"): one tap starts the usual pod (hidden when there are none). */}
+        <SetupTiles />
 
         <div className="flex flex-col gap-3">
           {quick && (

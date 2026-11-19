@@ -17,6 +17,7 @@ import pay from "@/i18n/en/pay.json";
 import presets from "@/i18n/en/presets.json";
 import profiles from "@/i18n/en/profiles.json";
 import seat from "@/i18n/en/seat.json";
+import setups from "@/i18n/en/setups.json";
 import shell from "@/i18n/en/shell.json";
 import timer from "@/i18n/en/timer.json";
 import tools from "@/i18n/en/tools.json";
@@ -37,6 +38,7 @@ const dictionaries = [
   presets,
   profiles,
   seat,
+  setups,
   shell,
   timer,
   tools,

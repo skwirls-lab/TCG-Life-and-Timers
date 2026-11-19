@@ -233,14 +233,14 @@ export type ImportResult = { ok: true; preset: Preset } | { ok: false; errors: s
 
 function unwrap(data: unknown): { ok: true; value: unknown } | { ok: false; error: string } {
   if (typeof data !== "object" || data === null || Array.isArray(data))
-    return { ok: false, error: "The file does not contain a preset." };
+    return { ok: false, error: "The file does not contain a game type." };
   const obj = data as Record<string, unknown>;
   // Envelope: { format, version, preset }. (Presets have a `format` field too, but no `preset`.)
   if ("preset" in obj && !("counters" in obj)) {
     if (obj.format !== PRESET_EXPORT_FORMAT)
-      return { ok: false, error: "This is not a TCGTempo preset file." };
+      return { ok: false, error: "This is not a TCGTempo game type file." };
     if (typeof obj.version !== "number" || obj.version > PRESET_EXPORT_VERSION)
-      return { ok: false, error: "This preset file was made by a newer version of the app." };
+      return { ok: false, error: "This game type file was made by a newer version of the app." };
     return { ok: true, value: obj.preset };
   }
   return { ok: true, value: obj };
@@ -261,7 +261,7 @@ export function importPresetJson(text: string): ImportResult {
   if (!inner.ok) return { ok: false, errors: [inner.error] };
   const raw = inner.value;
   if (typeof raw !== "object" || raw === null || Array.isArray(raw))
-    return { ok: false, errors: ["The file does not contain a preset."] };
+    return { ok: false, errors: ["The file does not contain a game type."] };
   const id = newCustomPresetId();
   const shaped = { ...(raw as Record<string, unknown>), id, builtIn: false };
   const parsed = PresetSchema.safeParse(shaped);

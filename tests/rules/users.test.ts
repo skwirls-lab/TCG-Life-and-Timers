@@ -240,6 +240,31 @@ describe("document validation (SEC-003)", () => {
   });
 
   // @req SEC-003
+  it("validates saved setups (Presets): shape, name, game type, players, 32 KB payload", async () => {
+    const path = "users/alice/setups/s1";
+    await assertSucceeds(setDoc(doc(alice(), path), valid.setup()));
+    await assertSucceeds(
+      updateDoc(doc(alice(), path), { deleted: true, updatedAt: valid.setup().updatedAt }),
+    );
+    const bad: Record<string, unknown>[] = [
+      { ...valid.setup(), name: "" },
+      { ...valid.setup(), name: "x".repeat(61) },
+      { ...valid.setup(), presetId: "bad id/with slash" },
+      { ...valid.setup(), players: 9 },
+      { ...valid.setup(), players: 0 },
+      { ...valid.setup(), players: "4" },
+      { ...valid.setup(), payload: "x".repeat(32 * 1024 + 1) },
+      { ...valid.setup(), payload: 42 },
+      { ...valid.setup(), schemaVersion: 0 },
+      { ...valid.setup(), extra: true },
+      { ...valid.setup(), updatedAt: Timestamp.fromMillis(0) },
+    ];
+    for (const d of bad) await assertFails(setDoc(doc(alice(), "users/alice/setups/s2"), d));
+    const { players: _p, ...missing } = valid.setup();
+    await assertFails(setDoc(doc(alice(), "users/alice/setups/s3"), missing));
+  });
+
+  // @req SEC-003
   it("caps the game log at 500 KB and validates seats", async () => {
     const path = "users/alice/games/g1";
     await assertFails(

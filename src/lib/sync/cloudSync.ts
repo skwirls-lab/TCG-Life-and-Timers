@@ -68,6 +68,7 @@ export function buildCollections(
       local: localAdapters.presets(db, warn),
       remote: remoteAdapters.presets(ctx),
     },
+    { name: "setups", local: localAdapters.setups(db, warn), remote: remoteAdapters.setups(ctx) },
     {
       name: "settings",
       local: settingsAdapter(db, { log: warn, onApplied: deps.onSettingsApplied }),

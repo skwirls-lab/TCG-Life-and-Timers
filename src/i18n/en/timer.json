@@ -60,7 +60,7 @@
   "timer.warnings.late": "1:00 · 0:10",
   "timer.warnings.off": "No warnings",
   "timer.warnings.custom": "Custom",
-  "timer.warnings.preset": "Preset",
+  "timer.warnings.preset": "Game type",
   "timer.warnings.add": "Add a warning",
   "timer.warnings.remove": "Remove the {time} warning",
   "timer.warnings.flag.sound": "Sound at {time}",

@@ -7,6 +7,7 @@
  * Test ids match the strip's (`toolbar-*`, `timer-start`, `match-clock`), so specs can use either.
  */
 import {
+  BookmarkPlus,
   Calculator,
   Dices,
   History,
@@ -368,6 +369,13 @@ export function CenterMenuPanel({ leaving = false }: { leaving?: boolean }) {
                 text={t("board.menu.item.settings")}
                 icon={<Settings size={24} />}
                 onClick={() => go("/settings")}
+              />
+              <Tile
+                testId="center-menu-save-preset"
+                label={t("setups.save.action")}
+                text={t("setups.save.action")}
+                icon={<BookmarkPlus size={24} />}
+                onClick={() => openCenterSub("savePreset")}
               />
               {calcOn && (
                 <Tile

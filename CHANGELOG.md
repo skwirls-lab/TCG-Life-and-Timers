@@ -3,6 +3,19 @@
 All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
+## [1.2.0] - 2026-11-19
+
+### Presets
+
+- Save your usual game as a preset: the game type, house rules, clock, seats, players, profiles and decks. Save it at the end of Setup or from the game menu.
+- Your presets sit at the top of the start screen. Tap one to start that exact game straight away, or tap Edit first to swap a deck, drop a seat or replace a player. If you changed something, you can update the preset in one tap.
+- Rename, reorder and delete presets from a tile's menu. Signed in, presets sync to your other devices.
+- Setup can now remove one seat, so a player who can't make it doesn't shift everyone else around.
+
+### Clearer names
+
+- What used to be called presets (MTG Commander, Pokémon, or the games you build yourself) are now called game types: Custom game types, game type share links and import.
+
 ## [1.1.0] - 2026-11-18
 
 ### New name and look

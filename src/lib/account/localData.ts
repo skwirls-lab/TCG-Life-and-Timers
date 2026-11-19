@@ -11,6 +11,7 @@ export const MERGE_COLLECTIONS = [
   "profiles",
   "decks",
   "presets",
+  "setups",
   "records",
   "art",
   "settings",
@@ -19,7 +20,15 @@ export type MergeCollection = (typeof MERGE_COLLECTIONS)[number];
 export type DataSnapshot = Record<MergeCollection, SyncItem[]>;
 
 export function emptySnapshot(): DataSnapshot {
-  return { profiles: [], decks: [], presets: [], records: [], art: [], settings: [] };
+  return {
+    profiles: [],
+    decks: [],
+    presets: [],
+    setups: [],
+    records: [],
+    art: [],
+    settings: [],
+  };
 }
 
 export async function snapshotLocal(db: TcgDb = getDb()): Promise<DataSnapshot> {
@@ -27,6 +36,7 @@ export async function snapshotLocal(db: TcgDb = getDb()): Promise<DataSnapshot> 
     profiles: await localAdapters.profiles(db).list(),
     decks: await localAdapters.decks(db).list(),
     presets: await localAdapters.presets(db).list(),
+    setups: await localAdapters.setups(db).list(),
     records: await localAdapters.records(db).list(),
     art: await localAdapters.art(db).list(),
     settings: await settingsAdapter(db).list(),
@@ -40,7 +50,8 @@ export interface ClearOptions {
 }
 
 /**
- * Remove synced account data from this device: profiles, decks, custom presets, synced settings
+ * Remove synced account data from this device: profiles, decks, custom game types, saved setups
+ * ("Presets"), synced settings
  * (device-only settings stay), uploaded-art metadata and (optionally) game records. The active
  * game (`games` + the active pointer) and local-only art are kept.
  */
@@ -50,11 +61,12 @@ export async function clearLocalAccountData(
 ): Promise<void> {
   await db.transaction(
     "rw",
-    [db.profiles, db.decks, db.presets, db.settings, db.art, db.records],
+    [db.profiles, db.decks, db.presets, db.setups, db.settings, db.art, db.records],
     async () => {
       await db.profiles.clear();
       await db.decks.clear();
       await db.presets.clear();
+      await db.setups.clear();
       if (opts.includeRecords) await db.records.clear();
       await db.settings.where("key").startsWith(PRESET_DEFAULTS_PREFIX).delete();
       const app = await db.settings.get(APP_SETTINGS_KEY);

@@ -43,6 +43,15 @@ export interface StoredPreset {
   updatedAt: number;
 }
 
+/** Saved setup ("Preset" in the UI): shape owned by src/lib/setups (SavedSetupSchema). */
+export interface StoredSetup {
+  id: string;
+  schemaVersion: number;
+  order: number;
+  updatedAt: number;
+  [field: string]: unknown;
+}
+
 export interface StoredSetting {
   key: string;
   value: unknown;
@@ -66,6 +75,8 @@ export class TcgDb extends Dexie {
   profiles!: EntityTable<StoredProfile, "id">;
   decks!: EntityTable<StoredDeck, "id">;
   presets!: EntityTable<StoredPreset, "id">;
+  /** Saved setups (DB v2). */
+  setups!: EntityTable<StoredSetup, "id">;
   settings!: EntityTable<StoredSetting, "key">;
   art!: EntityTable<StoredArt, "id">;
   kv!: EntityTable<StoredKv, "key">;

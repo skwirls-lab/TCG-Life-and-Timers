@@ -57,6 +57,14 @@ export const valid = {
     schemaVersion: 1,
     updatedAt: now(),
   }),
+  setup: () => ({
+    name: "Friday pod · MTG Commander",
+    presetId: "mtg.commander",
+    players: 4,
+    payload: JSON.stringify({ name: "Friday pod", seats: [{ name: "Ann" }] }),
+    schemaVersion: 1,
+    updatedAt: now(),
+  }),
   game: () => ({
     schemaVersion: 1,
     presetId: "mtg-commander",
@@ -109,6 +117,7 @@ export function userDocs(uid: string): { path: string; make: () => Record<string
     { path: `users/${uid}/profiles/p1`, make: valid.profile },
     { path: `users/${uid}/profiles/p1/decks/d1`, make: valid.deck },
     { path: `users/${uid}/presets/custom-1`, make: valid.preset },
+    { path: `users/${uid}/setups/s1`, make: valid.setup },
     { path: `users/${uid}/games/g1`, make: valid.game },
     { path: `users/${uid}/art/a1`, make: () => valid.art(uid) },
   ];
