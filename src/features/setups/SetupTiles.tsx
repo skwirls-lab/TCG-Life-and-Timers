@@ -145,7 +145,6 @@ export function SetupTiles() {
                 type="button"
                 disabled={missing || busy || type === undefined}
                 onClick={() => void start(setup)}
-                aria-label={t("setups.tile.start", { name: setup.name })}
                 data-testid={`setup-tile-${i}-start`}
                 className="flex min-h-24 min-w-0 flex-1 items-center gap-3 p-4 text-left transition hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent disabled:cursor-default disabled:hover:bg-transparent"
               >
@@ -159,6 +158,8 @@ export function SetupTiles() {
                   {missing ? <TriangleAlert size={24} /> : <GameIcon id={icon} size={26} />}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  {/* The visible text names the button; "Start" is read before it. */}
+                  <span className="sr-only">{t("setups.tile.startPrefix")}</span>
                   <span
                     className="truncate text-lg font-semibold leading-tight"
                     data-testid={`setup-tile-${i}-name`}
@@ -297,8 +298,7 @@ function ManageSheet({
           </Button>
           <Button
             block
-            variant="danger"
-            icon={<Trash2 aria-hidden size={20} />}
+            icon={<Trash2 aria-hidden size={20} className="text-danger" />}
             className={rowCls}
             onClick={() => setMode("delete")}
             data-testid="setup-manage-delete"

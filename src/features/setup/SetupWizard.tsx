@@ -4,15 +4,7 @@
  * Start is available on every step, so a default game is 2 taps from the launcher (≤ 6 budget).
  */
 import { SHOW_VERIFY_HINTS } from "@/lib/presets/verifyHints";
-import {
-  ArrowDown,
-  ArrowUp,
-  BookmarkPlus,
-  Palette,
-  TriangleAlert,
-  UserRound,
-  X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Palette, TriangleAlert, UserRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -591,8 +583,7 @@ export function SetupWizard() {
           <Button
             size="lg"
             variant="secondary"
-            className="flex-1 px-3"
-            icon={<BookmarkPlus aria-hidden />}
+            className="min-w-0 flex-1 basis-0 whitespace-nowrap px-3 text-base"
             onClick={() => void openSave()}
             data-testid="setup-save-preset"
           >
@@ -602,7 +593,7 @@ export function SetupWizard() {
         <Button
           size="lg"
           variant="primary"
-          className="flex-1"
+          className="min-w-0 flex-1 basis-0 whitespace-nowrap px-3"
           disabled={starting}
           onClick={() => void start()}
           data-testid="setup-start-game"

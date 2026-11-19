@@ -280,4 +280,3 @@ export function draftOf(setup: SavedSetup): SetupDraft {
   } = setup;
   return draft;
 }
-

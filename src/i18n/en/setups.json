@@ -1,9 +1,8 @@
 {
   "setups.title": "Presets",
   "setups.hint": "Tip: save your setup as a preset to start it in one tap next time.",
-  "setups.tile.start": "Start {name}",
+  "setups.tile.startPrefix": "Start",
   "setups.tile.summary": "{game} · {players} players",
-  "setups.tile.edit": "Edit",
   "setups.tile.editLabel": "Edit {name} before starting",
   "setups.tile.more": "More actions for {name}",
   "setups.tile.missing": "Game type missing",
