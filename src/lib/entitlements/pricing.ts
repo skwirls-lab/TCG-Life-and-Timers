@@ -86,6 +86,15 @@ export function purchasablePlans(plans: readonly Plan[] = readPlans()): Plan[] {
   return plans.filter((p) => p.priceId !== null);
 }
 
+/**
+ * Plans to show on the purchase panel: only the ones that can be bought once any price id is
+ * configured (e.g. monthly + yearly without a lifetime price), else all as a disabled preview.
+ */
+export function plansToShow(plans: readonly Plan[] = readPlans()): Plan[] {
+  const buyable = purchasablePlans(plans);
+  return buyable.length > 0 ? buyable : [...plans];
+}
+
 export type SalesStatus = "ready" | "pricesMissing" | "cloudMissing";
 
 /** Can this deployment sell Pro? (cloud config first: checkout needs an account). */

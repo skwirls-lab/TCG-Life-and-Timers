@@ -4,6 +4,7 @@ import {
   EMULATOR_TEST_PRICES,
   PLACEHOLDER_PRICES,
   parsePriceId,
+  plansToShow,
   pricingEnv,
   purchasablePlans,
   readPlans,
@@ -66,5 +67,20 @@ describe("pricing config (T7.4)", () => {
     expect(env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY).toBe("price_real");
     expect(env.NEXT_PUBLIC_STRIPE_PRICE_LIFETIME).toBe(EMULATOR_TEST_PRICES.lifetime);
     expect(withEmulatorTestPrices({}).NEXT_PUBLIC_STRIPE_PRICE_YEARLY).toBe("price_e2eYearly");
+  });
+});
+
+describe("plansToShow", () => {
+  it("shows only buyable plans once any price is set, else all as a preview", () => {
+    const two = readPlans({
+      NEXT_PUBLIC_STRIPE_PRICE_MONTHLY: "price_abc",
+      NEXT_PUBLIC_STRIPE_PRICE_YEARLY: "price_def",
+      NEXT_PUBLIC_PRICE_DISPLAY_YEARLY: "$19.99",
+    });
+    expect(plansToShow(two).map((p) => [p.id, p.display])).toEqual([
+      ["monthly", "$1.99"],
+      ["yearly", "$19.99"],
+    ]);
+    expect(plansToShow(readPlans({})).map((p) => p.id)).toEqual(["monthly", "yearly", "lifetime"]);
   });
 });

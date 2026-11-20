@@ -11,6 +11,7 @@ import { rememberCheckoutPlan } from "@/lib/entitlements/purchaseTracking";
 import { useEntitlements } from "@/lib/entitlements/store";
 import {
   PLACEHOLDER_PRICES,
+  plansToShow,
   readPlans,
   salesStatus,
   type Plan,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/entitlements/pricing";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t, type MessageKey } from "@/lib/i18n";
+import { cn } from "@/lib/ui/cn";
 
 function subscribeOnline(cb: () => void): () => void {
   window.addEventListener("online", cb);
@@ -46,7 +48,7 @@ type Busy = { kind: "idle" } | { kind: "working"; text: string } | { kind: "erro
 export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
   const online = useOnline();
   const cloud = isCloudConfigured();
-  const plans = readPlans();
+  const plans = plansToShow(readPlans());
   const status = salesStatus(cloud, plans);
   const pro = useEntitlements((s) => s.pro);
   const user = useAuth((s) => s.user);
@@ -88,7 +90,12 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
           {blockedText}
         </p>
       )}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-2",
+          plans.length >= 3 ? "sm:grid-cols-3" : "sm:grid-cols-2",
+        )}
+      >
         {plans.map((plan) => {
           const name = t(`pay.plan.${plan.id}`);
           return (
