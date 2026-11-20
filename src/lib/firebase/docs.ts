@@ -275,19 +275,6 @@ export const feedbackDocSchema = feedbackDataSchema.extend({ createdAt: timestam
 export type FeedbackData = z.infer<typeof feedbackDataSchema>;
 export type FeedbackDoc = z.infer<typeof feedbackDocSchema>;
 
-// customers/{uid}/checkout_sessions/{id}: the only client-writable Stripe-extension doc (M7)
-export const checkoutSessionDataSchema = z.strictObject({
-  price: z.string().regex(/^price_[A-Za-z0-9]+$/),
-  success_url: z.url().max(2048),
-  cancel_url: z.url().max(2048),
-  mode: z.enum(["subscription", "payment"]).optional(),
-  allow_promotion_codes: z.boolean().optional(),
-  trial_from_plan: z.boolean().optional(),
-  quantity: z.number().int().min(1).max(10).optional(),
-  metadata: z.record(z.string(), z.string()).optional(),
-});
-export type CheckoutSessionData = z.infer<typeof checkoutSessionDataSchema>;
-
 /** Document / collection paths. Every user path is scoped by uid (SEC-001). */
 export const paths = {
   user: (uid: string) => `users/${uid}`,
@@ -305,11 +292,6 @@ export const paths = {
   arts: (uid: string) => `users/${uid}/art`,
   art: (uid: string, artId: string) => `users/${uid}/art/${artId}`,
   entitlements: (uid: string) => `users/${uid}/private/entitlements`,
-  customer: (uid: string) => `customers/${uid}`,
-  checkoutSessions: (uid: string) => `customers/${uid}/checkout_sessions`,
-  checkoutSession: (uid: string, id: string) => `customers/${uid}/checkout_sessions/${id}`,
-  subscriptions: (uid: string) => `customers/${uid}/subscriptions`,
-  payments: (uid: string) => `customers/${uid}/payments`,
   sharedPresets: () => "sharedPresets",
   sharedPreset: (code: string) => `sharedPresets/${code}`,
   feedback: () => "feedback",

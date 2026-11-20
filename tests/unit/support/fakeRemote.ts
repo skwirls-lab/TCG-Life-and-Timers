@@ -11,6 +11,8 @@ export interface FakeRemote extends RemotePort {
   serverWrite(path: string, data: Record<string, unknown> | null, fromCache?: boolean): void;
   failNext: { setDoc?: unknown; addDoc?: unknown; call?: unknown; getDoc?: unknown };
   callResult: unknown;
+  /** Per-function results (take precedence over `callResult`). */
+  callResultFor: Record<string, unknown>;
 }
 
 export function fakeRemote(): FakeRemote {
@@ -32,6 +34,7 @@ export function fakeRemote(): FakeRemote {
     calls: [],
     failNext: {},
     callResult: undefined,
+    callResultFor: {},
     async addDoc(col, data) {
       take("addDoc");
       const id = `doc${++seq}`;
@@ -71,7 +74,7 @@ export function fakeRemote(): FakeRemote {
     async call(name, data) {
       remote.calls.push({ name, data });
       take("call");
-      return remote.callResult;
+      return name in remote.callResultFor ? remote.callResultFor[name] : remote.callResult;
     },
     serverWrite(path, data, fromCache = false) {
       if (data === null) docs.delete(path);

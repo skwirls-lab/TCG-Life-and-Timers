@@ -1,8 +1,9 @@
 "use client";
 /**
- * Plans + "Restore purchase" + "Manage subscription" (PAY-002, PAY-004). Buttons are disabled,
+ * Plans + "Restore purchase(s)" + "Manage subscription" (PAY-002, PAY-004). Buttons are disabled,
  * with the reason shown, when this deployment can't sell (no cloud config / no Stripe price ids)
- * or the device is offline.
+ * or the device is offline. Guests restore by signing in; signed-in users get Restore purchases
+ * (a server re-check against Stripe).
  */
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui";
@@ -20,6 +21,7 @@ import {
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
+import { RestorePurchases } from "./RestorePurchases";
 
 function subscribeOnline(cb: () => void): () => void {
   window.addEventListener("online", cb);
@@ -60,19 +62,23 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
     setBusy({ kind: "working", text: t("pay.checkout.redirecting") });
     rememberCheckoutPlan(plan.id); // §19.5 purchase attribution on the success return
     const { startCheckout } = await import("@/lib/entitlements/checkout");
-    const res = await startCheckout(plan.priceId, plan.mode);
+    const res = await startCheckout(plan.priceId);
     if (res.status === "redirected") return;
-    if (res.status === "needsSignIn")
+    if (res.status === "alreadyPro") {
+      if (res.portal.status === "redirected") return;
+      setBusy({ kind: "error", text: t("pay.checkout.alreadyPro") });
+    } else if (res.status === "needsSignIn")
       setBusy({ kind: "error", text: t("pay.checkout.signInFirst") });
-    else if (res.status === "timeout") setBusy({ kind: "error", text: t("pay.checkout.timeout") });
     else setBusy({ kind: "error", text: t("pay.checkout.error", { error: res.error }) });
   };
 
   const manage = async () => {
     setBusy({ kind: "working", text: t("pay.manage.opening") });
-    const { openBillingPortal } = await import("@/lib/entitlements/checkout");
-    const res = await openBillingPortal();
-    if (res.status === "unavailable") setBusy({ kind: "error", text: t("pay.manage.unavailable") });
+    const { openPortal } = await import("@/lib/entitlements/checkout");
+    const res = await openPortal();
+    if (res.status === "noCustomer") setBusy({ kind: "error", text: t("pay.manage.noCustomer") });
+    else if (res.status === "unavailable")
+      setBusy({ kind: "error", text: t("pay.manage.unavailable") });
   };
 
   const blockedText =
@@ -144,6 +150,9 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
           </Button>
           <p className="text-xs text-fg-muted">{t("pay.restore.help")}</p>
         </div>
+      )}
+      {signedIn && (
+        <RestorePurchases testId={`${testId}-restore-purchases`} disabled={!online || !cloud} />
       )}
       {signedIn && pro && (
         <Button

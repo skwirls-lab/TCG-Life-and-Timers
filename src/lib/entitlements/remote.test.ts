@@ -47,8 +47,8 @@ beforeEach(() => {
 describe("firebaseRemote", () => {
   it("adds, sets (with server timestamps), gets and deletes docs", async () => {
     const r = firebaseRemote();
-    expect(await r.addDoc("customers/u/checkout_sessions", { price: "p" })).toBe("new1");
-    expect(fs.collection).toHaveBeenCalledWith(client.db, "customers/u/checkout_sessions");
+    expect(await r.addDoc("feedback", { price: "p" })).toBe("new1");
+    expect(fs.collection).toHaveBeenCalledWith(client.db, "feedback");
 
     await r.setDoc("sharedPresets/AAAAAAAA", { code: "AAAAAAAA" }, ["createdAt"]);
     expect(fs.setDoc).toHaveBeenCalledWith(

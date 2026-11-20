@@ -6,7 +6,6 @@ import {
   artDocSchema,
   artRefSchema,
   artStoragePath,
-  checkoutSessionDataSchema,
   deckDataSchema,
   entitlementsDocSchema,
   feedbackDataSchema,
@@ -163,13 +162,6 @@ describe("firestore doc schemas (SEC-003)", () => {
     expect(feedbackDataSchema.safeParse({ ...f, diagnostics: "{bad" }).success).toBe(false);
     expect(feedbackDataSchema.safeParse({ ...f, text: "x".repeat(4001) }).success).toBe(false);
   });
-
-  // @req SEC-002
-  it("validates checkout session requests", () => {
-    const c = { price: "price_1", success_url: "https://a.b/ok", cancel_url: "https://a.b/no" };
-    expect(checkoutSessionDataSchema.safeParse(c).success).toBe(true);
-    expect(checkoutSessionDataSchema.safeParse({ ...c, price: "prod_1" }).success).toBe(false);
-  });
 });
 
 describe("paths", () => {
@@ -187,11 +179,6 @@ describe("paths", () => {
     expect(paths.arts("u")).toBe("users/u/art");
     expect(paths.art("u", "a")).toBe("users/u/art/a");
     expect(paths.entitlements("u")).toBe("users/u/private/entitlements");
-    expect(paths.customer("u")).toBe("customers/u");
-    expect(paths.checkoutSessions("u")).toBe("customers/u/checkout_sessions");
-    expect(paths.checkoutSession("u", "s")).toBe("customers/u/checkout_sessions/s");
-    expect(paths.subscriptions("u")).toBe("customers/u/subscriptions");
-    expect(paths.payments("u")).toBe("customers/u/payments");
     expect(paths.sharedPresets()).toBe("sharedPresets");
     expect(paths.sharedPreset("c")).toBe("sharedPresets/c");
     expect(paths.feedback()).toBe("feedback");

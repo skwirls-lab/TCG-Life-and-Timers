@@ -192,7 +192,7 @@ test.describe("paywall disabled (default build)", () => {
 
   // @req PAY-002 @req PAY-004 @req A11Y-002
   test("/pro explains that Pro is not configured", async ({ page }) => {
-    await page.goto("/pro?status=cancel");
+    await page.goto("/pro?checkout=cancel");
     await expect(page.getByTestId("pro-page")).toBeVisible();
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-policy", "ALL_FREE");
     await expect(page.getByTestId("pro-not-configured")).toHaveAttribute(

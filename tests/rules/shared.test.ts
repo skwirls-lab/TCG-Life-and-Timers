@@ -1,4 +1,4 @@
-// Firestore rules outside users/**: Stripe customers, sharedPresets, feedback, default deny.
+// Firestore rules outside users/**: Stripe server-only data, sharedPresets, feedback, default deny.
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import {
   assertFails,
@@ -37,79 +37,36 @@ beforeAll(async () => {
 beforeEach(async () => env.clearFirestore());
 afterAll(async () => env?.cleanup());
 
-describe("customers/** (Stripe extension, SEC-002)", () => {
-  const sessions = "customers/alice/checkout_sessions";
+describe("Stripe server-only data (SEC-002, D-082)", () => {
+  // @req SEC-002
+  // @req SEC-006
+  it("stripeEvents/** is inaccessible to every client", async () => {
+    await seed("stripeEvents/evt_1", { type: "invoice.paid" });
+    for (const db of [alice(), bob(), anon()]) {
+      await assertFails(getDoc(doc(db, "stripeEvents/evt_1")));
+      await assertFails(getDocs(collection(db, "stripeEvents")));
+      await assertFails(setDoc(doc(db, "stripeEvents/evt_2"), { type: "invoice.paid" }));
+      await assertFails(deleteDoc(doc(db, "stripeEvents/evt_1")));
+    }
+  });
 
   // @req SEC-002
-  it("owner can create a checkout session with a valid price", async () => {
-    await assertSucceeds(addDoc(collection(alice(), sessions), valid.checkout()));
-    await assertSucceeds(
-      addDoc(collection(alice(), sessions), {
-        ...valid.checkout(),
-        mode: "payment",
-        allow_promotion_codes: true,
-        metadata: { lifetime: "true" },
+  // @req SEC-006
+  it("the old extension paths (customers/**) are closed: no reads, no checkout writes", async () => {
+    await seed("customers/alice", { stripeId: "cus_1" });
+    await seed("customers/alice/subscriptions/sub1", { status: "active" });
+    await assertFails(getDoc(doc(alice(), "customers/alice")));
+    await assertFails(getDocs(collection(alice(), "customers/alice/subscriptions")));
+    await assertFails(
+      addDoc(collection(alice(), "customers/alice/checkout_sessions"), {
+        price: "price_123abc",
+        success_url: "https://example.com/pro",
+        cancel_url: "https://example.com/pro",
       }),
     );
-  });
-
-  // @req SEC-002
-  it("rejects checkout sessions with a bad price, missing urls or extra keys", async () => {
-    await assertFails(addDoc(collection(alice(), sessions), { ...valid.checkout(), price: 42 }));
-    await assertFails(
-      addDoc(collection(alice(), sessions), { ...valid.checkout(), price: "prod_123" }),
-    );
-    const { cancel_url: _c, ...noCancel } = valid.checkout();
-    await assertFails(addDoc(collection(alice(), sessions), noCancel));
-    await assertFails(
-      addDoc(collection(alice(), sessions), { ...valid.checkout(), success_url: "javascript:x" }),
-    );
-    await assertFails(
-      addDoc(collection(alice(), sessions), { ...valid.checkout(), url: "https://evil" }),
-    );
-    await assertFails(addDoc(collection(alice(), sessions), { ...valid.checkout(), mode: "free" }));
-  });
-
-  // @req SEC-002
-  // @req SEC-006
-  it("other users and guests cannot create sessions for alice", async () => {
-    await assertFails(addDoc(collection(bob(), sessions), valid.checkout()));
-    await assertFails(addDoc(collection(anon(), sessions), valid.checkout()));
-  });
-
-  // @req SEC-002
-  it("owner cannot update or delete a checkout session", async () => {
-    await seed(`${sessions}/s1`, { ...valid.checkout(), url: "https://checkout.stripe.com/x" });
-    await assertFails(updateDoc(doc(alice(), `${sessions}/s1`), { price: "price_free" }));
-    await assertFails(deleteDoc(doc(alice(), `${sessions}/s1`)));
-    await assertSucceeds(getDoc(doc(alice(), `${sessions}/s1`)));
-  });
-
-  // @req SEC-002
-  // @req SEC-006
-  it("no client writes to subscriptions, payments or the customer doc", async () => {
     await assertFails(
       setDoc(doc(alice(), "customers/alice/subscriptions/sub1"), { status: "active" }),
     );
-    await assertFails(
-      setDoc(doc(alice(), "customers/alice/payments/pay1"), { status: "succeeded" }),
-    );
-    await assertFails(setDoc(doc(alice(), "customers/alice"), { stripeId: "cus_1" }));
-    await seed("customers/alice/subscriptions/sub1", { status: "canceled" });
-    await assertFails(
-      updateDoc(doc(alice(), "customers/alice/subscriptions/sub1"), { status: "active" }),
-    );
-  });
-
-  // @req SEC-002
-  it("owner can read their customer data; others cannot", async () => {
-    await seed("customers/alice", { stripeId: "cus_1" });
-    await seed("customers/alice/subscriptions/sub1", { status: "active" });
-    await assertSucceeds(getDoc(doc(alice(), "customers/alice")));
-    await assertSucceeds(getDocs(collection(alice(), "customers/alice/subscriptions")));
-    await assertFails(getDoc(doc(bob(), "customers/alice")));
-    await assertFails(getDocs(collection(bob(), "customers/alice/subscriptions")));
-    await assertFails(getDoc(doc(anon(), "customers/alice/subscriptions/sub1")));
   });
 });
 

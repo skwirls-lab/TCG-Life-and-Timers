@@ -16,7 +16,7 @@ describe("purchase event (§19.5)", () => {
     expect(sessionStorage.getItem(CHECKOUT_PLAN_KEY)).toBe("yearly");
     expect(trackPurchaseReturn()).toBe("yearly");
     expect(track).toHaveBeenCalledWith("purchase", { plan: "yearly" });
-    // A refresh of /pro?status=success does not count it again.
+    // A refresh of /pro?checkout=success does not count it again.
     expect(trackPurchaseReturn()).toBeNull();
     expect(track).toHaveBeenCalledTimes(1);
   });

@@ -1,24 +1,26 @@
 /**
- * syncEntitlements (T7.2, PAY-002, PAY-003, SEC-002): recompute a user's entitlement from the
- * Stripe extension's mirrored docs and write the client-readable
- * `users/{uid}/private/entitlements` = { pro, source, updatedAt } (+ the `pro` custom claim).
+ * syncEntitlements (T7.2, PAY-002, PAY-003, SEC-002): recompute a user's entitlement and write
+ * the client-readable `users/{uid}/private/entitlements` = { pro, source, updatedAt } (+ the
+ * `pro` custom claim).
  *
- * Runs on every write to customers/{uid}/subscriptions/{id} and customers/{uid}/payments/{id}
- * (see index.ts). Reading ALL of the user's subscriptions and payments on each event makes it
- * order-independent and idempotent: a cancelled subscription next to an active one, or a
- * lifetime payment, always yields the same answer. Dependencies are structural (D-016).
+ * The caller supplies `load`, which fetches the user's CURRENT subscriptions and one-time payments
+ * (./billing.ts re-fetches them from Stripe on every webhook / refresh). Recomputing from the full
+ * current state makes it order-independent and idempotent: a late "subscription.updated" event
+ * can never resurrect a canceled subscription, and a duplicate event changes nothing.
  *
- * B-3: when the Auth user no longer exists (account deleted; a late Stripe webhook re-created
- * customers/{uid}/**), nothing is written — a deleted uid never gets an entitlements doc again.
+ * B-3: when the Auth user no longer exists (account deleted, a late Stripe webhook), nothing is
+ * loaded or written: a deleted uid never gets an entitlements doc again.
+ * An owner-granted entitlement (source "manual", e.g. a comp) is never revoked by Stripe.
  */
-import { entitlementsFromSubscriptions, type Entitlements } from "./entitlements";
+import {
+  entitlementsFromSubscriptions,
+  type Entitlements,
+  type PaymentLike,
+  type SubscriptionLike,
+} from "./entitlements";
 import { isNotFound, isSafeUid } from "./deleteUserData";
 
-export interface QuerySnapLike {
-  docs: ReadonlyArray<{ data(): Record<string, unknown> | undefined }>;
-}
 export interface EntitlementsFirestoreLike {
-  collection(path: string): { get(): Promise<QuerySnapLike> };
   doc(path: string): {
     get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>;
     set(data: Record<string, unknown>): Promise<unknown>;
@@ -37,6 +39,11 @@ export interface SyncEntitlementsDeps {
   lifetimePriceIds?: ReadonlySet<string>;
 }
 
+export interface PurchaseState {
+  subscriptions: ReadonlyArray<SubscriptionLike>;
+  payments: ReadonlyArray<PaymentLike>;
+}
+
 export interface SyncEntitlementsResult extends Entitlements {
   uid: string;
   /** false when the stored doc already matched (no write). */
@@ -46,14 +53,10 @@ export interface SyncEntitlementsResult extends Entitlements {
   userDeleted?: boolean;
 }
 
-async function docsData(fs: EntitlementsFirestoreLike, path: string) {
-  const snap = await fs.collection(path).get();
-  return snap.docs.map((d) => d.data() ?? {});
-}
-
 export async function syncEntitlements(
   deps: SyncEntitlementsDeps,
   uid: string,
+  load: () => Promise<PurchaseState>,
 ): Promise<SyncEntitlementsResult> {
   if (!isSafeUid(uid)) throw new Error(`invalid uid: ${JSON.stringify(uid)}`);
   const { firestore: fs } = deps;
@@ -74,16 +77,16 @@ export async function syncEntitlements(
       };
     }
   }
-  const [subs, payments] = await Promise.all([
-    docsData(fs, `customers/${uid}/subscriptions`),
-    docsData(fs, `customers/${uid}/payments`),
-  ]);
-  const computed = entitlementsFromSubscriptions(subs, payments, deps.lifetimePriceIds);
+  const state = await load();
+  const computed = entitlementsFromSubscriptions(
+    state.subscriptions,
+    state.payments,
+    deps.lifetimePriceIds,
+  );
 
   const ref = fs.doc(`users/${uid}/private/entitlements`);
   const cur = await ref.get();
   const prev = cur.exists ? cur.data() : undefined;
-  // An owner-granted entitlement (source "manual", e.g. a comp) is never revoked by Stripe events.
   const ent: Entitlements =
     prev?.source === "manual" && prev.pro === true ? { pro: true, source: "manual" } : computed;
   const same = prev?.pro === ent.pro && prev?.source === ent.source;

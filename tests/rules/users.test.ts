@@ -119,6 +119,18 @@ describe("entitlements are read-only (SEC-002)", () => {
     await assertFails(setDoc(doc(bob(), ent), { pro: false, source: "none" }));
   });
 
+  // @req SEC-002
+  // @req SEC-006
+  it("the Stripe customer mapping (private/stripe) is server-only, even for the owner", async () => {
+    const path = "users/alice/private/stripe";
+    await seed(path, { customerId: "cus_123" });
+    await assertFails(getDoc(doc(alice(), path)));
+    await assertFails(getDoc(doc(bob(), path)));
+    await assertFails(setDoc(doc(alice(), path), { customerId: "cus_evil" }));
+    await assertFails(updateDoc(doc(alice(), path), { refreshedAt: 0 }));
+    await assertFails(deleteDoc(doc(alice(), path)));
+  });
+
   // @req SEC-001
   it("unknown private docs and unknown subcollections are denied even to the owner", async () => {
     await assertFails(setDoc(doc(alice(), "users/alice/private/other"), { x: 1 }));
