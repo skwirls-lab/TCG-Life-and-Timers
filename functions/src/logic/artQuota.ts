@@ -15,7 +15,7 @@
 import { isNotFound, isSafeUid } from "./deleteUserData";
 import type { ClaimsAuthLike } from "./syncEntitlements";
 
-export const FREE_ART_LIMIT = 10;
+export const FREE_ART_LIMIT = 5;
 export const PRO_ART_LIMIT = 200;
 
 interface DocLike {

@@ -641,7 +641,7 @@ The LifeTap screenshots show durations like "171 hr 17 min" and "204 hr 59 min",
 - **HIST-035 (P1, M6):** Edit a past game: winner, player names/profiles, and deck. You can't edit the event log, but you can delete the whole game.
 
 ### 12.4 Storage and tiers
-- **HIST-007 (P0, M6):** All game records are **kept locally** (soft cap 1,000 games; older ones are compacted to summaries without logs). Free users can **view the most recent 20** games in the Games list; older games stay stored, and a "34 more games saved — unlock with Pro" row shows at the end. Upgrading reveals them immediately with nothing lost. See §17.2 for which stats views are free.
+- **HIST-007 (P0, M6):** All game records are **kept locally** (soft cap 1,000 games; older ones are compacted to summaries without logs). Free users can **view the most recent 5** games in the Games list; older games stay stored, and a "34 more games saved — unlock with Pro" row shows at the end. Upgrading reveals them immediately with nothing lost. See §17.2 for which stats views are free.
 - **HIST-008 (P0, M6):** When the "Game history" setting is Off (§13.1-B), the app keeps no records and hides the history button.
 
 ## 13. Player profiles, personalization, and settings
@@ -825,7 +825,7 @@ LifeTap's support section has Review / Donate / Send feedback / Send diagnostics
 - **ART-021 (P0, M5):** **Client-side processing**: decode, apply EXIF orientation, resize to a max 1600 px long edge, encode WebP (fallback JPEG) at quality ~0.8, and **strip metadata (EXIF/GPS) for privacy**. Target size is under 400 KB.
 - **ART-022 (P0, M5):** Stored as a blob in IndexedDB (works for guests). When signed in, it also uploads to Cloud Storage at `users/{uid}/art/{artId}.webp` and is referenced from profiles.
 - **ART-023 (P1, M5):** **My images** library: reuse, rename, and delete uploaded images.
-- **ART-024 (P1, M7):** Storage quotas: free 10 images synced (unlimited locally); premium 200 synced (Q5).
+- **ART-024 (P1, M7):** Storage quotas: free 5 images synced (unlimited locally); premium 200 synced (Q5).
 - **ART-025 (P0, M5):** Uploads are validated: image MIME only, max 15 MB raw before processing. Storage rules enforce `contentType` `image/.*` and size under 2 MB post-processing.
 
 ## 15. Authentication, accounts, data separation, and sync
@@ -918,10 +918,10 @@ LifeTap's "Dice & Misc" screen (third batch of screenshots) is the baseline. It 
 | **Timers** | Turn tracking, count-up, chess clock (bank), Respond/Pass back, global pause, timeout: lose / grace / flag | ✅ | ✅ |
 | | Increment, delay, per-turn, hybrid, match timer + extra turns, "add time once", per-seat handicap, custom warning thresholds, declare-blockers window | ✅ (owner decision 2026-11-18: all clocks free) | ✅ |
 | **Customize** | Custom presets | 1 | Unlimited + share links + import |
-| | Player profiles / decks | 4 profiles, 3 decks each | Unlimited |
+| | Player profiles / decks | 4 profiles, 1 deck each | Unlimited |
 | | Themes, seat frames, sound packs | Default themes | ✅ |
 | **History** | Current game: log, standings, life chart, edit from history | ✅ | ✅ |
-| | Past games list | Most recent 20 viewable (all kept) | All |
+| | Past games list | Most recent 5 viewable (all kept) | All |
 | | Players tab (W/L, win %) | ✅ | ✅ + player detail pages and head-to-head |
 | | Decks tab | Preview (top 3) | ✅ |
 | | Insights | Summary tiles (games, total time, avg game) | Full: turn-order advantage, durations, elimination causes, first blood, commander-damage leaderboard, clock stats, by-preset |
@@ -929,7 +929,7 @@ LifeTap's "Dice & Misc" screen (third batch of screenshots) is the baseline. It 
 | | Export / import (CSV/JSON) | — | ✅ |
 | **Sync** | Sign in with Google; sync of settings, profiles, decks, presets | ✅ | ✅ |
 | | Sync of game history across devices | — (kept on device) | ✅ |
-| | Cloud sync of uploaded art | 10 images | 200 images |
+| | Cloud sync of uploaded art | 5 images | 200 images |
 | **Ads** | | **None** | None |
 
 > **Why history sync is Pro but profile sync is free:** profile sync is the reason to create an account at all, and accounts help retention and later conversion. Cross-device history and deep stats are what power users will pay for.
@@ -1025,7 +1025,7 @@ Key events: `game_start` (preset, players, timers on/off, mode), `game_end` (dur
 | Q2 | App name and domain? | Placeholder "TCG Life & Timers". Candidates: *TurnTap*, *ClockTap*, *Life & Clock*, *PodClock*, *TableClock*. Check trademark and domain availability. |
 | Q3 | Default timeout behaviour for casual presets? | **Grace period 60 s → eliminate**, with "Flag only" one tap away in setup. Competitive presets: **lose immediately**. |
 | Q4 | Pricing model and price points? | Freemium + **Pro**: $1.99/mo, $14.99/yr, $29.99 lifetime. Decide before M7. |
-| Q5 | Free-tier limits? | **Decided in §17.2** (owner delegated): 4 profiles × 3 decks, 1 custom preset, 20 most recent games viewable (all kept), 10 cloud images |
+| Q5 | Free-tier limits? | **Decided in §17.2** (owner delegated): 4 profiles × 1 deck, 1 custom game type, 1 preset, 5 most recent games viewable (all kept), 5 cloud images (owner revision 2026-11-20) |
 | Q6 | Should response time be charged to the responder (default) or freeze all clocks? | **Charge responder** by default, with "Freeze all" as an option (TMR-010) |
 | Q7 | Legal review of trademark use and the WotC Fan Content Policy against paid tiers? | Get a short consult before M7. Keep premium features game-agnostic. |
 | Q8 | Do you want the 7–8 player layouts to be premium? | Yes (low cost to free users, nice upsell) |

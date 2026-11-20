@@ -78,10 +78,12 @@ describe("artQuota (B-4)", () => {
     expect(await claims()).toEqual({ pro: false });
   });
 
-  it("paywall enabled, free: full at 10 (claim set), backstop deletes the 11th new object", async () => {
+  it("paywall enabled, free: full at the free limit (claim set), backstop deletes the next new object", async () => {
     await db.doc("config/billing").set({ paywallEnabled: true });
-    await put(10);
-    let r = await recomputeArtQuota(deps, U, { newObject: `users/${U}/art/a9.webp` });
+    await put(FREE_ART_LIMIT);
+    let r = await recomputeArtQuota(deps, U, {
+      newObject: `users/${U}/art/a${FREE_ART_LIMIT - 1}.webp`,
+    });
     expect(r).toMatchObject({
       artCount: FREE_ART_LIMIT,
       artLimit: FREE_ART_LIMIT,
@@ -93,11 +95,11 @@ describe("artQuota (B-4)", () => {
       .save(Buffer.from("img"), { contentType: "image/webp" });
     r = await recomputeArtQuota(deps, U, { newObject: `users/${U}/art/extra.webp` });
     expect(r.removed).toEqual([`users/${U}/art/extra.webp`]);
-    expect(await files()).toBe(10);
+    expect(await files()).toBe(FREE_ART_LIMIT);
     // Deleting one frees a slot and clears the claim (other claims kept).
     await bucket().file(`users/${U}/art/a0.webp`).delete();
     r = await recomputeArtQuota(deps, U);
-    expect(r).toMatchObject({ artCount: 9, quotaFull: false });
+    expect(r).toMatchObject({ artCount: FREE_ART_LIMIT - 1, quotaFull: false });
     expect(await claims()).toEqual({ pro: false });
   });
 

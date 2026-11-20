@@ -20,6 +20,6 @@ describe("entitlements policy", () => {
     expect(limit({ policy: "TIERED", pro: false }, "profiles")).toBe(4);
     expect(limit({ policy: "TIERED", pro: true }, "profiles")).toBe(Infinity);
     expect(limit({ policy: "ALL_FREE", pro: false }, "cloudArtImages")).toBe(200);
-    expect(limit({ policy: "TIERED", pro: false }, "cloudArtImages")).toBe(10);
+    expect(limit({ policy: "TIERED", pro: false }, "cloudArtImages")).toBe(5);
   });
 });

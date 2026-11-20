@@ -12,10 +12,10 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId("harness-policy")).toContainText("TIERED");
 });
 
-test("games: the most recent 20 are viewable, then the unlock row (HIST-007)", async ({ page }) => {
-  await expect(page.getByTestId("game-card")).toHaveCount(20);
+test("games: the most recent 5 are viewable, then the unlock row (HIST-007)", async ({ page }) => {
+  await expect(page.getByTestId("game-card")).toHaveCount(5);
   await expect(page.getByTestId("games-more-locked")).toHaveText(
-    "6 more games saved — unlock with Pro",
+    "21 more games saved — unlock with Pro",
   );
   await expectNoSeriousA11yViolations(page);
   // Upgrading reveals everything immediately.
@@ -26,9 +26,9 @@ test("games: the most recent 20 are viewable, then the unlock row (HIST-007)", a
 
 test("players W/L is free; player detail is a blurred preview", async ({ page }) => {
   await page.getByTestId("past-tabs-players").click();
-  // Stats use the 20 viewable games (a7..d2): Ana plays a7–a12, b1–b8, c1–c4 = 18.
+  // Stats use the 5 viewable games (c2..d2): Ana plays c2–c4 = 3.
   const ana = page.locator('[data-identity="p:p-ana"]');
-  await expect(ana).toContainText("18 games");
+  await expect(ana).toContainText("3 games");
   await ana.getByTestId("player-open").click();
   const locked = page.getByTestId("player-detail-locked");
   await expect(locked).toHaveAttribute("data-locked", "true");
@@ -36,18 +36,19 @@ test("players W/L is free; player detail is a blurred preview", async ({ page })
   await expectNoSeriousA11yViolations(page);
 });
 
-test("decks: top 3 preview, the rest locked", async ({ page }) => {
+test("decks: built from the viewable games; Pro reveals the rest", async ({ page }) => {
   await page.getByTestId("past-tabs-decks").click();
-  await expect(page.getByTestId("past-decks")).toContainText("Free preview: top 3 decks");
-  // a7..a12 still carry the three decks; the preview rows don't open details.
-  await expect(page.getByTestId("deck-row")).toHaveCount(3);
-  await expect(page.getByTestId("deck-row").first().getByRole("button")).toHaveCount(0);
+  // The 5 viewable games (c2..d2) carry no decks, so a free user sees the empty state.
+  await expect(page.getByTestId("past-decks")).toContainText("No decks yet");
   await expectNoSeriousA11yViolations(page);
+  // Upgrading reveals every game's decks (Toxrill, Krenko, Kaalia from group A).
+  await page.getByTestId("harness-policy").click();
+  await expect(page.getByTestId("deck-row")).toHaveCount(3);
 });
 
 test("insights: summary tiles free, the dashboard locked", async ({ page }) => {
   await page.getByTestId("past-tabs-insights").click();
-  await expect(page.getByTestId("ins-games")).toHaveText("20");
+  await expect(page.getByTestId("ins-games")).toHaveText("5");
   await expect(page.getByTestId("insights-locked")).toHaveAttribute("data-locked", "true");
   await expect(page.getByTestId("insights-locked-unlock")).toBeVisible();
   await expectNoSeriousA11yViolations(page);
@@ -64,7 +65,8 @@ test("filters: date range only; export locked", async ({ page }) => {
   await sheet.getByTestId("filter-to").fill("2026-09-21");
   await expectNoSeriousA11yViolations(page);
   await sheet.getByTestId("filter-apply").click();
-  await expect(page.getByTestId("game-card")).toHaveCount(8);
+  // the 8 B games match; a free user sees the 5 most recent of them
+  await expect(page.getByTestId("game-card")).toHaveCount(5);
   await expect(page.getByTestId("filter-chip-date")).toBeVisible();
 
   await page.getByTestId("past-export").click();

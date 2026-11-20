@@ -4,6 +4,7 @@ import { TcgDb } from "@/lib/db";
 import { saveDeck, saveProfile } from "@/lib/profiles/repo";
 import { usePaywall } from "./paywall";
 import { canCreateDeck, canCreateProfile } from "./quota";
+import { FREE_LIMITS } from "./features";
 import { useEntitlements } from "./store";
 
 const open: TcgDb[] = [];
@@ -25,7 +26,7 @@ afterEach(async () => {
 
 describe("profile / deck quotas (§17.2)", () => {
   // @req PAY-004
-  it("free tiered users get 4 profiles and 3 decks per profile", async () => {
+  it("free tiered users get 4 profiles and 1 deck per profile", async () => {
     const db = freshDb();
     useEntitlements.getState().setPolicy("TIERED");
     for (let i = 0; i < 4; i++) {
@@ -37,7 +38,7 @@ describe("profile / deck quotas (§17.2)", () => {
     usePaywall.getState().close();
 
     const [p] = await db.profiles.toArray();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < FREE_LIMITS.decksPerProfile; i++) {
       expect(await canCreateDeck(p!.id, db)).toBe(true);
       await saveDeck({ profileId: p!.id, name: `D${i}` }, db);
     }

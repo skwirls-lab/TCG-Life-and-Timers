@@ -27,9 +27,9 @@ export const FREE_LIMITS = {
   /** Saved setups ("Presets" in the UI). */
   savedSetups: 1,
   profiles: 4,
-  decksPerProfile: 3,
-  historyVisibleGames: 20,
-  cloudArtImages: 10,
+  decksPerProfile: 1,
+  historyVisibleGames: 5,
+  cloudArtImages: 5,
   decksPreview: 3,
 } as const;
 

@@ -208,7 +208,7 @@ Sign-in uses a Google popup on every device. An installed app on iPhone can't re
 5. **Turn the paywall on, in BOTH places** (they must agree):
    - `.env.production`: set `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY/_YEARLY/_LIFETIME`, optional display prices, and `NEXT_PUBLIC_PAYWALL_ENABLED=1`. Push to `main`.
    - Firestore console → create document **`config/billing`** with field `paywallEnabled` (boolean) = `true`. Clients can't write this doc. While it's absent, the server allows everything, which is the free-for-all default.
-   Once both are on, the server enforces Pro for cloud history sync, share links and the image quota (free 10 / Pro 200).
+   Once both are on, the server enforces Pro for cloud history sync, share links and the image quota (free 5 / Pro 200).
 6. Optional, recommended: give the functions a **restricted Stripe key** (`rk_…` with only *Subscriptions: Write*) as `STRIPE_SECRET_KEY` in an **uncommitted** `functions/.env.<project-id>`. "Delete account" then cancels active subscriptions before deleting data, and stops if Stripe refuses.
 7. Refunds and disputes: the extension doesn't mirror refunds. When you refund a lifetime purchase or lose a dispute, set that `customers/{uid}/payments/{id}` doc's `status` to `"refunded"` (or add `revoked: true`). Pro is recomputed automatically.
 8. Test with Stripe test card `4242 4242 4242 4242`. The account shows Pro within seconds, and **Manage subscription** opens the Stripe portal. Then switch Stripe to Live mode and replace the price ids and key.

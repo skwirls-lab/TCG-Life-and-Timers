@@ -99,7 +99,7 @@ test.describe("paywall enabled (pw=1, free user)", () => {
   });
 
   // @req PAY-004
-  test("a 5th profile and a 4th deck open the paywall", async ({ page }) => {
+  test("a 5th profile and a 2nd deck open the paywall", async ({ page }) => {
     await tiered(page, "/profiles");
     for (const n of ["Ann", "Ben", "Cat", "Dan"]) await addProfile(page, n);
     await page.getByTestId("profile-new").click();
@@ -108,7 +108,7 @@ test.describe("paywall enabled (pw=1, free user)", () => {
     await expect(page.getByTestId("profile-editor")).toHaveCount(0);
 
     await page.getByTestId("profile-row-0").click();
-    for (const d of ["D1", "D2", "D3"]) {
+    for (const d of ["D1"]) {
       await page.getByTestId("deck-new").click();
       await page.getByTestId("deck-name-input").fill(d);
       await page.getByTestId("deck-save").click();
