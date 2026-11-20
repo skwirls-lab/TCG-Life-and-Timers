@@ -1,21 +1,23 @@
 /**
  * Derive the client-visible entitlement (users/{uid}/private/entitlements, SEC-002) from the
- * Stripe extension's mirrored docs (customers/{uid}/subscriptions/*, customers/{uid}/payments/*).
+ * user's CURRENT purchases, as billing.ts re-fetches them from Stripe (subscriptions, and
+ * one-time payments when a lifetime price is configured; D-082 replaced the Stripe extension).
  *
  *   - a subscription with status "active" | "trialing"                    => pro (subscription)
+ *     (past_due, unpaid, paused, incomplete, canceled: not Pro; Stripe's Smart Retries and the
+ *     portal recover a past_due subscription, which turns Pro again when it is paid)
  *   - a payment with status "succeeded" which bought a price listed in LIFETIME_PRICE_IDS
  *                                                                       => pro (lifetime)
- *     Client-settable metadata (e.g. metadata.lifetime) is NEVER trusted: checkout_sessions are
- *     written by the browser, so metadata could be forged (D-062).
+ *     The price is the one createCheckoutSession recorded server-side (PaymentIntent
+ *     metadata.priceId); other metadata (e.g. metadata.lifetime) is NEVER trusted (D-062).
  *
- * Lifetime wins over a subscription because it never lapses. Pure; the PAY lane wires triggers.
+ * Lifetime wins over a subscription because it never lapses. Pure.
  *
  * Revocation (B-8): only a payment whose status is still "succeeded" grants lifetime. A payment
- * that was refunded or disputed stops granting: status "refunded" / "canceled" / "disputed" (an
- * owner, a webhook or a Stripe-sync job rewrites the same payment doc), `refunded: true`,
- * `amount_refunded` ≥ the amount paid, a `dispute` / `disputed: true` marker, or `revoked: true`.
- * Rewriting the payment doc fires syncEntitlementsOnPayment, which recomputes → pro false unless
- * another valid grant (subscription, other payment, manual comp) remains.
+ * that was refunded or disputed stops granting: `refunded: true`, `amount_refunded` ≥ the amount
+ * paid, a `dispute` / `disputed: true` marker, `revoked: true`, or a non-succeeded status. The
+ * charge.refunded / charge.dispute.created webhooks re-fetch the payment from Stripe and
+ * recompute → pro false unless another valid grant (subscription, other payment, manual comp).
  */
 
 export type EntitlementSource = "none" | "subscription" | "lifetime" | "manual";

@@ -30,7 +30,7 @@
   "account.export.failed": "Export failed. Please try again.",
   "account.delete": "Delete account",
   "account.delete.hint": "Permanently deletes your account and all of its cloud data. This can't be undone.",
-  "account.delete.subscription": "If you have an active subscription, cancel it first in Manage subscription. Deleting the account can't stop billing on its own if the subscription can't be reached.",
+  "account.delete.subscription": "Deleting your account cancels your subscription right away (no refund for the current period) and removes your billing details from Stripe. Nothing more is charged. Need a receipt first? Open Manage subscription.",
   "account.delete.manage": "Manage subscription",
   "account.delete.typeToConfirm": "Type DELETE to confirm",
   "account.delete.word": "DELETE",

@@ -1,6 +1,6 @@
 /**
  * §19.5 `purchase` event (LEG-004). The plan is remembered in sessionStorage when Checkout starts
- * (the Stripe round trip returns to the same tab) and consumed on the `/pro?status=success`
+ * (the Stripe round trip returns to the same tab) and consumed on the `/pro?checkout=success`
  * return, so a refresh of the success page never counts the purchase twice. `track()` drops the
  * event unless analytics is configured and the user consented.
  */

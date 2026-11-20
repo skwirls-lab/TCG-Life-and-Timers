@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 # public build config for the production export (DEPLOY.md Part 3), not secrets
 !.env.production
+# non-secret Cloud Functions params (functions/.env, DEPLOY.md Part 7)
+!functions/.env
+!functions/.env.demo-tcg-life
 
 # vercel
 .vercel

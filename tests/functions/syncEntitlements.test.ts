@@ -1,12 +1,13 @@
-// syncEntitlements against the Firestore/Auth emulators via the admin SDK (D-005). The Stripe
-// extension is simulated by writing customers/{uid}/subscriptions|payments docs (§6.3 fallback).
+// syncEntitlements against the Firestore/Auth emulators via the admin SDK (D-005). The purchase
+// state is what billing.ts re-fetched from Stripe; here a plain loader supplies it.
 // @req PAY-002 @req PAY-003 @req SEC-002
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { FieldValue, Timestamp, getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
-  syncEntitlements,
+  syncEntitlements as syncWith,
+  type PurchaseState,
   type SyncEntitlementsDeps,
 } from "../../functions/src/logic/syncEntitlements";
 
@@ -28,6 +29,17 @@ async function clearFirestore() {
   );
 }
 
+// The user's current purchases "in Stripe" (reset per test).
+let state: { subscriptions: Record<string, unknown>[]; payments: Record<string, unknown>[] };
+let loads = 0;
+const syncEntitlements = (d: SyncEntitlementsDeps, uid: string) =>
+  syncWith(d, uid, async (): Promise<PurchaseState> => {
+    loads++;
+    return state;
+  });
+const sub = (status: string) => state.subscriptions.push({ status });
+const pay = (p: Record<string, unknown>) => state.payments.push(p);
+
 const entitlement = async (uid = U) =>
   (await db.doc(`users/${uid}/private/entitlements`).get()).data();
 
@@ -48,6 +60,8 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  state = { subscriptions: [], payments: [] };
+  loads = 0;
   await clearFirestore();
   await auth.deleteUser(U).catch(() => undefined);
   await auth.createUser({ uid: U, email: `${U}@example.com` });
@@ -56,7 +70,7 @@ beforeEach(async () => {
 describe("syncEntitlements (T7.2)", () => {
   // @req PAY-002 @req SEC-002
   it("an active subscription grants pro (doc + custom claim)", async () => {
-    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
+    sub("active");
     const r = await syncEntitlements(deps, U);
     expect(r).toMatchObject({
       pro: true,
@@ -72,7 +86,7 @@ describe("syncEntitlements (T7.2)", () => {
 
   // @req PAY-002
   it("a trialing subscription grants pro", async () => {
-    await db.doc(`customers/${U}/subscriptions/sub_t`).set({ status: "trialing" });
+    sub("trialing");
     expect((await syncEntitlements(deps, U)).pro).toBe(true);
     expect(await entitlement()).toMatchObject({ pro: true, source: "subscription" });
   });
@@ -80,12 +94,11 @@ describe("syncEntitlements (T7.2)", () => {
   // @req PAY-003
   it("cancelling removes pro; the claim follows and other claims are kept", async () => {
     await auth.setCustomUserClaims(U, { beta: true });
-    const sub = db.doc(`customers/${U}/subscriptions/sub_1`);
-    await sub.set({ status: "active" });
+    sub("active");
     await syncEntitlements(deps, U);
     expect((await auth.getUser(U)).customClaims).toEqual({ beta: true, pro: true });
 
-    await sub.set({ status: "canceled" });
+    state.subscriptions = [{ status: "canceled" }];
     const r = await syncEntitlements(deps, U);
     expect(r).toMatchObject({ pro: false, source: "none", written: true });
     expect(await entitlement()).toMatchObject({ pro: false, source: "none" });
@@ -94,42 +107,39 @@ describe("syncEntitlements (T7.2)", () => {
 
   // @req PAY-002
   it("a canceled sub next to an active one stays pro (order-independent)", async () => {
-    await db.doc(`customers/${U}/subscriptions/old`).set({ status: "canceled" });
-    await db.doc(`customers/${U}/subscriptions/new`).set({ status: "active" });
+    sub("canceled");
+    sub("active");
     expect((await syncEntitlements(deps, U)).pro).toBe(true);
   });
 
   // @req PAY-002
   it("a succeeded lifetime payment grants lifetime pro, even after a subscription ends", async () => {
-    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "canceled" });
-    await db
-      .doc(`customers/${U}/payments/pi_1`)
-      .set({ status: "succeeded", items: [{ price: { id: "price_lifetime" } }] });
+    sub("canceled");
+    pay({ status: "succeeded", items: [{ price: { id: "price_lifetime" } }] });
     const r = await syncEntitlements(deps, U);
     expect(r).toMatchObject({ pro: true, source: "lifetime" });
     expect(await entitlement()).toMatchObject({ pro: true, source: "lifetime" });
   });
 
   // @req PAY-003
-  it("B-8: refunding the lifetime payment (doc rewritten) revokes pro on the next sync", async () => {
-    const pay = db.doc(`customers/${U}/payments/pi_1`);
-    await pay.set({ status: "succeeded", amount: 2999, price: "price_lifetime" });
+  it("B-8: refunding the lifetime payment revokes pro on the next sync", async () => {
+    pay({ status: "succeeded", amount: 2999, price: "price_lifetime" });
     expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, source: "lifetime" });
-    await pay.set({ status: "refunded", amount: 2999, price: "price_lifetime" });
+    state.payments = [
+      { status: "succeeded", amount: 2999, amount_refunded: 2999, price: "price_lifetime" },
+    ];
     expect(await syncEntitlements(deps, U)).toMatchObject({ pro: false, written: true });
     expect((await auth.getUser(U)).customClaims).toEqual({ pro: false });
   });
 
   it("a non-lifetime or failed payment does not grant pro", async () => {
-    await db.doc(`customers/${U}/payments/pi_1`).set({ status: "succeeded", price: "price_other" });
-    await db
-      .doc(`customers/${U}/payments/pi_2`)
-      .set({ status: "canceled", price: "price_lifetime" });
+    pay({ status: "succeeded", price: "price_other" });
+    pay({ status: "canceled", price: "price_lifetime" });
     expect(await syncEntitlements(deps, U)).toMatchObject({ pro: false, source: "none" });
   });
 
   it("does not rewrite an unchanged entitlement, and is idempotent", async () => {
-    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
+    sub("active");
     await syncEntitlements(deps, U);
     const first = (await entitlement())!.updatedAt as Timestamp;
     const again = await syncEntitlements(deps, U);
@@ -147,17 +157,18 @@ describe("syncEntitlements (T7.2)", () => {
   // @req AUTH-005
   it("B-3: never writes entitlements for a deleted Auth user (late Stripe webhook)", async () => {
     await auth.deleteUser(U);
-    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
+    sub("active");
     expect(await syncEntitlements(deps, U)).toMatchObject({
       written: false,
       claimUpdated: false,
       userDeleted: true,
     });
     expect((await db.doc(`users/${U}/private/entitlements`).get()).exists).toBe(false);
+    expect(loads).toBe(0); // Stripe is not even asked
   });
 
   it("works when claims are disabled (no auth dependency)", async () => {
-    await db.doc(`customers/${U}/subscriptions/sub_1`).set({ status: "active" });
+    sub("active");
     const noClaims = { ...deps, auth: undefined };
     expect(await syncEntitlements(noClaims, U)).toMatchObject({ pro: true, written: true });
     expect(await syncEntitlements(noClaims, U)).toMatchObject({ pro: true, written: false });

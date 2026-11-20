@@ -43,7 +43,7 @@ This guide walks you, the owner, through putting the app on the internet with **
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | firebaseConfig.appId | ✅ |
 | `NEXT_PUBLIC_APPCHECK_SITE_KEY` | App Check (Part 2.4) | Recommended |
 | `NEXT_PUBLIC_PAYWALL_ENABLED` | `1` to turn Pro gating on (Part 7) | No (default off) |
-| `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY` / `_YEARLY` / `_LIFETIME` | Stripe price ids `price_…` (Part 7) | Only with payments |
+| `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY` / `_YEARLY` / `_LIFETIME` | Stripe price ids `price_…` (Part 7; the server's allowlist `STRIPE_PRICE_IDS` in `functions/.env` must list the same ids) | Only with payments |
 | `NEXT_PUBLIC_PRICE_DISPLAY_MONTHLY` / `_YEARLY` / `_LIFETIME` | Display prices, e.g. `$1.99` | Optional |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry project DSN (Part 8) | Optional |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | firebaseConfig.measurementId (analytics, consent-gated) | Optional |
@@ -78,6 +78,7 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
    - Artifact Registry Writer
    - Cloud Build Editor
    - Cloud Functions Admin and Cloud Run Admin (needed to make the callable functions publicly invokable)
+   - Secret Manager Admin (the payment functions read the Stripe secrets; a deploy grants them access, Part 7)
    Do **not** create a key.
 2. Open **Cloud Shell** (the `>_` icon at the top of the console) and paste:
    ```bash
@@ -108,7 +109,7 @@ This uses **Workload Identity Federation**: GitHub proves who it is to Google, s
    gcloud services enable firebasehosting.googleapis.com firebasestorage.googleapis.com storage.googleapis.com \
      firestore.googleapis.com firebaserules.googleapis.com cloudfunctions.googleapis.com \
      cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
-     eventarc.googleapis.com pubsub.googleapis.com firebaseextensions.googleapis.com \
+     eventarc.googleapis.com pubsub.googleapis.com firebaseextensions.googleapis.com secretmanager.googleapis.com \
      cloudresourcemanager.googleapis.com cloudbilling.googleapis.com --project=$PROJECT_ID
 
    COMPUTE_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
@@ -161,8 +162,9 @@ npx firebase deploy --only hosting,firestore,storage,functions
 To look at the production build locally first: `npm run build && npm start` serves `out/` with the Firebase Hosting emulator on http://127.0.0.1:3000, with the same headers and rewrites as the live site.
 
 Functions that get deployed:
-- `deleteUserData` (callable; "Delete account") and `onUserDeleted` (cleanup)
-- `syncEntitlementsOnSubscription` and `syncEntitlementsOnPayment` (Pro status from Stripe; harmless without Stripe)
+- `deleteUserData` (callable; "Delete account": cancels the user's Stripe subscriptions and deletes the Stripe customer first) and `onUserDeleted` (Auth cleanup, 1st gen; the same, best effort)
+- `createCheckoutSession`, `createPortalSession`, `refreshEntitlements` (callables: buy Pro, "Manage subscription", "Restore purchases") and `stripeWebhook` (HTTPS endpoint for Stripe), Part 7
+- (removed in 1.3.0: `syncEntitlementsOnSubscription` and `syncEntitlementsOnPayment`, which served the Stripe extension; the next deploy deletes them)
 - `artQuotaOnFinalize` and `artQuotaOnDelete` (server-side image quota; only enforced when the paywall is on)
 - `hello` (health check)
 
@@ -192,31 +194,99 @@ Sign-in uses a Google popup on every device. An installed app on iPhone can't re
 - On a custom domain it does so only once you set it up (Part 9, step 4). Until then sign-in keeps using `tcgtempo.firebaseapp.com`, which works everywhere except the redirect fallback in the installed iPhone app.
 
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
-1. Create a Stripe account (start in **Test mode**).
-2. Stripe → **Products** → create "TCGTempo Pro" with three prices:
-   - Monthly recurring
-   - Yearly recurring
-   - Lifetime one-time
+Payments run on the app's **own** Cloud Functions (`functions/src/logic/billing.ts`). There is **no Firebase extension** to install: Firebase Extensions are deprecated and can't be installed, configured or updated after March 31, 2027. The functions keep the user ↔ Stripe customer link and the Pro status in Firestore, and every change is re-read from Stripe.
 
-   Copy the three `price_…` ids.
-3. Firebase Console → **Extensions** → install **"Run Payments with Stripe"** (`stripe/firestore-stripe-payments`):
-   - Customer details collection: `customers`. Products collection: `products`. Sync new users: **No**.
-   - Paste your Stripe **secret key** (or a restricted key) **into the extension config**. Never commit it or paste it in chat.
-   - Set **"Automatically delete Stripe customer objects"** to **Auto delete**. Then deleting a user's account cancels their Stripe subscriptions.
-   - Follow the extension's post-install steps to create the Stripe **webhook** to the extension's URL with the listed events.
-4. Functions config: set `LIFETIME_PRICE_IDS` = your lifetime price id (comma-separated if several). For example, create `functions/.env.<project-id>` with `LIFETIME_PRICE_IDS=price_…` and redeploy functions. **Only these price ids grant lifetime Pro**; client-supplied metadata is ignored for security.
-5. **Turn the paywall on, in BOTH places** (they must agree):
-   - `.env.production`: set `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY/_YEARLY/_LIFETIME`, optional display prices, and `NEXT_PUBLIC_PAYWALL_ENABLED=1`. Push to `main`.
-   - Firestore console → create document **`config/billing`** with field `paywallEnabled` (boolean) = `true`. Clients can't write this doc. While it's absent, the server allows everything, which is the free-for-all default.
-   Once both are on, the server enforces Pro for cloud history sync, share links and the image quota (free 5 / Pro 200).
-6. Optional, recommended: give the functions a **restricted Stripe key** (`rk_…` with only *Subscriptions: Write*) as `STRIPE_SECRET_KEY` in an **uncommitted** `functions/.env.<project-id>`. "Delete account" then cancels active subscriptions before deleting data, and stops if Stripe refuses.
-7. Refunds and disputes: the extension doesn't mirror refunds. When you refund a lifetime purchase or lose a dispute, set that `customers/{uid}/payments/{id}` doc's `status` to `"refunded"` (or add `revoked: true`). Pro is recomputed automatically.
-8. Test with Stripe test card `4242 4242 4242 4242`. The account shows Pro within seconds, and **Manage subscription** opens the Stripe portal. Then switch Stripe to Live mode and replace the price ids and key.
+> ⚠️ **Do steps 2 and the first part of 5 (both secrets) before this version reaches `main`.** The functions declare the secrets `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. A deploy while either one is missing **fails before anything is deployed** (Hosting included) with: `In non-interactive mode but have no value for the secret STRIPE_SECRET_KEY … Set this secret before deploying: firebase functions:secrets:set STRIPE_SECRET_KEY`. Setting them doesn't turn anything on for users: the paywall stays off until step 7.
+
+1. **Stripe product and prices** ✅ done: product "TCGTempo Pro" with a monthly price ($1.99, `price_1UdwGcArytmUxb6t7Ik7ScRb`) and a yearly price ($19.99, `price_1UdwGcArytmUxb6tJrrS0mpq`). They are in `.env.production` (the buttons) and in `functions/.env` (`STRIPE_PRICE_IDS`, the server's allowlist: the functions refuse any other price). There is no lifetime plan; to add one later, create a one-time price and list it in **both** `LIFETIME_PRICE_IDS` (`functions/.env`) and `NEXT_PUBLIC_STRIPE_PRICE_LIFETIME` (`.env.production`). Only prices in `LIFETIME_PRICE_IDS` ever grant lifetime Pro.
+
+2. **Give the functions a Stripe key** (Cloud Shell, the `>_` icon in the Google Cloud console):
+   ```bash
+   npx firebase-tools functions:secrets:set STRIPE_SECRET_KEY --project tcgtempo
+   ```
+   Paste the key at the prompt (it's hidden; never paste it in a chat, a file or a commit). If it asks to enable the Secret Manager API, say yes.
+   Use a **restricted key**: Stripe → **Developers → API keys → Create restricted key** ("TCGTempo functions"), in Test mode first. Give it exactly these permissions and leave everything else at **None**:
+
+   | Resource | Permission | Used for |
+   |---|---|---|
+   | Customers | **Write** | create the buyer's customer, read it, delete it when the account is deleted |
+   | Checkout Sessions | **Write** | start Checkout |
+   | Subscriptions | **Write** | read the current subscriptions; cancel them when the account is deleted |
+   | Customer portal (Billing portal) | **Write** | "Manage subscription" |
+   | Prices | **Read** | check a price is active and recurring / one-time before Checkout |
+   | PaymentIntents | **Read** | lifetime purchases only (read when `LIFETIME_PRICE_IDS` is set) |
+   | Charges | **Read** | refunds and disputes (the charge of a dispute; refund amounts) |
+
+   Webhook signature checks happen locally and need no permission. If you turn on Stripe Tax (step 8) and Checkout reports a missing permission, add the one it names.
+   Then create the **webhook secret** with a placeholder for now (step 5 replaces it with the real one), so the next deploy has both secrets:
+   ```bash
+   npx firebase-tools functions:secrets:set STRIPE_WEBHOOK_SECRET --project tcgtempo
+   ```
+   Type `whsec_placeholder` at the prompt. Until the real secret is set, the webhook rejects every request (HTTP 400), which is safe.
+   **The deployer needs one more role:** Google Cloud console → **IAM** → `github-deployer@tcgtempo.iam.gserviceaccount.com` → add **Secret Manager Admin** (a deploy grants the functions' runtime account access to each secret). Or in Cloud Shell:
+   ```bash
+   gcloud projects add-iam-policy-binding tcgtempo --member="serviceAccount:github-deployer@tcgtempo.iam.gserviceaccount.com" --role=roles/secretmanager.admin --condition=None
+   ```
+
+3. **Deploy**: push to `main` (or Actions → **Deploy** → **Run workflow**). This deploys `createCheckoutSession`, `createPortalSession`, `refreshEntitlements` and `stripeWebhook`, and **deletes** the old `syncEntitlementsOnSubscription` and `syncEntitlementsOnPayment` functions (nothing writes their documents any more; the workflow passes `--force`, which a non-interactive deploy needs to delete functions).
+   Optional but recommended, once (Cloud Shell): let Firestore expire the webhook bookkeeping after 30 days:
+   ```bash
+   gcloud firestore fields ttls update expireAt --collection-group=stripeEvents --enable-ttl --project=tcgtempo
+   ```
+
+4. **Webhook endpoint**: Stripe → **Developers → Webhooks → Add endpoint** (in Test mode first).
+   - **Endpoint URL**: the `stripeWebhook` function's URL. Find it in the Firebase console → **Functions** → the `stripeWebhook` row (the URL under "Trigger"), or in the deploy log line `Function URL (stripeWebhook(us-central1)): …`. It looks like `https://stripewebhook-<random>-uc.a.run.app`; `https://us-central1-tcgtempo.cloudfunctions.net/stripeWebhook` points at the same function and works too. Use one of them.
+   - **API version**: the newest offered (the functions pin `2026-11-18.endive` for their own calls and re-read everything from Stripe, so the payload version doesn't matter).
+   - **Events to send** (exactly these 11):
+     - `checkout.session.completed`
+     - `checkout.session.async_payment_succeeded`
+     - `customer.subscription.created`
+     - `customer.subscription.updated`
+     - `customer.subscription.deleted`
+     - `customer.subscription.paused`
+     - `customer.subscription.resumed`
+     - `invoice.paid`
+     - `invoice.payment_failed`
+     - `charge.refunded`
+     - `charge.dispute.created`
+   - Save, then **Reveal** the **Signing secret** (`whsec_…`) and copy it.
+
+5. **Set the real webhook secret, then redeploy** (a deploy picks up the new secret version):
+   ```bash
+   npx firebase-tools functions:secrets:set STRIPE_WEBHOOK_SECRET --project tcgtempo
+   ```
+   Paste the `whsec_…` value, then push to `main` or run the **Deploy** workflow. Check: Stripe → the webhook → **Send test event** → `invoice.paid` answers **200** (unknown customers are acknowledged and ignored). A 400 means the secret doesn't match.
+
+6. **Stripe settings** (dashboard):
+   - **Settings → Billing → Customer portal**: activate the portal. Allow customers to **cancel** subscriptions, to **switch plans** (add the product with both prices, monthly ↔ yearly), and to update payment methods; show invoice history. Fill in the **business information** (name, support email/URL, privacy policy `https://tcgtempo.skwirls.com/privacy`, terms `https://tcgtempo.skwirls.com/terms`).
+   - **Settings → Customer emails**: turn on **successful payments** (receipts) and **refunds**.
+   - **Settings → Billing → Subscriptions and emails**: turn on **Smart Retries** for failed payments, and the emails for failed payments and expiring cards. A failed renewal makes the subscription `past_due`: the app treats that as **not Pro** until the payment succeeds (then Pro comes back by itself), and "Choose a plan" opens the portal instead of a second subscription.
+
+7. **Test, then go live.**
+   1. **Test mode** (the steps above use test keys and test prices): on the live site open `https://tcgtempo.skwirls.com/pro` (the plans can be bought even while the paywall is off), sign in with Google, choose Monthly and pay with card `4242 4242 4242 4242`, any future date, any CVC. You land on `/pro?checkout=success…`, which says "Payment received, activating Pro…" and then "Pro is active". **Manage subscription** opens the Stripe portal; cancel there and Pro turns off when the subscription ends. **Restore purchases** (Account and /pro) re-reads Stripe. Test prices must be in `STRIPE_PRICE_IDS` and `.env.production` while you test in test mode.
+   2. **Turn the paywall on, in BOTH places** (they must agree):
+      - `.env.production`: `NEXT_PUBLIC_PAYWALL_ENABLED=1`, push to `main`.
+      - Firestore console → document **`config/billing`** with field `paywallEnabled` (boolean) = `true`. Clients can't write it; while it's absent the server allows everything.
+      Then the server enforces Pro for cloud history sync, share links and the image quota (free 5 / Pro 200).
+   3. **Live mode**: in Stripe switch to **Live**, create (or copy to live) the product and its two prices, and note the **live** price ids. Then:
+      - **Client**: `.env.production` → `NEXT_PUBLIC_STRIPE_PRICE_MONTHLY` / `NEXT_PUBLIC_STRIPE_PRICE_YEARLY` = the live ids (and the display prices).
+      - **Server**: `functions/.env` → `STRIPE_PRICE_IDS=<live monthly>,<live yearly>` (comma-separated; this is the allowlist, so a price missing here is refused with "Unknown price").
+      - Create a **live** restricted key with the same permissions as step 2 and set it: `npx firebase-tools functions:secrets:set STRIPE_SECRET_KEY --project tcgtempo`.
+      - Add the same webhook endpoint in **Live** mode (step 4) and set its signing secret (step 5).
+      - Commit the two env files and push to `main` (this redeploys with the new secrets too).
+      Accounts that bought in test mode keep a test-mode customer id; their next checkout creates a live customer automatically.
+
+8. **Stripe Tax (optional, owner decision)**: set up Stripe Tax in the dashboard (**Settings → Tax**: origin address, registrations, product tax code), then set `STRIPE_AUTOMATIC_TAX=true` in `functions/.env` and push. Checkout then calculates tax (`automatic_tax`) and saves the address the buyer enters on their customer. Leave it `false` until you have decided where you must collect tax.
+
 9. Legal: before charging money, have someone review `/terms`, `/privacy`, the trademark disclaimer, and WotC's Fan Content Policy (PRD §17.1, Q7). Pro features are deliberately game-agnostic, and Scryfall art is never paywalled.
    - **Placeholder banners to remove after review** (they are shown to users on purpose until then):
      - `/privacy` and `/terms`: "Draft — requires owner/legal review" (`legal.draft` in `src/i18n/en/legal.json`, rendered by `src/features/legal/LegalDocument.tsx`; texts in `src/features/legal/content/en.json`).
      - `/about`: "Draft legal text, pending review" (`art.about.draft` in `src/i18n/en/art.json`, rendered by `src/features/art/AboutScreen.tsx`).
    - Rule values marked `verify` (docs/RULES-TO-VERIFY.md) show a "needs checking" hint only in dev/test builds; set `NEXT_PUBLIC_SHOW_VERIFY=1` to see them in a production build while you check.
+
+**How Pro is decided** (`functions/src/logic/entitlements.ts`): an `active` or `trialing` subscription is Pro; `past_due`, `unpaid`, `paused`, `incomplete` and `canceled` are not. A one-time payment grants lifetime Pro only for a price in `LIFETIME_PRICE_IDS`, and a full refund or any dispute revokes it. An owner-granted comp (`users/{uid}/private/entitlements` with `source: "manual"`, set in the console) is never revoked by Stripe. **Refunds and disputes need nothing by hand**: the webhook re-reads the payment and recomputes. **Deleting an account** cancels its subscriptions immediately and deletes the Stripe customer first; if Stripe refuses, nothing is deleted and the user is asked to try again.
+
+**Where things live**: `users/{uid}/private/stripe` `{customerId}` (server-only), `users/{uid}/private/entitlements` `{pro, source, updatedAt}` (the owner can read it), `stripeEvents/{eventId}` (server-only webhook log, expires after 30 days with the TTL policy).
 
 ## Part 8 (optional): Error reporting and analytics
 - **Sentry**: create a project (platform: JavaScript/Browser) → copy the DSN → `NEXT_PUBLIC_SENTRY_DSN` in `.env.production`. Sentry loads only when this is set.
@@ -248,4 +318,8 @@ Moving `tcgtempo.skwirls.com` from App Hosting to Hosting:
 | Google sign-in popup closes with `auth/unauthorized-domain` | Add the domain in Authentication → Settings → Authorized domains |
 | Sync shows "permission denied" | Rules not deployed (Part 5) or App Check enforced before the site key was set |
 | Paywall never appears | `NEXT_PUBLIC_PAYWALL_ENABLED` isn't `"1"` (intended default) |
-| Stripe checkout spins forever | Extension not installed, webhook missing, or price id typo |
+| Deploy fails with "no value for the secret STRIPE_SECRET_KEY" (or `STRIPE_WEBHOOK_SECRET`) | Set both secrets (Part 7, step 2); nothing deploys until they exist |
+| Deploy fails with a Secret Manager permission error | Give `github-deployer` the **Secret Manager Admin** role (Part 7, step 2) |
+| "Checkout could not start: Unknown price" | The price id in `.env.production` isn't in `STRIPE_PRICE_IDS` (`functions/.env`), e.g. test vs live ids |
+| "Payments are unavailable right now" | The functions couldn't reach Stripe: check the key in Secret Manager (test vs live, restricted-key permissions) and the function logs |
+| Paid, but the Pro page keeps saying "Taking longer than usual" | Webhook missing or its secret wrong (Stripe → Webhooks shows failed deliveries); **Restore purchases** re-reads Stripe meanwhile |

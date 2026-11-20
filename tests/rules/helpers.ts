@@ -103,11 +103,6 @@ export const valid = {
     appVersion: "0.1.0",
     createdAt: now(),
   }),
-  checkout: () => ({
-    price: "price_123abc",
-    success_url: "https://example.com/account?ok=1",
-    cancel_url: "https://example.com/account",
-  }),
 };
 
 /** Every owner-scoped document path with a factory for a valid doc. */

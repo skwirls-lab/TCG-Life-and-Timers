@@ -1,5 +1,7 @@
-// Stripe checkout + entitlements against the emulators (T7.1, T7.2). The extension is simulated
-// by writing its docs with emulator owner access (instructions §6.3 fallback).
+// Stripe checkout + entitlements against the emulators (T7.1, T7.2, D-082). The app's own
+// payment functions run in the Functions emulator; without a real Stripe key they use the
+// emulator-only Stripe stand-in (functions/src/logic/emulatorStripe.ts): Checkout "pays" at once
+// and lands on /pro?checkout=success, where refreshEntitlements grants Pro through the real code.
 // @req PAY-002 @req PAY-003 @req PAY-004 @req A11Y-002
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./support/axe";
@@ -7,11 +9,15 @@ import { expectNoSeriousA11yViolations } from "./support/axe";
 const FIRESTORE = "http://127.0.0.1:8080/v1/projects/demo-tcg-life/databases/(default)/documents";
 const OWNER = { Authorization: "Bearer owner", "Content-Type": "application/json" };
 
-type FsValue = { stringValue?: string; booleanValue?: boolean; timestampValue?: string };
-interface FsDoc {
-  name: string;
-  fields: Record<string, FsValue>;
-}
+type FsValue = {
+  stringValue?: string;
+  booleanValue?: boolean;
+  timestampValue?: string;
+  integerValue?: string;
+  nullValue?: null;
+  arrayValue?: { values?: FsValue[] };
+  mapValue?: { fields: Record<string, FsValue> };
+};
 
 async function patchDoc(path: string, fields: Record<string, FsValue>) {
   const mask = Object.keys(fields)
@@ -25,10 +31,10 @@ async function patchDoc(path: string, fields: Record<string, FsValue>) {
   expect(res.ok, await res.text()).toBe(true);
 }
 
-async function listDocs(path: string): Promise<FsDoc[]> {
+async function getDoc(path: string): Promise<Record<string, FsValue> | null> {
   const res = await fetch(`${FIRESTORE}/${path}`, { headers: OWNER });
-  const body = (await res.json()) as { documents?: FsDoc[] };
-  return body.documents ?? [];
+  if (res.status === 404) return null;
+  return ((await res.json()) as { fields?: Record<string, FsValue> }).fields ?? {};
 }
 
 async function signIn(page: Page, label: string, project: string): Promise<string> {
@@ -41,14 +47,43 @@ async function signIn(page: Page, label: string, project: string): Promise<strin
 
 const isPro = (page: Page) => page.evaluate(() => window.__tcgPay?.state().pro ?? null);
 
+/** What the payment functions write for an active subscription (owner access). */
 async function grantPro(uid: string) {
-  // What the Stripe extension + syncEntitlements would write for an active subscription.
-  await patchDoc(`customers/${uid}/subscriptions/sub_e2e`, { status: { stringValue: "active" } });
   await patchDoc(`users/${uid}/private/entitlements`, {
     pro: { booleanValue: true },
     source: { stringValue: "subscription" },
     updatedAt: { timestampValue: new Date().toISOString() },
   });
+}
+
+/** An active subscription "in Stripe" (the emulator stand-in) that the app doesn't know about. */
+async function seedStripeSubscription(uid: string): Promise<string> {
+  const customerId = `cus_emu${uid.replace(/[^A-Za-z0-9]/g, "")}`;
+  const str = (v: string) => ({ stringValue: v });
+  await patchDoc(`users/${uid}/private/stripe`, { customerId: str(customerId) });
+  await patchDoc(`_emulatorStripe/${customerId}`, {
+    uid: str(uid),
+    email: { nullValue: null },
+    payments: { arrayValue: { values: [] } },
+    subscriptions: {
+      arrayValue: {
+        values: [
+          {
+            mapValue: {
+              fields: {
+                id: str("sub_emuSeeded"),
+                status: str("active"),
+                customer: str(customerId),
+                priceIds: { arrayValue: { values: [str("price_e2eMonthly")] } },
+                metadata: { mapValue: { fields: { firebaseUID: str(uid) } } },
+              },
+            },
+          },
+        ],
+      },
+    },
+  });
+  return customerId;
 }
 
 test.describe("pay @emu", () => {
@@ -96,59 +131,111 @@ test.describe("pay @emu", () => {
     }
   });
 
-  // @req PAY-002 @req A11Y-002
-  test("checkout writes a checkout_sessions doc and follows the extension's url @emu", async ({
+  // @req PAY-002 @req PAY-003 @req A11Y-002
+  test("buy monthly → Checkout → success page → Pro; buying again opens the portal @emu", async ({
     page,
   }, info) => {
-    await page.route("https://example.com/**", (route) =>
-      route.fulfill({ status: 200, contentType: "text/html", body: "<title>Stripe</title>" }),
-    );
     await page.goto("/pro?pw=1");
     const uid = await signIn(page, "checkout", info.project.name);
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-policy", "TIERED");
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "0");
     await expect(page.getByTestId("pro-not-configured")).toHaveCount(0);
     await expectNoSeriousA11yViolations(page);
 
-    const buy = page.getByTestId("pro-buy-yearly");
+    const buy = page.getByTestId("pro-buy-monthly");
     await expect(buy).toBeEnabled();
     await buy.click();
-    await expect(page.getByTestId("pro-status-text")).toBeVisible();
 
-    let sessions: FsDoc[] = [];
-    await expect
-      .poll(async () => (sessions = await listDocs(`customers/${uid}/checkout_sessions`)).length, {
-        timeout: 15_000,
-      })
-      .toBe(1);
-    const f = sessions[0]!.fields;
-    expect(f.price?.stringValue).toBe("price_e2eYearly");
-    expect(f.mode?.stringValue).toBe("subscription");
-    expect(f.success_url?.stringValue).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/pro\?status=success$/);
-    expect(f.cancel_url?.stringValue).toMatch(/\/pro\?status=cancel$/);
+    // createCheckoutSession → (simulated) Stripe Checkout → back on the success URL.
+    await expect(page).toHaveURL(/\/pro\?checkout=success&session_id=cs_emu\w+$/, {
+      timeout: 20_000,
+    });
+    const banner = page.getByTestId("pro-return-success");
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute("data-state", "active", { timeout: 20_000 });
+    await expect(banner).toContainText("Pro is active");
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1");
+    await expectNoSeriousA11yViolations(page);
 
-    // The extension answers with the Checkout url → the app navigates there.
-    const docPath = sessions[0]!.name.split("/documents/")[1]!;
-    await patchDoc(docPath, { url: { stringValue: "https://example.com/stripe" } });
-    await expect(page).toHaveURL("https://example.com/stripe", { timeout: 15_000 });
-  });
+    // Written by the server: the customer mapping (server-only) and the entitlement.
+    const mapping = await getDoc(`users/${uid}/private/stripe`);
+    expect(mapping?.customerId?.stringValue).toMatch(/^cus_emu/);
+    const ent = await getDoc(`users/${uid}/private/entitlements`);
+    expect(ent?.pro?.booleanValue).toBe(true);
+    expect(ent?.source?.stringValue).toBe("subscription");
 
-  // @req PAY-002 @req PAY-004
-  test("checkout return states and Manage subscription for a Pro user @emu", async ({
-    page,
-  }, info) => {
-    await page.goto("/pro?pw=1&status=success");
-    await expect(page.getByTestId("pro-return-success")).toBeVisible();
-    await expect(page.getByTestId("pro-restore")).toBeEnabled();
-    const uid = await signIn(page, "manage", info.project.name);
-    await expect(page.getByTestId("pro-restore")).toHaveCount(0);
-    await grantPro(uid);
+    // Already subscribed: the buy button opens the Billing Portal instead of a second Checkout.
+    await page.goto("/pro");
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1", {
       timeout: 15_000,
     });
-    // The portal callable doesn't exist in the emulators: the button explains it's unavailable.
+    await page.getByTestId("pro-buy-yearly").click();
+    await expect(page).toHaveURL(/\/pro\?portal=emulator$/, { timeout: 20_000 });
+    // ...and so does Manage subscription.
+    await page.goto("/pro");
     await page.getByTestId("pro-manage").click();
-    await expect(page.getByTestId("pro-status-text")).toContainText("not available", {
+    await expect(page).toHaveURL(/\/pro\?portal=emulator$/, { timeout: 20_000 });
+  });
+
+  // @req PAY-002
+  test("a canceled checkout shows a gentle note and changes nothing @emu", async ({ page }) => {
+    await page.goto("/pro?pw=1&checkout=cancel");
+    await expect(page.getByTestId("pro-return-cancel")).toContainText("Checkout canceled");
+    await expect(page.getByTestId("pro-return-success")).toHaveCount(0);
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "0");
+  });
+
+  // @req PAY-004
+  test("Restore purchases re-reads Stripe (Account and /pro, signed-in only) @emu", async ({
+    page,
+  }, info) => {
+    await page.goto("/pro?pw=1");
+    await expect(page.getByTestId("pro-restore")).toBeEnabled(); // guests: sign in to restore
+    await expect(page.getByTestId("pro-restore-purchases")).toHaveCount(0);
+    const uid = await signIn(page, "restore", info.project.name);
+    await expect(page.getByTestId("pro-restore")).toHaveCount(0);
+    await expect(page.getByTestId("pro-restore-purchases")).toBeVisible();
+
+    // A subscription exists in Stripe that the app missed (e.g. a lost webhook).
+    await seedStripeSubscription(uid);
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "0");
+    await page.getByTestId("pro-restore-purchases").click();
+    await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(
+      "Pro is active on this account.",
+      { timeout: 15_000 },
+    );
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1", {
       timeout: 15_000,
     });
+    // Rate limit (once per 30 s): a second check right away is refused politely.
+    await page.getByTestId("pro-restore-purchases").click();
+    await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(
+      "Try again in a few seconds",
+      { timeout: 15_000 },
+    );
+
+    // The same button in Account (same server limit).
+    await page.goto("/account");
+    await page.getByTestId("account-restore-purchases").click();
+    await expect(page.getByTestId("account-restore-purchases-result")).toContainText(
+      "Try again in a few seconds",
+      { timeout: 15_000 },
+    );
+    await expect.poll(() => isPro(page), { timeout: 15_000 }).toBe(true);
+  });
+
+  // @req PAY-001
+  test("with the paywall off (default) everything stays free, signed in or not @emu", async ({
+    page,
+  }, info) => {
+    await page.goto("/pro");
+    await signIn(page, "free", info.project.name);
+    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-policy", "ALL_FREE");
+    await page.goto("/setup");
+    await page.getByTestId("setup-next").click();
+    await page.getByTestId("setup-players-8").click();
+    await expect(page.getByTestId("setup-players-8")).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByTestId("paywall")).toHaveCount(0);
+    await expect(page.getByLabel("Pro feature")).toHaveCount(0);
   });
 });

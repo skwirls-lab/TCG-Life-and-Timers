@@ -22,6 +22,7 @@ import { signInWithGoogle, signOut, useAuth } from "@/lib/auth/store";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
 import { describeSyncStatus, useSyncStatus } from "@/lib/sync/status";
+import { RestorePurchases } from "@/features/paywall/RestorePurchases";
 import { MergePrompt } from "./MergePrompt";
 
 export function AccountScreen() {
@@ -146,6 +147,7 @@ function SignedIn({ email, displayName }: { email: string | null; displayName: s
         </span>
       </div>
       <SyncLine />
+      <RestorePurchases testId="account-restore-purchases" />
       {!confirming ? (
         <Button
           variant="outline"
@@ -203,7 +205,7 @@ function SignedIn({ email, displayName }: { email: string | null; displayName: s
   );
 }
 
-/** B-3: a Pro user is told to cancel the subscription first, with a link to the portal. */
+/** B-3: a Pro user is told deletion cancels the subscription, with a link to the portal. */
 export function SubscriptionWarning() {
   const pro = useEntitlements((s) => s.pro);
   if (!pro) return null;
@@ -218,7 +220,7 @@ export function SubscriptionWarning() {
         size="sm"
         variant="outline"
         onClick={() => {
-          void import("@/lib/entitlements/checkout").then((m) => m.openBillingPortal());
+          void import("@/lib/entitlements/checkout").then((m) => m.openPortal());
         }}
         data-testid="account-delete-manage"
       >

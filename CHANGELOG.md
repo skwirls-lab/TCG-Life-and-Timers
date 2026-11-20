@@ -3,6 +3,15 @@
 All notable changes to TCGTempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow semantic versioning.
 
+## [1.3.0] - 2026-11-20
+
+### Pro
+
+- Getting Pro ready: purchases now go through TCGTempo's own secure Stripe checkout. Everything stays free for now.
+- After paying, the Pro page tells you when Pro is active. If it takes longer than usual, tap Restore purchases.
+- Signed in? Restore purchases, in Account and on the Pro page, checks your purchase again.
+- Deleting your account also cancels your subscription right away and removes your billing details from Stripe.
+
 ## [1.2.2] - 2026-11-19
 
 ### Faster

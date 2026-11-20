@@ -59,6 +59,11 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      # The payment functions read the Secret Manager secrets STRIPE_SECRET_KEY and
+      # STRIPE_WEBHOOK_SECRET at deploy time: if either is missing the whole deploy stops before
+      # anything is released, with "no value for the secret …" (DEPLOY.md Part 7, step 2). Non-secret
+      # params come from functions/.env. --force lets this non-interactive deploy delete functions
+      # that are no longer in the code (e.g. the old syncEntitlementsOn* triggers).
       - name: Deploy (Hosting, rules, indexes, functions)
         if: env.USE_WIF == 'true' || env.HAS_SA == 'true'
         run: npx firebase deploy --only hosting,firestore,storage,functions --project "$FIREBASE_PROJECT_ID" --non-interactive --force

@@ -197,6 +197,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // uid → Stripe customer mapping (+ refresh rate limit), written by the payment functions.
+      // Server-only: never readable or writable by any client, the owner included (SEC-002).
+      match /private/stripe {
+        allow read, write: if false;
+      }
+
       // Cloud art quota counter, maintained by the artQuota functions (B-4, ART-024).
       match /private/quota {
         allow read: if isOwner(uid);
@@ -204,32 +210,10 @@ service cloud.firestore {
       }
     }
 
-    // ---------- customers/** : Stripe extension (SEC-002) ----------
-    match /customers/{uid} {
-      allow read: if isOwner(uid);
-      allow write: if false;
-
-      match /{document=**} {
-        allow read: if isOwner(uid);
-        allow write: if false;
-      }
-
-      // The only client write the Stripe extension needs: create a checkout session request.
-      match /checkout_sessions/{sessionId} {
-        function validCheckout() {
-          let d = data();
-          return shape(d, ['price', 'success_url', 'cancel_url'],
-              ['mode', 'allow_promotion_codes', 'trial_from_plan', 'quantity', 'metadata'])
-            && d.price is string && d.price.size() <= 255 && d.price.matches('^price_[A-Za-z0-9]+$')
-            && isStr(d.success_url, 1, 2048) && d.success_url.matches('^https?://.+$')
-            && isStr(d.cancel_url, 1, 2048) && d.cancel_url.matches('^https?://.+$')
-            && (!('mode' in d) || d.mode in ['subscription', 'payment'])
-            && optBool(d, 'allow_promotion_codes') && optBool(d, 'trial_from_plan')
-            && (!('quantity' in d) || isInt(d.quantity, 1, 10))
-            && (!('metadata' in d) || (d.metadata is map && d.metadata.size() <= 20));
-        }
-        allow create: if isOwner(uid) && validCheckout();
-      }
+    // ---------- stripeEvents/{eventId} : webhook idempotency, server-only (SEC-002) ----------
+    // Written by the stripeWebhook function (admin SDK). No client access at all.
+    match /stripeEvents/{eventId} {
+      allow read, write: if false;
     }
 
     // ---------- sharedPresets/{code} : public read, immutable (SEC-005, CUS-007, LEG-005) ----------

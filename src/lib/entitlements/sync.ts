@@ -1,7 +1,7 @@
 "use client";
 /**
  * Entitlement sync (T7.2, PAY-003): while a user is signed in, listen to
- * `users/{uid}/private/entitlements` (written by the `syncEntitlements` function) and mirror
+ * `users/{uid}/private/entitlements` (written by the payment functions: Stripe webhook, refreshEntitlements) and mirror
  * `pro` into the entitlement store. Every server-confirmed read is cached in Dexie kv; offline,
  * the cached Pro stays valid for 14 days after the last verification (GRACE_MS).
  *
