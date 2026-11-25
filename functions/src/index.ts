@@ -101,6 +101,19 @@ function callerOf(req: CallableRequest): Caller | null {
   };
 }
 
+/**
+ * Where a non-Stripe failure came from (message + top stack frames). Stripe SDK errors are left
+ * at type/code/status (their messages can echo request details); nothing here contains secrets.
+ */
+function diagnostics(err: unknown): Record<string, string> {
+  const e = err as { type?: unknown; message?: unknown; stack?: unknown } | null;
+  if (!e || (typeof e.type === "string" && e.type.startsWith("Stripe"))) return {};
+  const out: Record<string, string> = {};
+  if (typeof e.message === "string") out.message = e.message.slice(0, 300);
+  if (typeof e.stack === "string") out.stack = e.stack.split("\n").slice(0, 8).join(" | ");
+  return out;
+}
+
 /** BillingError → HttpsError with a stable `reason`; Stripe errors are logged without secrets. */
 async function billingCall<T>(name: string, run: () => Promise<T>): Promise<T> {
   try {
@@ -108,7 +121,7 @@ async function billingCall<T>(name: string, run: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (err instanceof BillingError)
       throw new HttpsError(err.code, err.message, { reason: err.reason });
-    logger.error(`${name} failed`, { error: stripeErrorText(err) });
+    logger.error(`${name} failed`, { error: stripeErrorText(err), ...diagnostics(err) });
     throw new HttpsError("unavailable", "Payments are unavailable right now. Try again soon.", {
       reason: "stripe-unavailable",
     });
@@ -157,6 +170,7 @@ export const stripeWebhook = onRequest(
     } catch (err) {
       logger.error("stripeWebhook: processing failed (Stripe will retry)", {
         error: stripeErrorText(err),
+        ...diagnostics(err),
       });
       res.status(500).json({ error: "processing failed" });
     }
