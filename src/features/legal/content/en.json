@@ -1,7 +1,7 @@
 {
-  "updated": "2026-11-19",
+  "updated": "2026-11-25",
   "privacy": {
-    "intro": "TCGTempo (“the app”) is a life counter and game clock for trading card games. It works fully offline without an account. This policy explains what data the app handles, where it is kept and how you control it. Placeholders in [brackets] must be completed by the app owner before launch.",
+    "intro": "TCGTempo (“the app”) is a life counter and game clock for trading card games. It works fully offline without an account. This policy explains what data the app handles, where it is kept and how you control it. TCGTempo is operated by Skwirls Ventures LLC, United States (“we”, “us”).",
     "sections": [
       {
         "id": "device",
@@ -51,14 +51,14 @@
         "id": "location",
         "heading": "Where data is stored",
         "paragraphs": [
-          "Cloud data is stored by Google Firebase in the [REGION — owner to fill, e.g. europe-west1 / us-central1] region. Analytics data is processed by Google and crash reports by Sentry ([Sentry data region — owner to fill])."
+          "Cloud data is stored by Google Firebase in the United States. Analytics data is processed by Google and crash reports, if enabled, by Sentry (United States)."
         ]
       },
       {
         "id": "retention",
         "heading": "How long data is kept",
         "paragraphs": [
-          "Data on your device is kept until you remove it (Settings → Remove data from this device) or clear your browser storage. Cloud data is kept while your account exists and is deleted when you delete your account. Analytics data is kept for [owner to fill, e.g. 14 months] and crash reports for [owner to fill, e.g. 90 days]."
+          "Data on your device is kept until you remove it (Settings → Remove data from this device) or clear your browser storage. Cloud data is kept while your account exists and is deleted when you delete your account. Analytics data is kept for up to 14 months and crash reports for up to 90 days."
         ]
       },
       {
@@ -84,13 +84,13 @@
         "id": "contact",
         "heading": "Contact and changes",
         "paragraphs": [
-          "Questions or requests: [owner contact email]. If this policy changes, the new version will be published here with a new date."
+          "Questions or requests: support@skwirls.com. If this policy changes, the new version will be published here with a new date."
         ]
       }
     ]
   },
   "terms": {
-    "intro": "These terms govern your use of TCGTempo. By using the app you agree to them. Placeholders in [brackets] must be completed by the app owner before launch.",
+    "intro": "These terms govern your use of TCGTempo. By using the app you agree to them. TCGTempo is operated by Skwirls Ventures LLC, United States (“we”, “us”).",
     "sections": [
       {
         "id": "use",
@@ -117,7 +117,7 @@
         "id": "pro",
         "heading": "Pro purchases",
         "paragraphs": [
-          "Prices are shown before you pay and are set by the owner. Subscriptions renew automatically until cancelled; you can cancel any time from the Pro page (Stripe customer portal), and Pro stays active until the end of the paid period. Refunds follow the law of your country and [owner refund policy]. If the app is discontinued, [owner to fill: what happens to lifetime purchases]."
+          "Prices are shown before you pay and are set by the owner. Subscriptions renew automatically until cancelled; you can cancel any time from the Pro page (Stripe customer portal), and Pro stays active until the end of the paid period. Payments are non-refundable except where required by law; if something went wrong, email support@skwirls.com and we will review your request. Lifetime purchases are not currently offered. If the app is discontinued, active subscriptions are cancelled and not renewed."
         ]
       },
       {
@@ -145,7 +145,7 @@
         "id": "changes",
         "heading": "Changes and governing law",
         "paragraphs": [
-          "We may update these terms; the new version will be published here with a new date. These terms are governed by the laws of [owner jurisdiction]. Contact: [owner contact email]."
+          "We may update these terms; the new version will be published here with a new date. These terms are governed by the laws of [owner jurisdiction]. Contact: support@skwirls.com."
         ]
       }
     ]
