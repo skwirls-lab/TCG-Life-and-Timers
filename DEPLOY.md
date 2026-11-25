@@ -194,6 +194,17 @@ Sign-in uses a Google popup on every device. An installed app on iPhone can't re
 - On a custom domain it does so only once you set it up (Part 9, step 4). Until then sign-in keeps using `tcgtempo.firebaseapp.com`, which works everywhere except the redirect fallback in the installed iPhone app.
 
 ## Part 7 (optional, later): Turn on Pro payments with Stripe
+
+> **Before anything in this part:** the functions run as the default service accounts, which on secure-by-default Google Cloud organizations get **no** automatic Editor role. Grant them what the functions use, or every callable fails with `PERMISSION_DENIED` (Firestore) and the triggers fail too. In Cloud Shell, one command at a time:
+> ```bash
+> for SA in 726097197982-compute@developer.gserviceaccount.com tcgtempo@appspot.gserviceaccount.com; do
+>   for ROLE in roles/datastore.user roles/firebaseauth.admin roles/storage.objectAdmin; do
+>     gcloud projects add-iam-policy-binding tcgtempo --member=serviceAccount:$SA --role=$ROLE --condition=None >/dev/null && echo "ok $SA $ROLE"
+>   done
+> done
+> ```
+> (The compute account runs the 2nd-gen functions; the appspot account runs the 1st-gen `onUserDeleted`.)
+
 Payments run on the app's **own** Cloud Functions (`functions/src/logic/billing.ts`). There is **no Firebase extension** to install: Firebase Extensions are deprecated and can't be installed, configured or updated after March 31, 2027. The functions keep the user ↔ Stripe customer link and the Pro status in Firestore, and every change is re-read from Stripe.
 
 > ⚠️ **Do steps 2 and the first part of 5 (both secrets) before this version reaches `main`.** The functions declare the secrets `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. A deploy while either one is missing **fails before anything is deployed** (Hosting included) with: `In non-interactive mode but have no value for the secret STRIPE_SECRET_KEY … Set this secret before deploying: firebase functions:secrets:set STRIPE_SECRET_KEY`. Setting them doesn't turn anything on for users: the paywall stays off until step 7.
