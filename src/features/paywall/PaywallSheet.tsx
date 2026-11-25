@@ -1,5 +1,8 @@
 "use client";
-/** The paywall sheet (T7.1, PAY-004): "This is a Pro feature", Free vs Pro, plans, restore. */
+/**
+ * The paywall sheet (T7.1, PAY-004): "This is a Pro feature", Free vs Pro, plans, restore; for a
+ * Pro account the "You're Pro" state instead (./ProState).
+ */
 import { useRouter } from "next/navigation";
 import { Button, LockBadge, Sheet } from "@/components/ui";
 import { afterOverlayClose } from "@/features/settings/afterOverlayClose";
@@ -36,14 +39,15 @@ export default function PaywallSheet({ open, feature, onClose }: PaywallSheetPro
           </div>
         )}
         {pro ? (
-          <p className="text-success" data-testid="paywall-is-pro">
-            {t("pay.sheet.isPro")}
-          </p>
+          // "You're Pro": plan, renewal, Manage subscription; no plans to buy.
+          <PurchasePanel testId="paywall" />
         ) : (
-          <p className="text-fg-muted">{t("pay.sheet.intro")}</p>
+          <>
+            <p className="text-fg-muted">{t("pay.sheet.intro")}</p>
+            <ComparisonTable feature={feature} />
+            <PurchasePanel testId="paywall" />
+          </>
         )}
-        <ComparisonTable feature={feature} />
-        <PurchasePanel testId="paywall" />
         <Button variant="ghost" onClick={seeAll} data-testid="paywall-see-all">
           {t("pay.sheet.seeAll")}
         </Button>

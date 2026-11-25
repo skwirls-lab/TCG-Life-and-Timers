@@ -132,7 +132,7 @@ test.describe("pay @emu", () => {
   });
 
   // @req PAY-002 @req PAY-003 @req A11Y-002
-  test("buy monthly → Checkout → success page → Pro; buying again opens the portal @emu", async ({
+  test("buy monthly → Checkout → success page → You're Pro (plan, Manage) @emu", async ({
     page,
   }, info) => {
     await page.goto("/pro?pw=1");
@@ -146,10 +146,12 @@ test.describe("pay @emu", () => {
     await expect(buy).toBeEnabled();
     await buy.click();
 
-    // createCheckoutSession → (simulated) Stripe Checkout → back on the success URL.
-    await expect(page).toHaveURL(/\/pro\?checkout=success&session_id=cs_emu\w+$/, {
+    // createCheckoutSession → (simulated) Stripe Checkout → back on the success URL, whose query
+    // the page drops once handled (a reload must not replay it).
+    await expect(page).toHaveURL(/\/pro(\?checkout=success&session_id=cs_emu\w+)?$/, {
       timeout: 20_000,
     });
+    await expect(page).toHaveURL(/\/pro$/, { timeout: 20_000 });
     const banner = page.getByTestId("pro-return-success");
     await expect(banner).toBeVisible();
     await expect(banner).toHaveAttribute("data-state", "active", { timeout: 20_000 });
@@ -163,16 +165,40 @@ test.describe("pay @emu", () => {
     const ent = await getDoc(`users/${uid}/private/entitlements`);
     expect(ent?.pro?.booleanValue).toBe(true);
     expect(ent?.source?.stringValue).toBe("subscription");
+    // ...with the plan details (additive fields, from the subscription in "Stripe").
+    expect(ent?.plan?.stringValue).toBe("monthly");
+    expect(ent?.cancelAtPeriodEnd?.booleanValue).toBe(false);
+    expect(ent?.status?.stringValue).toBe("active");
+    const periodEnd = Number(ent?.currentPeriodEnd?.integerValue ?? 0);
+    expect(periodEnd).toBeGreaterThan(Date.now() + 25 * 24 * 3600 * 1000);
 
-    // Already subscribed: the buy button opens the Billing Portal instead of a second Checkout.
+    // You're Pro: the plan and renewal date, Manage subscription, no purchase buttons.
+    const state = page.getByTestId("pro-pro-state");
+    await expect(state).toBeVisible();
+    await expect(state).toContainText("You're Pro");
+    await expect(page.getByTestId("pro-pro-plan")).toHaveText("Monthly", { timeout: 15_000 });
+    await expect(page.getByTestId("pro-pro-renewal")).toContainText("Renews on");
+    await expect(page.locator('[data-testid^="pro-buy-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="pro-plan-"]')).toHaveCount(0);
+    await expect(page.getByTestId("pro-restore-purchases")).toBeVisible();
+    await expectNoSeriousA11yViolations(page);
+
+    // The same after a fresh load, and in Settings and Account.
     await page.goto("/pro");
-    await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1", {
+    await expect(page.getByTestId("pro-pro-plan")).toHaveText("Monthly", { timeout: 15_000 });
+    await page.goto("/settings");
+    await expect(page.getByTestId("settings-pro-status")).toHaveText("Pro · Monthly", {
       timeout: 15_000,
     });
-    await page.getByTestId("pro-buy-yearly").click();
-    await expect(page).toHaveURL(/\/pro\?portal=emulator$/, { timeout: 20_000 });
-    // ...and so does Manage subscription.
+    await expect(page.getByTestId("settings-pro-manage")).toBeVisible();
+    await page.goto("/account");
+    await expect(page.getByTestId("account-pro-plan")).toHaveText("Pro · Monthly", {
+      timeout: 15_000,
+    });
+
+    // Manage subscription opens the Billing Portal.
     await page.goto("/pro");
+    await expect(page.getByTestId("pro-manage")).toBeEnabled({ timeout: 15_000 }); // signed in
     await page.getByTestId("pro-manage").click();
     await expect(page).toHaveURL(/\/pro\?portal=emulator$/, { timeout: 20_000 });
   });
@@ -200,13 +226,11 @@ test.describe("pay @emu", () => {
     await seedStripeSubscription(uid);
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "0");
     await page.getByTestId("pro-restore-purchases").click();
-    await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(
-      "Pro is active on this account.",
-      { timeout: 15_000 },
-    );
+    // The listener flips Pro: the plans give way to "You're Pro" (with its own Restore button).
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1", {
       timeout: 15_000,
     });
+    await expect(page.getByTestId("pro-pro-state")).toBeVisible();
     // Rate limit (once per 30 s): a second check right away is refused politely.
     await page.getByTestId("pro-restore-purchases").click();
     await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(

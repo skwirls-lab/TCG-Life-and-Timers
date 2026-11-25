@@ -8,7 +8,8 @@
  *
  * Data (all server-only except the entitlements doc, see firestore.rules):
  *   users/{uid}/private/stripe        { customerId, refreshedAt? }        uid → Stripe customer
- *   users/{uid}/private/entitlements  { pro, source, updatedAt }          client-readable (owner)
+ *   users/{uid}/private/entitlements  { pro, source, updatedAt,           client-readable (owner)
+ *                                       plan?, currentPeriodEnd?, cancelAtPeriodEnd?, status? }
  *   stripeEvents/{eventId}            { type, processedAt, expireAt }     webhook idempotency (TTL)
  *
  * Every webhook and refresh recomputes from the customer's CURRENT state in Stripe (all
@@ -16,7 +17,7 @@
  * event payload, so out-of-order and duplicate deliveries always converge on the right answer.
  * Dependencies are structural (D-016); the Stripe client is a `StripePort` (./stripe.ts).
  */
-import { isLifetimePayment, type PaymentLike } from "./entitlements";
+import { isLifetimePayment, type EntitlementPlan, type PaymentLike } from "./entitlements";
 import { isSafeUid } from "./deleteUserData";
 import {
   constructWebhookEvent,
@@ -39,6 +40,14 @@ export const DEFAULT_PRICE_IDS = [
   "price_1UdwGcArytmUxb6t7Ik7ScRb",
   "price_1UdwGcArytmUxb6tJrrS0mpq",
 ] as const;
+/**
+ * The plan of each known price, used only when Stripe's subscription carries no interval
+ * (the interval of the price is the primary source, ./entitlements.ts planOfSubscription).
+ */
+export const DEFAULT_PLAN_BY_PRICE: ReadonlyMap<string, EntitlementPlan> = new Map([
+  [DEFAULT_PRICE_IDS[0], "monthly"],
+  [DEFAULT_PRICE_IDS[1], "yearly"],
+]);
 export const DEFAULT_APP_BASE_URL = "https://tcgtempo.skwirls.com";
 export const DEFAULT_RETURN_ORIGINS = ["https://tcgtempo.skwirls.com", "https://tcgtempo.web.app"];
 export const REFRESH_INTERVAL_MS = 30_000;
@@ -57,6 +66,8 @@ export interface BillingConfig {
   allowLocalOrigins?: boolean;
   /** STRIPE_AUTOMATIC_TAX: Stripe Tax on Checkout. */
   automaticTax: boolean;
+  /** Plan fallback per price id (default DEFAULT_PLAN_BY_PRICE). */
+  planByPrice?: ReadonlyMap<string, EntitlementPlan>;
 }
 
 // ---------- dependencies ----------
@@ -215,7 +226,14 @@ export async function loadPurchases(
   ]);
   return {
     raw: subs,
-    subscriptions: subs.map((s) => ({ status: s.status })),
+    subscriptions: subs.map((s) => ({
+      status: s.status,
+      interval: s.interval,
+      priceIds: s.priceIds,
+      currentPeriodEnd: s.currentPeriodEnd,
+      cancelAtPeriodEnd: s.cancelAtPeriodEnd,
+      cancelAt: s.cancelAt,
+    })),
     payments: payments.map(paymentLike),
   };
 }
@@ -231,6 +249,7 @@ export async function syncFromStripe(
       auth: deps.auth,
       serverTimestamp: deps.serverTimestamp,
       lifetimePriceIds: deps.config.lifetimePriceIds,
+      planByPrice: deps.config.planByPrice ?? DEFAULT_PLAN_BY_PRICE,
     },
     uid,
     async () => {

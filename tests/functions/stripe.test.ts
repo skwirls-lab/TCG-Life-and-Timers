@@ -4,6 +4,7 @@
 // @req PAY-002 @req PAY-003 @req AUTH-005 @req SEC-002
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   SDK_API_VERSION,
@@ -12,6 +13,7 @@ import {
   isBillableSubscription,
   isStripeId,
   isSubscriptionId,
+  mapSubscription,
   parseIdList,
   signWebhookPayload,
   stripeErrorText,
@@ -48,6 +50,43 @@ describe("stripe port helpers", () => {
     ]);
     expect(parseIdList("").size).toBe(0);
     expect(parseIdList(undefined).size).toBe(0);
+  });
+
+  it("maps a subscription's plan details (period on the items, or legacy on the subscription)", () => {
+    const base = { id: "sub_x", status: "active", customer: { id: "cus_x" }, metadata: {} };
+    const modern = mapSubscription({
+      ...base,
+      cancel_at_period_end: false,
+      cancel_at: 1_900_000_000,
+      items: {
+        data: [
+          { current_period_end: 1_700_000_000, price: { id: "p1", recurring: null } },
+          {
+            current_period_end: 1_800_000_000,
+            price: { id: "p2", recurring: { interval: "year" } },
+          },
+        ],
+      },
+    } as unknown as Parameters<typeof mapSubscription>[0]);
+    expect(modern).toMatchObject({
+      customer: "cus_x",
+      priceIds: ["p1", "p2"],
+      interval: "year",
+      currentPeriodEnd: 1_800_000_000_000,
+      cancelAtPeriodEnd: false,
+      cancelAt: 1_900_000_000_000,
+    });
+    const legacy = mapSubscription({
+      ...base,
+      current_period_end: 1_750_000_000,
+      items: { data: [{ price: { id: "p1" } }] },
+    } as unknown as Parameters<typeof mapSubscription>[0]);
+    expect(legacy).toMatchObject({
+      interval: null,
+      currentPeriodEnd: 1_750_000_000_000,
+      cancelAtPeriodEnd: false,
+      cancelAt: null,
+    });
   });
 
   it("error text never carries the message (keys, request details)", () => {
@@ -143,7 +182,18 @@ describe("stripeSdkPort (SDK against a local stand-in)", () => {
             status: "past_due",
             customer: "cus_1",
             metadata: { firebaseUID: "u1" },
-            items: { object: "list", data: [{ id: "si_1", price: { id: "price_m" } }] },
+            cancel_at_period_end: true,
+            cancel_at: null,
+            items: {
+              object: "list",
+              data: [
+                {
+                  id: "si_1",
+                  current_period_end: 1_800_000_000,
+                  price: { id: "price_m", recurring: { interval: "month", interval_count: 1 } },
+                },
+              ],
+            },
           },
         ],
       },
@@ -238,6 +288,10 @@ describe("stripeSdkPort (SDK against a local stand-in)", () => {
         customer: "cus_1",
         priceIds: ["price_m"],
         metadata: { firebaseUID: "u1" },
+        interval: "month",
+        currentPeriodEnd: 1_800_000_000_000,
+        cancelAtPeriodEnd: true,
+        cancelAt: null,
       },
     ]);
     expect(last().path).toContain("status=all");

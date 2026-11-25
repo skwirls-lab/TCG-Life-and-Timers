@@ -22,6 +22,14 @@ export interface StripeSubscription {
   customer: string;
   priceIds: string[];
   metadata: Record<string, string>;
+  /** Billing interval of the recurring price: "month" | "year" | "week" | "day"; null if unknown. */
+  interval?: string | null;
+  /** End of the current billing period, epoch ms (the latest of the items' periods); null if unknown. */
+  currentPeriodEnd?: number | null;
+  /** true when the subscription ends at the period end instead of renewing. */
+  cancelAtPeriodEnd?: boolean;
+  /** A scheduled cancellation time, epoch ms (the portal may set this instead of the flag). */
+  cancelAt?: number | null;
 }
 
 /** A one-time payment (PaymentIntent + its latest charge), in the shape entitlements.ts reads. */
@@ -131,13 +139,26 @@ export function stripeErrorText(err: unknown): string {
   return parts.length ? parts.map(String).join("/") : "stripe error";
 }
 
+const secondsToMs = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) && v > 0 ? v * 1000 : null;
+
 export function mapSubscription(s: Stripe.Subscription): StripeSubscription {
+  const items = s.items.data;
+  // Since API 2025-03-31 the period lives on the items; older payloads carry it on the subscription.
+  const ends = [
+    ...items.map((i) => secondsToMs(i.current_period_end)),
+    secondsToMs((s as unknown as { current_period_end?: unknown }).current_period_end),
+  ].filter((x): x is number => x !== null);
   return {
     id: s.id,
     status: s.status,
     customer: idOf(s.customer) ?? "",
-    priceIds: s.items.data.map((i) => i.price.id),
+    priceIds: items.map((i) => i.price.id),
     metadata: stringMap(s.metadata),
+    interval: items.find((i) => i.price.recurring)?.price.recurring?.interval ?? null,
+    currentPeriodEnd: ends.length ? Math.max(...ends) : null,
+    cancelAtPeriodEnd: s.cancel_at_period_end === true,
+    cancelAt: secondsToMs(s.cancel_at),
   };
 }
 

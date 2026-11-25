@@ -32,7 +32,7 @@ test("players W/L is free; player detail is a blurred preview", async ({ page })
   await ana.getByTestId("player-open").click();
   const locked = page.getByTestId("player-detail-locked");
   await expect(locked).toHaveAttribute("data-locked", "true");
-  await expect(page.getByTestId("player-detail-locked-unlock")).toHaveAttribute("href", "/account");
+  await expect(page.getByTestId("player-detail-locked-unlock")).toHaveAttribute("href", "/pro");
   await expectNoSeriousA11yViolations(page);
 });
 

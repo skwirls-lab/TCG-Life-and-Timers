@@ -56,9 +56,12 @@ export function parentOf(path: string): string {
 
 /**
  * How the route change happened: `push` (a link, router.push), `pop` (browser Back/Forward or
- * router.back()), or `replace` (the in-app Back replacing the current history entry).
+ * router.back()), `replace` (the in-app Back replacing the current history entry), or `load`
+ * (a full page load that wasn't Back/Forward: a typed URL, a bookmark, or a return from another
+ * site such as Stripe Checkout). After a `load` the history entry below may belong to another
+ * site, so the page is never linked to it: Back replaces instead of popping history.
  */
-export type NavKind = "push" | "pop" | "replace";
+export type NavKind = "push" | "pop" | "replace" | "load";
 
 /** Update the trail for a route change to `path` (`href` = path + search). */
 export function visit(

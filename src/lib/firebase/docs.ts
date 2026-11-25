@@ -233,10 +233,17 @@ export function artStoragePath(uid: string, artId: string, ext = "webp"): string
 
 // users/{uid}/private/entitlements: client READ-ONLY, written by functions (SEC-002)
 export const ENTITLEMENT_SOURCES = ["none", "subscription", "lifetime", "manual"] as const;
+export const ENTITLEMENT_PLANS = ["monthly", "yearly", "lifetime", "manual"] as const;
+/** The optional fields are additive (older docs lack them; functions/src/logic/syncEntitlements). */
 export const entitlementsDocSchema = z.strictObject({
   pro: z.boolean(),
   source: z.enum(ENTITLEMENT_SOURCES),
   updatedAt: timestampSchema,
+  plan: z.enum(ENTITLEMENT_PLANS).optional(),
+  /** epoch ms: renewal, or the end date when cancelAtPeriodEnd */
+  currentPeriodEnd: z.number().optional(),
+  cancelAtPeriodEnd: z.boolean().optional(),
+  status: z.string().optional(),
 });
 export type EntitlementsDoc = z.infer<typeof entitlementsDocSchema>;
 

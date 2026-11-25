@@ -1,6 +1,9 @@
 /**
  * Minimal typed i18n (SET-034). Each feature lane owns one JSON file in src/i18n/en/
  * with keys prefixed by its namespace (e.g. "board.*"). Register new files below.
+ *
+ * Route-scoped dictionaries (not merged here, so they don't ship with every route, PERF-003):
+ *   src/i18n/en/pro.json → `tPro` from ./pro.ts (the Pro entry points; keys "pro.*")
  */
 import common from "@/i18n/en/common.json";
 import engine from "@/i18n/en/engine.json";

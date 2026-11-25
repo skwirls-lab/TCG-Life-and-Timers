@@ -3,6 +3,7 @@
  * so an offline Pro user keeps Pro for 14 days after the last verification.
  */
 import { getDb, type TcgDb } from "@/lib/db";
+import { parseDetails, type ProDetails } from "./details";
 
 export const ENTITLEMENT_CACHE_KEY = "pay:entitlement";
 export const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -12,6 +13,8 @@ export interface EntitlementCache {
   pro: boolean;
   /** epoch ms of the last server-confirmed entitlement read */
   verifiedAt: number;
+  /** plan / renewal display details of that read (absent in caches written before them) */
+  details?: ProDetails | null;
 }
 
 export function parseCache(v: unknown): EntitlementCache | null {
@@ -19,7 +22,8 @@ export function parseCache(v: unknown): EntitlementCache | null {
   const o = v as Record<string, unknown>;
   if (typeof o.uid !== "string" || typeof o.pro !== "boolean") return null;
   if (typeof o.verifiedAt !== "number" || !Number.isFinite(o.verifiedAt)) return null;
-  return { uid: o.uid, pro: o.pro, verifiedAt: o.verifiedAt };
+  const details = parseDetails(o.details);
+  return { uid: o.uid, pro: o.pro, verifiedAt: o.verifiedAt, ...(details ? { details } : {}) };
 }
 
 /**

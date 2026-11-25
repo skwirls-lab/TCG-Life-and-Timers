@@ -2,6 +2,7 @@
 /**
  * Launcher `/` (T1.12): Resume card (GAME-016), Presets (saved setups), "Quick start: same as
  * last game" (GAME-001), New game → /setup, and links to History, Tools, Settings and Profiles.
+ * Pro: a dismissible "Go Pro" card for free users, a "Pro" badge for Pro users.
  */
 import { Dices, History, Layers, Play, Plus, Settings, Users, Zap } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -12,6 +13,7 @@ import { AppMark } from "@/components/brand/AppMark";
 import { Button } from "@/components/ui";
 import type { NewGameConfig } from "@/engine";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
+import { LauncherProBadge, LauncherProCard } from "@/features/paywall/LauncherPro";
 import { loadLastConfig } from "@/features/setup/gameConfig";
 import { SetupTiles } from "@/features/setups/SetupTiles";
 import { startNewGame } from "@/features/setup/startGame";
@@ -100,7 +102,10 @@ export function Launcher() {
       >
         <header className="flex flex-col items-center text-center" data-testid="launcher-brand">
           <AppMark size={64} className="mb-2" />
-          <h1 className="text-3xl font-semibold">{t("app.name")}</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-3xl font-semibold">{t("app.name")}</h1>
+            <LauncherProBadge />
+          </div>
           <p className="mt-1 text-fg-muted">{t("app.tagline")}</p>
         </header>
 
@@ -209,6 +214,8 @@ export function Launcher() {
             testId="launcher-link-presets"
           />
         </nav>
+        {/* Pro: below the tiles, so its late arrival (after entitlement sync) never shifts them */}
+        <LauncherProCard />
         {loadState === "loading" && (
           <p className="text-center text-sm text-fg-subtle" aria-live="polite">
             {t("shell.launcher.loading")}

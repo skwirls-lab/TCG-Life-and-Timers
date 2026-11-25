@@ -57,6 +57,44 @@ describe("in-app Back trail", () => {
     expect(v.at(-1)).toMatchObject({ path: "/history", linked: false });
   });
 
+  it("a full page load (e.g. back from Stripe Checkout) never pops history onto another site", () => {
+    // Home → Settings → /pro (linked) → Stripe → full load of /pro?checkout=success
+    const t = walk("/", "/settings", "/pro");
+    expect(backPlan(t, "/pro")).toEqual({ kind: "history" });
+    const returned = visit(t, "/pro", "/pro?checkout=success", "load");
+    expect(returned.map((e) => [e.path, e.linked])).toEqual([
+      ["/", false],
+      ["/settings", true],
+      ["/pro", false],
+    ]);
+    expect(backPlan(returned, "/pro")).toEqual({ kind: "replace", href: "/settings" });
+    // Dropping the handled query keeps it unlinked.
+    const stripped = visit(returned, "/pro", "/pro", "replace");
+    expect(stripped.at(-1)).toEqual({ path: "/pro", href: "/pro", linked: false });
+    expect(backPlan(stripped, "/pro")).toEqual({ kind: "replace", href: "/settings" });
+    // ...and replacing onto Settings unlinks it too, so the next Back replaces again (Home).
+    const onSettings = visit(stripped, "/settings", "/settings", "replace");
+    expect(backPlan(onSettings, "/settings")).toEqual({ kind: "replace", href: "/" });
+  });
+
+  it("a full load of a new page (typed URL, external link) is appended unlinked", () => {
+    const t = visit(walk("/", "/settings"), "/pro", "/pro?checkout=cancel", "load");
+    expect(t.at(-1)).toMatchObject({ path: "/pro", linked: false });
+    expect(backPlan(t, "/pro")).toEqual({ kind: "replace", href: "/settings" });
+    // with no trail at all: the structural parent
+    const fresh = visit([], "/pro", "/pro?checkout=success", "load");
+    expect(backPlan(fresh, "/pro")).toEqual({ kind: "replace", href: "/settings" });
+    // a load onto a page further down the trail cuts the loop, unlinked
+    const loop = visit(walk("/", "/settings", "/pro"), "/settings", "/settings", "load");
+    expect(loop.map((e) => [e.path, e.linked])).toEqual([
+      ["/", false],
+      ["/settings", false],
+    ]);
+    // a load is never mistaken for a step back
+    const notPop = visit(walk("/", "/settings"), "/", "/", "load");
+    expect(notPop.map((e) => e.path)).toEqual(["/"]);
+  });
+
   it("with no trail, Back goes up the site structure to Home", () => {
     expect(backPlan([], "/terms")).toEqual({ kind: "replace", href: "/about" });
     expect(backPlan(walk("/about"), "/about")).toEqual({ kind: "replace", href: "/settings" });

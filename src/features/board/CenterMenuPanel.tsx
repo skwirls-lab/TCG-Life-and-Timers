@@ -17,6 +17,7 @@ import {
   Play,
   RotateCcw,
   Settings,
+  Sparkles,
   Timer,
   Users,
 } from "lucide-react";
@@ -32,7 +33,9 @@ import { startClocks } from "@/features/timer/actions";
 import { enterFullscreen, exitFullscreen, fullscreenSupported } from "@/lib/device/fullscreen";
 import { overlayStack } from "@/lib/hooks/overlayStack";
 import { useHold } from "@/lib/hooks/useHold";
+import { useEntitlements } from "@/lib/entitlements/store";
 import { t } from "@/lib/i18n";
+import { tPro } from "@/lib/i18n/pro";
 import { historyVisible } from "@/lib/records/policy";
 import { cn } from "@/lib/ui/cn";
 import { useDispatch, useGameStore, useGameValue } from "@/state/gameStore";
@@ -151,6 +154,7 @@ export function CenterMenuPanel({ leaving = false }: { leaving?: boolean }) {
   const hasMatch = useGameValue((g) => g.timer.match !== undefined) ?? false;
   const players = useGameValue((g) => g.seats.length) ?? 0;
   const settings = useSettingsStore((s) => s.settings);
+  const pro = useEntitlements((s) => s.pro);
   const showHistory = useGameValue((g) => historyVisible(settings, g)) ?? true;
   const calcOn = useGameValue((g) => shouldOpenCalculator(g.preset, g.options)) ?? false;
   const globalsKey = useGameValue((g) =>
@@ -419,6 +423,16 @@ export function CenterMenuPanel({ leaving = false }: { leaving?: boolean }) {
                   onClick={() => dispatch({ type: "ENUM_NEXT", counterId: id })}
                 />
               ))}
+              {/* Pro (this panel is a lazy chunk, so /play's first load doesn't carry it) */}
+              {!pro && (
+                <Tile
+                  testId="center-menu-pro"
+                  label={tPro("pro.menu.label")}
+                  text={tPro("pro.menu.tile")}
+                  icon={<Sparkles size={24} />}
+                  onClick={() => go("/pro")}
+                />
+              )}
             </div>
           </div>
           <div className="px-4 pb-4 pt-1">

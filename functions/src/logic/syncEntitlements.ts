@@ -10,10 +10,21 @@
  *
  * B-3: when the Auth user no longer exists (account deleted, a late Stripe webhook), nothing is
  * loaded or written: a deleted uid never gets an entitlements doc again.
- * An owner-granted entitlement (source "manual", e.g. a comp) is never revoked by Stripe.
+ * An owner-granted entitlement (source "manual", e.g. a comp) is never revoked by Stripe, and
+ * its doc is left exactly as the owner wrote it.
+ *
+ * Optional display fields (additive; older docs lack them and clients show "Pro" without dates):
+ *   plan               "monthly" | "yearly" | "lifetime" (+ "manual", which clients derive
+ *                      from the source because a manual doc is never rewritten)
+ *   currentPeriodEnd   epoch ms: the renewal date, or the end date when cancelAtPeriodEnd
+ *   cancelAtPeriodEnd  the subscription ends instead of renewing
+ *   status             the granting subscription's Stripe status
  */
 import {
+  entitlementDetails,
   entitlementsFromSubscriptions,
+  type EntitlementDetails,
+  type EntitlementPlan,
   type Entitlements,
   type PaymentLike,
   type SubscriptionLike,
@@ -37,6 +48,8 @@ export interface SyncEntitlementsDeps {
   /** Server timestamp sentinel (FieldValue.serverTimestamp()). */
   serverTimestamp: () => unknown;
   lifetimePriceIds?: ReadonlySet<string>;
+  /** Fallback plan of a price when Stripe gave no interval (billing.ts: the known price ids). */
+  planByPrice?: ReadonlyMap<string, EntitlementPlan>;
 }
 
 export interface PurchaseState {
@@ -46,6 +59,8 @@ export interface PurchaseState {
 
 export interface SyncEntitlementsResult extends Entitlements {
   uid: string;
+  /** The display fields written (empty for a manual entitlement, whose doc is kept as is). */
+  details?: EntitlementDetails;
   /** false when the stored doc already matched (no write). */
   written: boolean;
   claimUpdated: boolean;
@@ -87,10 +102,22 @@ export async function syncEntitlements(
   const ref = fs.doc(`users/${uid}/private/entitlements`);
   const cur = await ref.get();
   const prev = cur.exists ? cur.data() : undefined;
-  const ent: Entitlements =
-    prev?.source === "manual" && prev.pro === true ? { pro: true, source: "manual" } : computed;
-  const same = prev?.pro === ent.pro && prev?.source === ent.source;
-  if (!same) await ref.set({ pro: ent.pro, source: ent.source, updatedAt: deps.serverTimestamp() });
+  const manual = prev?.source === "manual" && prev.pro === true;
+  const ent: Entitlements = manual ? { pro: true, source: "manual" } : computed;
+  const details: EntitlementDetails = manual
+    ? {}
+    : entitlementDetails(ent.source, state.subscriptions, deps.planByPrice);
+  const same =
+    prev?.pro === ent.pro &&
+    prev?.source === ent.source &&
+    (manual || DETAIL_KEYS.every((k) => prev?.[k] === details[k]));
+  if (!same)
+    await ref.set({
+      pro: ent.pro,
+      source: ent.source,
+      ...details,
+      updatedAt: deps.serverTimestamp(),
+    });
 
   let claimUpdated = false;
   if (deps.auth && user) {
@@ -105,5 +132,7 @@ export async function syncEntitlements(
       }
     }
   }
-  return { uid, ...ent, written: !same, claimUpdated };
+  return { uid, ...ent, details, written: !same, claimUpdated };
 }
+
+const DETAIL_KEYS = ["plan", "currentPeriodEnd", "cancelAtPeriodEnd", "status"] as const;
