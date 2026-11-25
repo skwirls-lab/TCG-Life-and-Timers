@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  entitlementDetails,
   entitlementsFromSubscriptions,
   isLifetimePayment,
   isRevokedPayment,
   parseLifetimePriceIds,
   paymentPriceIds,
+  planOfSubscription,
 } from "../../functions/src/logic/entitlements";
 
 const none = new Set<string>();
@@ -122,5 +124,61 @@ describe("entitlementsFromSubscriptions (SEC-002)", () => {
     expect(
       entitlementsFromSubscriptions([{ status: "active" }], [{ ...ok, refunded: true }], ids),
     ).toEqual({ pro: true, source: "subscription" });
+  });
+});
+
+describe("entitlementDetails (plan, period end, cancel at period end)", () => {
+  const month = 30 * 24 * 60 * 60 * 1000;
+  it("lifetime and manual carry only the plan; none carries nothing", () => {
+    expect(entitlementDetails("lifetime", [])).toEqual({ plan: "lifetime" });
+    expect(entitlementDetails("manual", [])).toEqual({ plan: "manual" });
+    expect(entitlementDetails("none", [{ status: "past_due", interval: "month" }])).toEqual({});
+  });
+
+  it("a subscription: plan from the interval, renewal date, status", () => {
+    expect(
+      entitlementDetails("subscription", [
+        { status: "canceled", interval: "year", currentPeriodEnd: 9 * month },
+        { status: "active", interval: "month", currentPeriodEnd: month, cancelAtPeriodEnd: false },
+      ]),
+    ).toEqual({
+      plan: "monthly",
+      currentPeriodEnd: month,
+      cancelAtPeriodEnd: false,
+      status: "active",
+    });
+  });
+
+  it("picks the granting subscription that runs longest; yearly from the interval", () => {
+    expect(
+      entitlementDetails("subscription", [
+        { status: "trialing", interval: "month", currentPeriodEnd: month },
+        { status: "active", interval: "year", currentPeriodEnd: 12 * month },
+      ]),
+    ).toMatchObject({ plan: "yearly", currentPeriodEnd: 12 * month, status: "active" });
+  });
+
+  it("cancel at period end (the flag, or a scheduled cancel_at, which is the end date)", () => {
+    expect(
+      entitlementDetails("subscription", [
+        { status: "active", interval: "month", currentPeriodEnd: month, cancelAtPeriodEnd: true },
+      ]),
+    ).toMatchObject({ cancelAtPeriodEnd: true, currentPeriodEnd: month });
+    expect(
+      entitlementDetails("subscription", [
+        { status: "active", interval: "month", currentPeriodEnd: 2 * month, cancelAt: month },
+      ]),
+    ).toMatchObject({ cancelAtPeriodEnd: true, currentPeriodEnd: month });
+  });
+
+  it("falls back to the price-id config, and omits what it doesn't know", () => {
+    const byPrice = new Map([["price_y", "yearly" as const]]);
+    expect(planOfSubscription({ priceIds: ["price_x", "price_y"] }, byPrice)).toBe("yearly");
+    expect(planOfSubscription({ interval: "week", priceIds: [3] }, byPrice)).toBeUndefined();
+    expect(entitlementDetails("subscription", [{ status: "active" }])).toEqual({
+      status: "active",
+      cancelAtPeriodEnd: false,
+    });
+    expect(entitlementDetails("subscription", [{ status: "past_due" }])).toEqual({});
   });
 });

@@ -52,7 +52,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
 export function UnlockLink({ testId }: { testId?: string }) {
   return (
     <Link
-      href="/account"
+      href="/pro"
       className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-accent px-4 font-medium text-accent-fg"
       data-testid={testId}
     >

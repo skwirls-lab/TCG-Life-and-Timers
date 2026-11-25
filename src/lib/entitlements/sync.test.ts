@@ -12,6 +12,7 @@ import {
   type CacheStore,
   type EntitlementCache,
 } from "./cache";
+import type { ProDetails } from "./details";
 import {
   proFromDoc,
   resetPaymentsForTests,
@@ -147,7 +148,17 @@ describe("startPayments (T7.2)", () => {
     expect(h.pro.value).toBe(false); // cached snapshots don't verify
     h.remote.serverWrite(entPath("u1"), { pro: true, source: "subscription" });
     expect(h.pro.value).toBe(true);
-    expect(h.cache.value).toEqual({ uid: "u1", pro: true, verifiedAt: T0 });
+    expect(h.cache.value).toEqual({
+      uid: "u1",
+      pro: true,
+      verifiedAt: T0,
+      details: {
+        plan: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        source: "subscription",
+      },
+    });
 
     h.advance(DAY);
     h.remote.serverWrite(entPath("u1"), { pro: false, source: "none" });
@@ -156,6 +167,68 @@ describe("startPayments (T7.2)", () => {
 
     h.setAuth({ uid: "u1", initialized: true }); // same user: listener kept
     expect(h.remote.listeners).toHaveLength(1);
+  });
+
+  // @req PAY-002
+  it("mirrors the plan details (and caches them for offline), clearing them when Pro ends", async () => {
+    const details: ProDetails[] = [];
+    const h = harness(null);
+    resetPaymentsForTests();
+    const session = startPayments({
+      remote: h.remote,
+      cache: h.cache,
+      now: () => T0,
+      authState: () => ({ uid: "u1", initialized: true }),
+      subscribeAuth: () => () => {},
+      setPro: () => {},
+      setDetails: (d) => d && details.push(d),
+      refreshToken: async () => {},
+    });
+    await session.ready;
+    const end = T0 + 30 * DAY;
+    h.remote.serverWrite(entPath("u1"), {
+      pro: true,
+      source: "subscription",
+      plan: "monthly",
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: true,
+    });
+    expect(details.at(-1)).toEqual({
+      plan: "monthly",
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: true,
+      source: "subscription",
+    });
+    expect(h.cache.value?.details?.plan).toBe("monthly");
+    h.remote.serverWrite(entPath("u1"), { pro: false, source: "none" });
+    expect(h.cache.value).not.toHaveProperty("details");
+    session.stop();
+
+    // Offline start-up: the cached details come back with the cached Pro.
+    const set: (ProDetails | null)[] = [];
+    const cached = memCache({
+      uid: "u1",
+      pro: true,
+      verifiedAt: T0,
+      details: {
+        plan: "yearly",
+        currentPeriodEnd: end,
+        cancelAtPeriodEnd: false,
+        source: "subscription",
+      },
+    });
+    const offline = startPayments({
+      remote: h.remote,
+      cache: cached,
+      now: () => T0 + DAY,
+      authState: () => ({ uid: null, initialized: false }),
+      subscribeAuth: () => () => {},
+      setPro: () => {},
+      setDetails: (d) => set.push(d),
+      refreshToken: async () => {},
+    });
+    await offline.ready;
+    expect(set.at(-1)?.plan).toBe("yearly");
   });
 
   // @req PAY-003

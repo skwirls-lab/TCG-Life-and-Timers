@@ -8,6 +8,7 @@ import { getAuth, type Auth } from "firebase-admin/auth";
 import { FieldValue, Timestamp, getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   BillingError,
+  DEFAULT_PRICE_IDS,
   HANDLED_EVENTS,
   REFRESH_INTERVAL_MS,
   createCheckoutSession,
@@ -379,6 +380,36 @@ describe("stripeWebhook", () => {
     expect(marker).toMatchObject({ type: "customer.subscription.created", matched: true });
     expect(marker.expireAt).toBeInstanceOf(Timestamp);
     expect((marker.expireAt as Timestamp).toMillis()).toBe(clock + 30 * 24 * 3600 * 1000);
+  });
+
+  // @req PAY-002
+  it("writes the plan and renewal details from the subscription in Stripe", async () => {
+    await linkCustomer("cus_1");
+    stripe.addSubscription("cus_1", "active", "sub_y", U);
+    const end = clock + 365 * 24 * 3600 * 1000;
+    Object.assign(stripe.subscriptions.get("sub_y")!, {
+      interval: "year",
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: true,
+    });
+    await deliver(signedEvent("customer.subscription.updated", { id: "sub_y", customer: "cus_1" }));
+    expect(await entitlement()).toMatchObject({
+      pro: true,
+      source: "subscription",
+      plan: "yearly",
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: true,
+      status: "active",
+    });
+  });
+
+  // @req PAY-002
+  it("falls back to the known price ids for the plan when Stripe gives no interval", async () => {
+    await linkCustomer("cus_1");
+    stripe.addSubscription("cus_1", "active", "sub_m", U);
+    stripe.subscriptions.get("sub_m")!.priceIds = [DEFAULT_PRICE_IDS[1]];
+    await deliver(signedEvent("invoice.paid", { id: "in_9", customer: "cus_1" }));
+    expect(await entitlement()).toMatchObject({ plan: "yearly", cancelAtPeriodEnd: false });
   });
 
   // @req PAY-003

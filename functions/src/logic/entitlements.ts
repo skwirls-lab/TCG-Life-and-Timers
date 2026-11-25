@@ -28,6 +28,23 @@ export interface Entitlements {
 
 export interface SubscriptionLike {
   status?: unknown;
+  /** Optional details (from Stripe, ./stripe.ts mapSubscription) for the plan / renewal display. */
+  interval?: unknown;
+  priceIds?: ReadonlyArray<unknown> | null;
+  currentPeriodEnd?: unknown;
+  cancelAtPeriodEnd?: unknown;
+  cancelAt?: unknown;
+}
+
+/** What the entitlement is, for display (optional fields of the entitlements doc). */
+export type EntitlementPlan = "monthly" | "yearly" | "lifetime" | "manual";
+export interface EntitlementDetails {
+  plan?: EntitlementPlan;
+  /** epoch ms: renews (or, with cancelAtPeriodEnd, ends) at this time */
+  currentPeriodEnd?: number;
+  cancelAtPeriodEnd?: boolean;
+  /** the granting subscription's Stripe status (active | trialing) */
+  status?: string;
 }
 type PriceRef = string | { id?: unknown } | null | undefined;
 export interface PaymentLike {
@@ -95,4 +112,52 @@ export function entitlementsFromSubscriptions(
     return { pro: true, source: "subscription" };
   }
   return { pro: false, source: "none" };
+}
+
+const msOrNull = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.round(v) : null;
+
+/** "month" → monthly, "year" → yearly; otherwise the price-id config, else unknown. */
+export function planOfSubscription(
+  s: SubscriptionLike,
+  planByPrice: ReadonlyMap<string, EntitlementPlan> = new Map(),
+): EntitlementPlan | undefined {
+  if (s.interval === "month") return "monthly";
+  if (s.interval === "year") return "yearly";
+  for (const id of s.priceIds ?? []) {
+    const p = typeof id === "string" ? planByPrice.get(id) : undefined;
+    if (p) return p;
+  }
+  return undefined;
+}
+
+/**
+ * Display details for an entitlement (the doc's optional fields). For a subscription: the
+ * granting (active / trialing) subscription that runs longest, with its plan, period end,
+ * cancel-at-period-end (also when the portal scheduled `cancel_at` instead) and status. Pure.
+ */
+export function entitlementDetails(
+  source: EntitlementSource,
+  subs: ReadonlyArray<SubscriptionLike>,
+  planByPrice?: ReadonlyMap<string, EntitlementPlan>,
+): EntitlementDetails {
+  if (source === "lifetime") return { plan: "lifetime" };
+  if (source === "manual") return { plan: "manual" };
+  if (source !== "subscription") return {};
+  const end = (s: SubscriptionLike) => msOrNull(s.currentPeriodEnd) ?? 0;
+  let best: SubscriptionLike | undefined;
+  for (const s of subs) {
+    if (typeof s.status !== "string" || !PRO_SUB_STATUSES.has(s.status)) continue;
+    if (!best || end(s) > end(best)) best = s;
+  }
+  if (!best) return {};
+  const out: EntitlementDetails = { status: String(best.status) };
+  const plan = planOfSubscription(best, planByPrice);
+  if (plan) out.plan = plan;
+  const cancelAt = msOrNull(best.cancelAt);
+  // A scheduled cancellation is when access ends; otherwise the period end is the renewal.
+  const periodEnd = cancelAt ?? msOrNull(best.currentPeriodEnd);
+  if (periodEnd !== null) out.currentPeriodEnd = periodEnd;
+  out.cancelAtPeriodEnd = best.cancelAtPeriodEnd === true || cancelAt !== null;
+  return out;
 }

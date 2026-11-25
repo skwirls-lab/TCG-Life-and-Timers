@@ -86,7 +86,7 @@ export function GamesTab({ records, numbers, limit, onOpen }: Props) {
         {more > 0 && (
           <li>
             <Link
-              href="/account"
+              href="/pro"
               className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-dashed border-warning/60 px-3 text-center text-warning"
               data-testid="games-more-locked"
             >

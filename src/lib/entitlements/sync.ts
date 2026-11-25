@@ -2,7 +2,7 @@
 /**
  * Entitlement sync (T7.2, PAY-003): while a user is signed in, listen to
  * `users/{uid}/private/entitlements` (written by the payment functions: Stripe webhook, refreshEntitlements) and mirror
- * `pro` into the entitlement store. Every server-confirmed read is cached in Dexie kv; offline,
+ * `pro` into the entitlement store (and the plan / renewal details into ./details.ts). Every server-confirmed read is cached in Dexie kv; offline,
  * the cached Pro stays valid for 14 days after the last verification (GRACE_MS).
  *
  * `startPayments()` is idempotent; the cloud start-up (startCloud) and PaywallHost call it.
@@ -21,6 +21,7 @@ import {
   type CacheStore,
   type EntitlementCache,
 } from "./cache";
+import { detailsFromDoc, useProDetails, type ProDetails } from "./details";
 import { firebaseRemote, type RemotePort } from "./remote";
 import { useEntitlements } from "./store";
 
@@ -36,6 +37,8 @@ export interface PaymentsDeps {
   authState: () => AuthView;
   subscribeAuth: (cb: () => void) => () => void;
   setPro: (pro: boolean) => void;
+  /** Plan / renewal display details (null when not Pro or unknown). */
+  setDetails: (details: ProDetails | null) => void;
   /** Force-refresh the signed-in user's ID token (new custom claims). */
   refreshToken: () => Promise<void>;
 }
@@ -56,6 +59,7 @@ const defaultDeps = (): PaymentsDeps => ({
   },
   subscribeAuth: (cb) => useAuth.subscribe(cb),
   setPro: (pro) => useEntitlements.getState().setPro(pro),
+  setDetails: (details) => useProDetails.getState().setDetails(details),
   refreshToken: refreshIdToken,
 });
 
@@ -90,17 +94,25 @@ export function startPayments(overrides: Partial<PaymentsDeps> = {}): Session {
     listenUid = null;
   };
 
+  /** Pro (+ its details) from the cache, as proFromCache decides. */
+  const applyCache = (uid?: string | null) => {
+    const pro = proFromCache(cache, deps.now(), uid);
+    deps.setPro(pro);
+    deps.setDetails(pro ? (cache?.details ?? null) : null);
+  };
+
   const onAuth = () => {
     if (stopped) return;
     const { uid, initialized } = deps.authState();
     if (!initialized) {
       // Auth not known yet (offline start-up): trust a fresh cache for now (PAY-003).
-      deps.setPro(proFromCache(cache, deps.now()));
+      applyCache();
       return;
     }
     if (!uid) {
       stopDoc();
       deps.setPro(false);
+      deps.setDetails(null);
       return;
     }
     if (listenUid === uid) return;
@@ -108,17 +120,19 @@ export function startPayments(overrides: Partial<PaymentsDeps> = {}): Session {
     listenUid = uid;
     // The last server-confirmed value for this user (from the cache, if it is theirs).
     let lastPro: boolean | null = cache?.uid === uid ? cache.pro : null;
-    deps.setPro(proFromCache(cache, deps.now(), uid));
+    applyCache(uid);
     unsubDoc = deps.remote.onDoc(
       paths.entitlements(uid),
       (snap) => {
         if (snap.fromCache || listenUid !== uid) return; // only server-confirmed reads verify
         const pro = proFromDoc(snap.data);
+        const details = detailsFromDoc(snap.data);
         deps.setPro(pro);
+        deps.setDetails(details);
         if (lastPro === null ? pro : lastPro !== pro)
           deps.refreshToken().catch((e: unknown) => warn("pay: token refresh failed", e));
         lastPro = pro;
-        cache = { uid, pro, verifiedAt: deps.now() };
+        cache = { uid, pro, verifiedAt: deps.now(), ...(details ? { details } : {}) };
         deps.cache.write(cache).catch((e: unknown) => warn("pay: cache write failed", e));
       },
       (err) => warn("pay: entitlement listener failed (keeping cached state)", err),

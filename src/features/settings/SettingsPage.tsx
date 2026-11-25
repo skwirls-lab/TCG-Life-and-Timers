@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Button, PageShell, SectionHeader, Sheet } from "@/components/ui";
 import { usePageBoot } from "@/features/app-effects/usePageBoot";
+import { SettingsProCard } from "@/features/paywall/SettingsProCard";
 import { PresetList } from "@/features/setup/PresetList";
 import { t } from "@/lib/i18n";
 import { afterOverlayClose } from "./afterOverlayClose";
@@ -81,6 +82,8 @@ export function SettingsPage() {
 
   return (
     <PageShell title={t("shell.settings.title")} testId="settings">
+      {/* Pro status first (the "Support this app" row in section H stays) */}
+      <SettingsProCard />
       <p className="mt-3 text-sm text-fg-muted" data-testid="settings-scope">
         {ctx.game
           ? t("shell.settings.scope.game", { preset: ctx.preset.name })

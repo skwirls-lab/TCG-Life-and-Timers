@@ -154,6 +154,70 @@ describe("syncEntitlements (T7.2)", () => {
     expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, source: "manual" });
   });
 
+  it("a manual comp wins over a subscription and its doc is left as the owner wrote it", async () => {
+    await db
+      .doc(`users/${U}/private/entitlements`)
+      .set({ pro: true, source: "manual", note: "gift", updatedAt: FieldValue.serverTimestamp() });
+    state.subscriptions.push({ status: "active", interval: "year", currentPeriodEnd: 5e12 });
+    expect(await syncEntitlements(deps, U)).toMatchObject({
+      pro: true,
+      source: "manual",
+      written: false,
+    });
+    const doc = await entitlement();
+    expect(doc).toMatchObject({ pro: true, source: "manual", note: "gift" });
+    expect(doc).not.toHaveProperty("plan");
+  });
+
+  it("writes the plan, renewal date, cancel flag and status (additive fields)", async () => {
+    const end = Date.UTC(2027, 0, 15);
+    state.subscriptions.push({
+      status: "active",
+      interval: "month",
+      priceIds: ["price_monthly"],
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: false,
+    });
+    expect(await syncEntitlements(deps, U)).toMatchObject({
+      pro: true,
+      details: { plan: "monthly", currentPeriodEnd: end },
+    });
+    expect(await entitlement()).toMatchObject({
+      pro: true,
+      source: "subscription",
+      plan: "monthly",
+      currentPeriodEnd: end,
+      cancelAtPeriodEnd: false,
+      status: "active",
+    });
+
+    // Canceling in the portal (at period end): still Pro, the doc says so.
+    state.subscriptions[0]!.cancelAtPeriodEnd = true;
+    expect(await syncEntitlements(deps, U)).toMatchObject({ pro: true, written: true });
+    expect(await entitlement()).toMatchObject({ cancelAtPeriodEnd: true, currentPeriodEnd: end });
+    // Unchanged details: no rewrite.
+    expect(await syncEntitlements(deps, U)).toMatchObject({ written: false });
+  });
+
+  it("upgrades an old doc without the new fields on the next sync", async () => {
+    await db
+      .doc(`users/${U}/private/entitlements`)
+      .set({ pro: true, source: "subscription", updatedAt: FieldValue.serverTimestamp() });
+    state.subscriptions.push({ status: "active", interval: "year", currentPeriodEnd: 4e12 });
+    expect(await syncEntitlements(deps, U)).toMatchObject({ written: true });
+    expect(await entitlement()).toMatchObject({ plan: "yearly", currentPeriodEnd: 4e12 });
+  });
+
+  it("losing Pro drops the plan fields", async () => {
+    state.subscriptions.push({ status: "active", interval: "month", currentPeriodEnd: 4e12 });
+    await syncEntitlements(deps, U);
+    state.subscriptions = [{ status: "canceled", interval: "month", currentPeriodEnd: 4e12 }];
+    await syncEntitlements(deps, U);
+    const doc = await entitlement();
+    expect(doc).toMatchObject({ pro: false, source: "none" });
+    expect(Object.keys(doc!).sort()).toEqual(["pro", "source", "updatedAt"]);
+  });
+
   // @req AUTH-005
   it("B-3: never writes entitlements for a deleted Auth user (late Stripe webhook)", async () => {
     await auth.deleteUser(U);

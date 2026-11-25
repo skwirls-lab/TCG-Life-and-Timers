@@ -14,6 +14,8 @@ let memory: TrailEntry[] | null = null;
 let replacing = false;
 /** Set by popstate (browser Back/Forward, router.back()) before the route change is rendered. */
 let popped = false;
+/** Set when this document came from a full page load that wasn't Back/Forward (see NavKind). */
+let loaded = false;
 let listening = false;
 
 function listen(): void {
@@ -22,11 +24,17 @@ function listen(): void {
   window.addEventListener("popstate", () => {
     popped = true;
   });
-  // A full page load that came from Back/Forward counts as a pop too.
+  // A full page load that came from Back/Forward counts as a pop too. Any other full load (and a
+  // reload of a page another site sent us to) may sit on top of another site's history entry.
   try {
-    const nav = performance.getEntriesByType("navigation")[0] as
-      PerformanceNavigationTiming | undefined;
-    if (nav?.type === "back_forward") popped = true;
+    const type = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming)
+      ?.type;
+    if (type === "back_forward") popped = true;
+    else if (
+      type === "navigate" ||
+      (type === "reload" && !!document.referrer && !document.referrer.startsWith(location.origin))
+    )
+      loaded = true;
   } catch {
     /* no Navigation Timing: treat the first load as a push */
   }
@@ -54,9 +62,10 @@ function save(trail: TrailEntry[]): void {
 }
 
 export function recordVisit(path: string, href: string): void {
-  const kind: NavKind = replacing ? "replace" : popped ? "pop" : "push";
+  const kind: NavKind = replacing ? "replace" : popped ? "pop" : loaded ? "load" : "push";
   replacing = false;
   popped = false;
+  loaded = false;
   save(visit(load(), path, href, kind));
 }
 
@@ -76,6 +85,12 @@ export function NavTracker(): null {
     recordVisit(pathname, q ? `${pathname}?${q}` : pathname);
   }, [pathname, search]);
   return null;
+}
+
+/** router.replace that the trail records as a replace (e.g. dropping a handled query string). */
+export function replaceRoute(router: { replace: (href: string) => void }, href: string): void {
+  replacing = true;
+  router.replace(href);
 }
 
 /**

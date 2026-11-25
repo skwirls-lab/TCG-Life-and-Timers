@@ -1,7 +1,8 @@
 "use client";
 /**
  * /account (PRD §13.1-G): sign in with Google (optional), sync status, sign out with "Remove my
- * data from this device", export, delete account, feedback link. Works without cloud config.
+ * data from this device", export, delete account, feedback link, and the Pro status (plan,
+ * renewal, Manage subscription / Upgrade). Works without cloud config.
  */
 import {
   ChevronRight,
@@ -22,6 +23,7 @@ import { signInWithGoogle, signOut, useAuth } from "@/lib/auth/store";
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
 import { describeSyncStatus, useSyncStatus } from "@/lib/sync/status";
+import { AccountProSection } from "@/features/paywall/AccountProSection";
 import { RestorePurchases } from "@/features/paywall/RestorePurchases";
 import { MergePrompt } from "./MergePrompt";
 
@@ -55,6 +57,7 @@ export function AccountScreen() {
         </p>
       )}
       <MergePrompt />
+      <AccountProSection />
       <DataSection />
       <SectionHeader title={t("account.section.support")} />
       <Link

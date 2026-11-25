@@ -1,11 +1,12 @@
 "use client";
 /**
- * Plans + "Restore purchase(s)" + "Manage subscription" (PAY-002, PAY-004). Buttons are disabled,
+ * Plans + "Restore purchase(s)" (PAY-002, PAY-004), or "You're Pro" (./ProState: plan, renewal,
+ * Manage subscription) for a Pro account. Buy buttons are disabled,
  * with the reason shown, when this deployment can't sell (no cloud config / no Stripe price ids)
  * or the device is offline. Guests restore by signing in; signed-in users get Restore purchases
  * (a server re-check against Stripe).
  */
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui";
 import { signInWithGoogle, useAuth } from "@/lib/auth/store";
 import { rememberCheckoutPlan } from "@/lib/entitlements/purchaseTracking";
@@ -21,24 +22,9 @@ import {
 import { isCloudConfigured } from "@/lib/firebase/config";
 import { t, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/ui/cn";
+import { ProState } from "./ProState";
 import { RestorePurchases } from "./RestorePurchases";
-
-function subscribeOnline(cb: () => void): () => void {
-  window.addEventListener("online", cb);
-  window.addEventListener("offline", cb);
-  return () => {
-    window.removeEventListener("online", cb);
-    window.removeEventListener("offline", cb);
-  };
-}
-
-function useOnline(): boolean {
-  return useSyncExternalStore(
-    subscribeOnline,
-    () => navigator.onLine,
-    () => true,
-  );
-}
+import { useOnline } from "./useOnline";
 
 const STATUS_TEXT: Record<Exclude<SalesStatus, "ready">, MessageKey> = {
   cloudMissing: "pay.plans.cloudMissing",
@@ -47,12 +33,17 @@ const STATUS_TEXT: Record<Exclude<SalesStatus, "ready">, MessageKey> = {
 
 type Busy = { kind: "idle" } | { kind: "working"; text: string } | { kind: "error"; text: string };
 
+/** The plans, or "You're Pro" (no purchase buttons) when the account is Pro. */
 export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
+  const pro = useEntitlements((s) => s.pro);
+  return pro ? <ProState testId={testId} /> : <Plans testId={testId} />;
+}
+
+function Plans({ testId }: { testId: string }) {
   const online = useOnline();
   const cloud = isCloudConfigured();
   const plans = plansToShow(readPlans());
   const status = salesStatus(cloud, plans);
-  const pro = useEntitlements((s) => s.pro);
   const user = useAuth((s) => s.user);
   const [busy, setBusy] = useState<Busy>({ kind: "idle" });
   const signedIn = !!user && !user.isAnonymous;
@@ -70,15 +61,6 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
     } else if (res.status === "needsSignIn")
       setBusy({ kind: "error", text: t("pay.checkout.signInFirst") });
     else setBusy({ kind: "error", text: t("pay.checkout.error", { error: res.error }) });
-  };
-
-  const manage = async () => {
-    setBusy({ kind: "working", text: t("pay.manage.opening") });
-    const { openPortal } = await import("@/lib/entitlements/checkout");
-    const res = await openPortal();
-    if (res.status === "noCustomer") setBusy({ kind: "error", text: t("pay.manage.noCustomer") });
-    else if (res.status === "unavailable")
-      setBusy({ kind: "error", text: t("pay.manage.unavailable") });
   };
 
   const blockedText =
@@ -153,16 +135,6 @@ export function PurchasePanel({ testId = "paywall" }: { testId?: string }) {
       )}
       {signedIn && (
         <RestorePurchases testId={`${testId}-restore-purchases`} disabled={!online || !cloud} />
-      )}
-      {signedIn && pro && (
-        <Button
-          variant="outline"
-          disabled={!online}
-          onClick={() => void manage()}
-          data-testid={`${testId}-manage`}
-        >
-          {t("pay.manage")}
-        </Button>
       )}
     </section>
   );

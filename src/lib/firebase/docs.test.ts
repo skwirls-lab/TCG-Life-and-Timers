@@ -130,6 +130,18 @@ describe("firestore doc schemas (SEC-003)", () => {
     expect(
       entitlementsDocSchema.safeParse({ pro: "yes", source: "x", updatedAt: ts }).success,
     ).toBe(false);
+    // Additive plan details (written by syncEntitlements).
+    const full = {
+      pro: true,
+      source: "subscription",
+      updatedAt: ts,
+      plan: "yearly",
+      currentPeriodEnd: 1_800_000_000_000,
+      cancelAtPeriodEnd: false,
+      status: "active",
+    };
+    expect(entitlementsDocSchema.safeParse(full).success).toBe(true);
+    expect(entitlementsDocSchema.safeParse({ ...full, plan: "weekly" }).success).toBe(false);
   });
 
   // @req CUS-007

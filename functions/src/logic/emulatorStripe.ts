@@ -65,12 +65,18 @@ export function emulatorStripe(fs: EmulatorFirestore): StripePort {
       if (!s) throw new Error("no such customer");
       const id = nextId("cs");
       if (p.mode === "subscription") {
+        const yearly = /year/i.test(p.priceId);
+        const day = 24 * 60 * 60 * 1000;
         s.subscriptions.push({
           id: nextId("sub"),
           status: "active",
           customer: p.customer,
           priceIds: [p.priceId],
           metadata: { firebaseUID: p.uid },
+          interval: yearly ? "year" : "month",
+          currentPeriodEnd: Date.now() + (yearly ? 365 : 30) * day,
+          cancelAtPeriodEnd: false,
+          cancelAt: null,
         });
       } else {
         s.payments.push({
