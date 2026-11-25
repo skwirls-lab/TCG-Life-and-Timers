@@ -1,7 +1,14 @@
 name: CI
+# Full test suite on main, on pull requests, and by hand (Actions → CI → Run workflow).
+# Not on every branch push (that doubled the minutes when work branches were pushed alongside
+# main), and not for docs-only changes. A newer run on the same ref cancels the older one.
 on:
   push:
+    branches: [main]
+    paths-ignore: ["**/*.md", "docs/**", "LICENSE"]
   pull_request:
+    paths-ignore: ["**/*.md", "docs/**", "LICENSE"]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
