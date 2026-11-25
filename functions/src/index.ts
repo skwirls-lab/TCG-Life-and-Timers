@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from "firebase-admin/app";
+import { ensureDefaultApp } from "./logic/adminApp";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, type DocumentReference } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -47,7 +48,7 @@ const STRIPE_AUTOMATIC_TAX = defineBoolean("STRIPE_AUTOMATIC_TAX", { default: fa
 const isEmulator = () => process.env.FUNCTIONS_EMULATOR === "true";
 
 function admin() {
-  if (getApps().length === 0) initializeApp();
+  ensureDefaultApp(getApps, initializeApp);
   return { firestore: getFirestore(), auth: getAuth(), bucket: getStorage().bucket() };
 }
 
