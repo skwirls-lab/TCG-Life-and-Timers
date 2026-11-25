@@ -48,7 +48,7 @@ export function AccountProSection() {
           {subscription && (
             <Button
               variant="outline"
-              disabled={manage.state.kind === "working"}
+              disabled={manage.disabled}
               onClick={() => void manage.open()}
               data-testid="account-pro-manage"
             >

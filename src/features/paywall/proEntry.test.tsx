@@ -2,6 +2,7 @@
 // @req PAY-002 @req PAY-004
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useAuth } from "@/lib/auth/store";
 import { useProDetails, type ProDetails } from "@/lib/entitlements/details";
 import { useEntitlements } from "@/lib/entitlements/store";
 import { AccountProSection } from "./AccountProSection";
@@ -42,6 +43,7 @@ afterEach(() => {
   vi.useRealTimers();
   useEntitlements.setState({ pro: false, policy: "ALL_FREE" });
   useProDetails.setState({ details: null, known: false });
+  useAuth.setState({ user: null });
 });
 
 describe("plan and renewal text", () => {
@@ -112,6 +114,13 @@ describe("Settings card, Account section and You're Pro", () => {
     expect(screen.getByTestId("settings-pro-card").textContent).toContain("Upgrade");
     setPro(true, monthly);
     expect(screen.getByTestId("settings-pro-status").textContent).toBe("Pro · Monthly");
+    // Manage waits for the signed-in account
+    expect(screen.getByTestId("settings-pro-manage").hasAttribute("disabled")).toBe(true);
+    act(() =>
+      useAuth.setState({
+        user: { uid: "g", email: "g@x", displayName: null, photoURL: null, isAnonymous: false },
+      }),
+    );
     expect(screen.getByTestId("settings-pro-renewal").textContent).toContain("Renews on");
     await act(async () => fireEvent.click(screen.getByTestId("settings-pro-manage")));
     expect(openPortal).toHaveBeenCalled();

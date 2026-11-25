@@ -5,6 +5,7 @@
  * "Support TCGTempo" and never claims a feature is locked), and the plan details.
  */
 import { useState } from "react";
+import { useAuth } from "@/lib/auth/store";
 import { useProDetails, type ProDetails } from "@/lib/entitlements/details";
 import type { Policy } from "@/lib/entitlements/policy";
 import { useEntitlements } from "@/lib/entitlements/store";
@@ -48,8 +49,14 @@ export type ManageState =
   { kind: "idle" } | { kind: "working" } | { kind: "error"; reason: "noCustomer" | "unavailable" };
 
 /** "Manage subscription": the Stripe Billing Portal (lazy-loads the checkout module). */
-export function useManageSubscription(): { state: ManageState; open: () => Promise<void> } {
+export function useManageSubscription(): {
+  state: ManageState;
+  open: () => Promise<void>;
+  /** true until a (non-anonymous) account is signed in, and while the portal opens */
+  disabled: boolean;
+} {
   const [state, setState] = useState<ManageState>({ kind: "idle" });
+  const signedIn = useAuth((s) => !!s.user && !s.user.isAnonymous);
   const open = async () => {
     setState({ kind: "working" });
     const { openPortal } = await import("@/lib/entitlements/checkout");
@@ -57,5 +64,5 @@ export function useManageSubscription(): { state: ManageState; open: () => Promi
     if (res.status === "noCustomer" || res.status === "unavailable")
       setState({ kind: "error", reason: res.status });
   };
-  return { state, open };
+  return { state, open, disabled: !signedIn || state.kind === "working" };
 }

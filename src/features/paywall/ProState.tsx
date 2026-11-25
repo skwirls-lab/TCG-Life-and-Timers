@@ -74,7 +74,7 @@ export function ProState({ testId }: { testId: string }) {
         {subscription && (
           <Button
             variant="primary"
-            disabled={!cloud || !online || manage.state.kind === "working"}
+            disabled={!cloud || !online || manage.disabled}
             onClick={() => void manage.open()}
             data-testid={`${testId}-manage`}
           >

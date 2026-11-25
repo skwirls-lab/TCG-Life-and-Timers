@@ -198,6 +198,7 @@ test.describe("pay @emu", () => {
 
     // Manage subscription opens the Billing Portal.
     await page.goto("/pro");
+    await expect(page.getByTestId("pro-manage")).toBeEnabled({ timeout: 15_000 }); // signed in
     await page.getByTestId("pro-manage").click();
     await expect(page).toHaveURL(/\/pro\?portal=emulator$/, { timeout: 20_000 });
   });
@@ -225,13 +226,11 @@ test.describe("pay @emu", () => {
     await seedStripeSubscription(uid);
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "0");
     await page.getByTestId("pro-restore-purchases").click();
-    await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(
-      "Pro is active on this account.",
-      { timeout: 15_000 },
-    );
+    // The listener flips Pro: the plans give way to "You're Pro" (with its own Restore button).
     await expect(page.getByTestId("pro-status")).toHaveAttribute("data-pro", "1", {
       timeout: 15_000,
     });
+    await expect(page.getByTestId("pro-pro-state")).toBeVisible();
     // Rate limit (once per 30 s): a second check right away is refused politely.
     await page.getByTestId("pro-restore-purchases").click();
     await expect(page.getByTestId("pro-restore-purchases-result")).toContainText(

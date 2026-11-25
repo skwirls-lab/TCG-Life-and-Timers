@@ -95,7 +95,7 @@ export function SettingsProCard() {
           <button
             type="button"
             onClick={() => void manage.open()}
-            disabled={manage.state.kind === "working"}
+            disabled={manage.disabled}
             aria-label={t("pay.manage")}
             className="min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold text-accent ring-1 ring-accent/50 hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
             data-testid="settings-pro-manage"
